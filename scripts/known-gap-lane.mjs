@@ -36,14 +36,14 @@ import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { REPO_ROOT } from './lib/cli.mjs';
 import { classifyCall, literalText, parseSpecFile, specFiles, ts } from './lib/corpus.mjs';
-import { runLane } from './lib/playwright-lane.mjs';
 import {
   GATE_ENV,
   assertZeroRetries,
   errorLine,
   formatTable,
   retriedRecords,
-} from './flake-lane.mjs';
+  runLane,
+} from './lib/playwright-lane.mjs';
 
 export const KNOWN_GAP_TAG = '@known-gap';
 const HELPER = 'knownGap';

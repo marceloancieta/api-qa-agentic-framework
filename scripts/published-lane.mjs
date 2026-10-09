@@ -35,7 +35,6 @@ import { pathToFileURL } from 'node:url';
 import { REPO_ROOT, resolveSpecSource } from './lib/cli.mjs';
 import { parseSpecFile, specFiles } from './lib/corpus.mjs';
 import { loadModel } from './lib/openapi.mjs';
-import { runLane } from './lib/playwright-lane.mjs';
 import { loadRegistries } from './lib/registry.mjs';
 import { computeDigest, diffDigests, digestPath } from './swagger-digest.mjs';
 import {
@@ -45,7 +44,8 @@ import {
   errorLine,
   formatTable,
   retriedRecords,
-} from './flake-lane.mjs';
+  runLane,
+} from './lib/playwright-lane.mjs';
 
 const CASE_ID = /^(TC-[A-Z][A-Z0-9]*-\d+)\b/;
 export const PROBLEM_VERDICTS = new Set(['failed', 'not-run', 'missing']);
