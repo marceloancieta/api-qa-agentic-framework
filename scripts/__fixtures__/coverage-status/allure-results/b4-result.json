@@ -1,0 +1,14 @@
+{
+  "name": "TC-ITEM-03 creates an item with only its name",
+  "status": "failed",
+  "testCaseId": "shop-v1-TC-ITEM-03",
+  "start": 1000001000020,
+  "stop": 1000001000060,
+  "labels": [
+    {
+      "name": "parentSuite",
+      "value": "Shop (fixture)"
+    }
+  ],
+  "links": []
+}

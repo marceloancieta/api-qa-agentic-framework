@@ -1,0 +1,14 @@
+{
+  "name": "TC-ITEM-10 refuses an overlong name",
+  "status": "skipped",
+  "testCaseId": "shop-v1-TC-ITEM-10",
+  "start": 1000001000030,
+  "stop": 1000001000030,
+  "labels": [
+    {
+      "name": "parentSuite",
+      "value": "Shop (fixture)"
+    }
+  ],
+  "links": []
+}

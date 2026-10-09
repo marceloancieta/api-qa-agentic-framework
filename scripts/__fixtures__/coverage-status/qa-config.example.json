@@ -1,0 +1,7 @@
+{
+  "api": {
+    "default_environment": "local",
+    "environments": { "local": { "base_url": "http://localhost:9999" } }
+  },
+  "tracker": { "key_pattern": "BUG-\\d+", "issue_url": "https://tracker.invalid/{key}" }
+}

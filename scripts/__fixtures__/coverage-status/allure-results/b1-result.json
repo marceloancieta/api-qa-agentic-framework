@@ -1,0 +1,14 @@
+{
+  "name": "TC-ITEM-08 reads an item back",
+  "status": "failed",
+  "testCaseId": "shop-v1-TC-ITEM-08",
+  "start": 1000001000000,
+  "stop": 1000001000100,
+  "labels": [
+    {
+      "name": "parentSuite",
+      "value": "Shop (fixture)"
+    }
+  ],
+  "links": []
+}

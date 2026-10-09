@@ -1,0 +1,31 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Shop", "version": "1.0.0" },
+  "paths": {
+    "/items": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": { "name": { "type": "string", "maxLength": 40 } }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" }, "400": { "description": "Invalid" } }
+      }
+    },
+    "/items/{itemId}": {
+      "get": {
+        "parameters": [
+          { "name": "itemId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Found" }, "404": { "description": "Missing" } }
+      }
+    }
+  }
+}

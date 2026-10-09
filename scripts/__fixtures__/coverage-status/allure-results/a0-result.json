@@ -1,0 +1,14 @@
+{
+  "name": "TC-ITEM-09 reads an unknown item",
+  "status": "passed",
+  "testCaseId": "shop-v1-TC-ITEM-09",
+  "start": 1000000000000,
+  "stop": 1000000000500,
+  "labels": [
+    {
+      "name": "parentSuite",
+      "value": "Shop (fixture)"
+    }
+  ],
+  "links": []
+}

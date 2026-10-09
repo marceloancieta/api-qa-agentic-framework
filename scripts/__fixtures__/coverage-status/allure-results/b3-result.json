@@ -1,0 +1,14 @@
+{
+  "name": "TC-ITEM-13 armed but passing",
+  "status": "passed",
+  "testCaseId": "shop-v1-TC-ITEM-13",
+  "start": 1000001000010,
+  "stop": 1000001000050,
+  "labels": [
+    {
+      "name": "parentSuite",
+      "value": "Shop (fixture)"
+    }
+  ],
+  "links": []
+}
