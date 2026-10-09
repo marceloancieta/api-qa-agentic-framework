@@ -12,10 +12,7 @@ const SCRIPT = join(import.meta.dirname, '..', 'lint-docs.mjs');
 
 // Known defects in the current docs, listed so the gap is visible. Remove each entry when its doc
 // is fixed; the test then holds the repository to the shorter list.
-const KNOWN = [
-  'docs/lessons-learned.md:117:lesson-guard', // `allureMeta` -> `applyCaseMeta` / `caseIdentity`
-  'docs/lessons-learned.md:189:lesson-guard', // `resourceGuard` -> `withResourceGuard`
-];
+const KNOWN = [];
 
 test('self-test: the fixture tree yields exactly its marked findings', () => {
   const { missed, unexpected } = compareWithMarkers(FIXTURE_DIR, lintDocs(FIXTURE_DIR));

@@ -114,7 +114,7 @@ assert another. *Guarded by:* the `api-spec-reviewer` agent comparing title and 
 
 **L-22 - Derive case identity from a business key.** Default identities hash the file path and describe
 blocks, so moving or renaming code creates duplicates. Use `<service>-<version>-<case id>`, which also
-keeps ids unique across API versions. *Guarded by:* `allureMeta` (E1) and an identity-format check (E3).
+keeps ids unique across API versions. *Guarded by:* `caseIdentity` (E1) and an identity-format check (E3).
 
 **L-23 - Command-line flags can change what gets recorded.** `--reporter` replaces the configured
 reporters, and `--list` emits placeholder results without running setup. The configuration guards
@@ -186,7 +186,7 @@ instead of guessed. *Applies to:* intake skill (E5).
 **L-39 - Tests that modify shared data must restore it, always.** Restore runs in `finally`, reads the
 current state first and repairs only real differences, never throws over the original failure, and
 never counts on the API refusing the request, since that refusal is the behaviour under test. Creating
-dedicated data avoids the issue. *Guarded by:* `resourceGuard` and builders (E1).
+dedicated data avoids the issue. *Guarded by:* `withResourceGuard` and builders (E1).
 
 **L-40 - Missing data is a visible skip, and data promises are verified.** A silent skip reports green
 while testing nothing; checking that a fixture exists says nothing about the state it must be in.
