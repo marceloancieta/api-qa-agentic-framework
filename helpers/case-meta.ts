@@ -12,6 +12,7 @@ import { test, type TestInfo } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 import { loadRuntime, type QaRuntime } from './config';
 import type { ServicePack } from './service';
+import { codeSpanPlaceholders } from '../scripts/lib/text.mjs';
 
 const CASE_ID = /^(TC-[A-Z][A-Z0-9]*-\d+)\b/;
 
@@ -56,16 +57,8 @@ export async function operation(op: Operation): Promise<void> {
   await allure.severity(op.severity ?? 'normal');
 }
 
-/**
- * Wrap `<placeholder>` tokens of prose in code spans. Markdown renderers read a bare `<petId>` as
- * an HTML tag and drop it; inside backticks it survives. Existing code spans are left alone.
- */
-export function codeSpanPlaceholders(markdown: string): string {
-  return markdown
-    .split(/(`[^`]*`)/)
-    .map((part) => (part.startsWith('`') ? part : part.replace(/<([A-Za-z][\w.-]*)>/g, '`<$1>`')))
-    .join('');
-}
+// Markdown renderers read a bare `<petId>` as an HTML tag and drop it; inside backticks it survives.
+export { codeSpanPlaceholders };
 
 /** The case description (Markdown), with placeholders made safe to render. */
 export async function caseDescription(markdown: string): Promise<void> {
@@ -100,5 +93,6 @@ export function issueUrl(tracker: QaRuntime['tracker'], key: string, source = 'q
   if (!new RegExp(`^(?:${tracker.keyPattern})$`).test(key)) {
     throw new Error(`knownGap('${key}'): not a key matching tracker.key_pattern in ${source}.`);
   }
-  return tracker.issueUrl.replace('{key}', encodeURIComponent(key));
+  // A GitHub key is written `#123`; its URL takes the number.
+  return tracker.issueUrl.replace('{key}', encodeURIComponent(key.replace(/^#/, '')));
 }

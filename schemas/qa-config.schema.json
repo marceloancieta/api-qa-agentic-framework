@@ -7,13 +7,18 @@
   "additionalProperties": false,
   "required": ["project", "api", "test_management"],
   "properties": {
-    "$schema": { "type": "string" },
+    "$schema": {
+      "type": "string"
+    },
     "project": {
       "type": "object",
       "additionalProperties": false,
       "required": ["name"],
       "properties": {
-        "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        }
       }
     },
     "api": {
@@ -21,21 +26,32 @@
       "additionalProperties": false,
       "required": ["default_environment", "environments", "auth"],
       "properties": {
-        "default_environment": { "type": "string", "minLength": 1 },
+        "default_environment": {
+          "type": "string",
+          "minLength": 1
+        },
         "environments": {
           "type": "object",
           "minProperties": 1,
-          "additionalProperties": { "$ref": "#/$defs/environment" }
+          "additionalProperties": {
+            "$ref": "#/$defs/environment"
+          }
         },
-        "auth": { "$ref": "#/$defs/auth" },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        },
         "actors": {
           "description": "Extra named credentials for actor(name). \"default\" is api.auth and \"anonymous\" sends no credentials; both are built in.",
           "type": "object",
           "propertyNames": {
             "pattern": "^[a-z][a-z0-9-]*$",
-            "not": { "enum": ["default", "anonymous"] }
+            "not": {
+              "enum": ["default", "anonymous"]
+            }
           },
-          "additionalProperties": { "$ref": "#/$defs/auth" }
+          "additionalProperties": {
+            "$ref": "#/$defs/auth"
+          }
         }
       }
     },
@@ -48,24 +64,98 @@
           "description": "Adapter under scripts/tm/adapters/<provider>.",
           "enum": ["allure-report", "local", "allure-testops", "testrail"]
         },
-        "options": { "type": "object" }
+        "options": {
+          "type": "object"
+        }
       }
     },
     "tracker": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "provider": {
+          "description": "Adapter under scripts/tracker/adapters/<provider>; none disables every tracker call.",
+          "enum": ["none", "local", "github", "jira"],
+          "default": "none"
+        },
+        "options": {
+          "description": "Provider options. github: repo \"owner/name\", token_env (default GITHUB_TOKEN). jira: project key, issue_type, user_env (default JIRA_USER), token_env (default JIRA_TOKEN); uses base_url. local: dir.",
+          "type": "object"
+        },
         "key_pattern": {
           "description": "Regex (JavaScript syntax) of an issue key, e.g. \"PROJ-\\d+\". null disables every tracker-key rule.",
           "type": ["string", "null"]
         },
-        "base_url": { "type": ["string", "null"], "format": "uri" },
+        "base_url": {
+          "type": ["string", "null"],
+          "format": "uri"
+        },
         "issue_url": {
           "description": "Link to one issue, with {key} where the key goes, e.g. \"https://tracker.example/browse/{key}\". Used by knownGap().",
           "type": ["string", "null"],
           "pattern": "\\{key\\}"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "provider": {
+                "const": "github"
+              }
+            },
+            "required": ["provider"],
+            "type": "object"
+          },
+          "then": {
+            "required": ["options"],
+            "properties": {
+              "options": {
+                "required": ["repo"],
+                "properties": {
+                  "repo": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "provider": {
+                "const": "jira"
+              }
+            },
+            "required": ["provider"],
+            "type": "object"
+          },
+          "then": {
+            "required": ["options", "base_url"],
+            "properties": {
+              "base_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "options": {
+                "required": ["project"],
+                "properties": {
+                  "project": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9]+$"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        }
+      ]
     },
     "policies": {
       "type": "object",
@@ -75,12 +165,24 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "require_tracker_key": { "type": "boolean", "default": false },
-            "max_tracker_keys": { "type": "integer", "minimum": 1, "default": 1 },
-            "conventional_commits": { "type": "boolean", "default": false },
+            "require_tracker_key": {
+              "type": "boolean",
+              "default": false
+            },
+            "max_tracker_keys": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "conventional_commits": {
+              "type": "boolean",
+              "default": false
+            },
             "protected_branches": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "default": []
             }
           }
@@ -91,7 +193,9 @@
           "properties": {
             "required_labels": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "default": []
             }
           }
@@ -119,9 +223,15 @@
               "type": "string",
               "minLength": 1
             },
-            "fail_below_pct": { "$ref": "#/$defs/percent" },
-            "review_below_pct": { "$ref": "#/$defs/percent" },
-            "required": { "$ref": "#/$defs/gateRequired" }
+            "fail_below_pct": {
+              "$ref": "#/$defs/percent"
+            },
+            "review_below_pct": {
+              "$ref": "#/$defs/percent"
+            },
+            "required": {
+              "$ref": "#/$defs/gateRequired"
+            }
           }
         },
         "p95_latency": {
@@ -135,15 +245,23 @@
               "type": "string",
               "minLength": 1
             },
-            "fail_above_ms": { "type": "number", "exclusiveMinimum": 0 },
-            "review_above_ms": { "type": "number", "exclusiveMinimum": 0 },
+            "fail_above_ms": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "review_above_ms": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
             "min_samples": {
               "description": "Fewer timed API cases than this make the check SKIPPED: a percentile of a handful of timings is noise.",
               "type": "integer",
               "minimum": 1,
               "default": 5
             },
-            "required": { "$ref": "#/$defs/gateRequired" }
+            "required": {
+              "$ref": "#/$defs/gateRequired"
+            }
           }
         },
         "dast": {
@@ -152,10 +270,19 @@
           "additionalProperties": false,
           "required": ["source", "fail_above"],
           "properties": {
-            "source": { "type": "string", "minLength": 1 },
-            "fail_above": { "$ref": "#/$defs/riskCounts" },
-            "review_above": { "$ref": "#/$defs/riskCounts" },
-            "required": { "$ref": "#/$defs/gateRequired" }
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fail_above": {
+              "$ref": "#/$defs/riskCounts"
+            },
+            "review_above": {
+              "$ref": "#/$defs/riskCounts"
+            },
+            "required": {
+              "$ref": "#/$defs/gateRequired"
+            }
           }
         },
         "mutation_score": {
@@ -169,16 +296,26 @@
               "type": "string",
               "minLength": 1
             },
-            "fail_below_pct": { "$ref": "#/$defs/percent" },
-            "review_below_pct": { "$ref": "#/$defs/percent" },
-            "required": { "$ref": "#/$defs/gateRequired" }
+            "fail_below_pct": {
+              "$ref": "#/$defs/percent"
+            },
+            "review_below_pct": {
+              "$ref": "#/$defs/percent"
+            },
+            "required": {
+              "$ref": "#/$defs/gateRequired"
+            }
           }
         }
       }
     }
   },
   "$defs": {
-    "percent": { "type": "number", "minimum": 0, "maximum": 100 },
+    "percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
     "gateRequired": {
       "description": "true turns a missing source into FAIL instead of SKIPPED.",
       "type": "boolean",
@@ -189,10 +326,22 @@
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "high": { "type": "integer", "minimum": 0 },
-        "medium": { "type": "integer", "minimum": 0 },
-        "low": { "type": "integer", "minimum": 0 },
-        "informational": { "type": "integer", "minimum": 0 }
+        "high": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "medium": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "low": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "informational": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "environment": {
@@ -200,8 +349,14 @@
       "additionalProperties": false,
       "required": ["base_url"],
       "properties": {
-        "base_url": { "type": "string", "format": "uri" },
-        "spec_url": { "type": "string", "format": "uri" },
+        "base_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "spec_url": {
+          "type": "string",
+          "format": "uri"
+        },
         "allow_writes": {
           "description": "false marks a shared/public environment: write tests must skip there.",
           "type": "boolean",
@@ -215,17 +370,30 @@
           "type": "object",
           "additionalProperties": false,
           "required": ["type"],
-          "properties": { "type": { "const": "none" } }
+          "properties": {
+            "type": {
+              "const": "none"
+            }
+          }
         },
         {
           "type": "object",
           "additionalProperties": false,
           "required": ["type", "in", "name", "env"],
           "properties": {
-            "type": { "const": "api_key" },
-            "in": { "enum": ["header", "query"] },
-            "name": { "type": "string", "minLength": 1 },
-            "env": { "$ref": "#/$defs/envVar" }
+            "type": {
+              "const": "api_key"
+            },
+            "in": {
+              "enum": ["header", "query"]
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "env": {
+              "$ref": "#/$defs/envVar"
+            }
           }
         },
         {
@@ -233,8 +401,12 @@
           "additionalProperties": false,
           "required": ["type", "env"],
           "properties": {
-            "type": { "const": "bearer" },
-            "env": { "$ref": "#/$defs/envVar" }
+            "type": {
+              "const": "bearer"
+            },
+            "env": {
+              "$ref": "#/$defs/envVar"
+            }
           }
         }
       ]

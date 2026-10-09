@@ -1,0 +1,167 @@
+// In-memory stand-ins for the GitHub and Jira REST endpoints the tracker adapters call, shaped after
+// their public documentation. They are `fetch` replacements: no network, no server. They prove the
+// adapters speak the documented shapes; a first real use still has to confirm the live API agrees.
+
+// Like a Markdown renderer with HTML sanitizing: a bare <tag> disappears, a code span survives
+// escaped. That is the behaviour L-47 is about.
+export function renderMarkdown(text) {
+  return String(text)
+    .split(/(`[^`]*`)/)
+    .map((part) =>
+      part.startsWith('`')
+        ? `<code>${part.slice(1, -1).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>`
+        : part.replace(/<[^>]*>/g, ''),
+    )
+    .join('');
+}
+
+const json = (status, body) =>
+  // A 204 response must carry no body at all, not even an empty one.
+  new Response(body === undefined ? null : JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
+
+export function fakeGitHub({
+  repo = 'acme/api',
+  token = 'gh-test-token',
+  render = renderMarkdown,
+} = {}) {
+  const issues = new Map();
+  const comments = new Map();
+  let next = 1;
+  let nextComment = 100;
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    const { pathname } = new URL(url);
+    const method = init.method;
+    calls.push(`${method} ${pathname}`);
+    if (init.headers.authorization !== `Bearer ${token}`)
+      return json(401, { message: 'Bad credentials' });
+    const full = init.headers.accept === 'application/vnd.github.full+json';
+    const body = init.body ? JSON.parse(init.body) : null;
+    const base = `/repos/${repo}/issues`;
+    let match;
+    if (method === 'POST' && pathname === base) {
+      const issue = {
+        number: next++,
+        title: body.title,
+        body: body.body,
+        state: 'open',
+        labels: body.labels,
+      };
+      issue.html_url = `https://github.example/${repo}/issues/${issue.number}`;
+      issues.set(String(issue.number), issue);
+      return json(201, issue);
+    }
+    if ((match = new RegExp(`^${base}/(\\d+)$`).exec(pathname))) {
+      const issue = issues.get(match[1]);
+      if (!issue) return json(404, { message: 'Not Found' });
+      if (method === 'PATCH') Object.assign(issue, body);
+      return json(200, full ? { ...issue, body_html: render(issue.body) } : issue);
+    }
+    if ((match = new RegExp(`^${base}/(\\d+)/comments$`).exec(pathname)) && method === 'POST') {
+      if (!issues.has(match[1])) return json(404, { message: 'Not Found' });
+      const comment = { id: nextComment++, body: body.body };
+      comments.set(String(comment.id), comment);
+      return json(201, comment);
+    }
+    if ((match = new RegExp(`^${base}/comments/(\\d+)$`).exec(pathname))) {
+      const comment = comments.get(match[1]);
+      if (!comment) return json(404, { message: 'Not Found' });
+      return json(200, full ? { ...comment, body_html: render(comment.body) } : comment);
+    }
+    return json(404, { message: `no route ${method} ${pathname}` });
+  };
+  return { fetchImpl, calls, env: { GITHUB_TOKEN: token }, options: { repo } };
+}
+
+const STATUSES = {
+  'To Do': { name: 'To Do', statusCategory: { key: 'new' } },
+  'In Progress': { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+  Done: { name: 'Done', statusCategory: { key: 'done' } },
+};
+
+export function fakeJira({
+  project = 'QA',
+  user = 'qa@example.com',
+  token = 'jira-test-token',
+  render = renderMarkdown,
+} = {}) {
+  const issues = new Map();
+  let next = 1;
+  let nextComment = 500;
+  const calls = [];
+  const expected = `Basic ${Buffer.from(`${user}:${token}`).toString('base64')}`;
+  const fetchImpl = async (url, init) => {
+    const { pathname, searchParams } = new URL(url);
+    const method = init.method;
+    calls.push(`${method} ${pathname}`);
+    if (init.headers.authorization !== expected)
+      return json(401, { errorMessages: ['unauthorized'] });
+    const body = init.body ? JSON.parse(init.body) : null;
+    let match;
+    if (method === 'POST' && pathname === '/rest/api/2/issue') {
+      if (body.fields.project.key !== project)
+        return json(400, { errors: { project: 'unknown project' } });
+      const key = `${project}-${next++}`;
+      issues.set(key, {
+        key,
+        summary: body.fields.summary,
+        description: body.fields.description,
+        status: STATUSES['To Do'],
+        comments: [],
+      });
+      return json(201, { id: String(next), key });
+    }
+    if ((match = /^\/rest\/api\/2\/issue\/([^/]+)$/.exec(pathname))) {
+      const issue = issues.get(decodeURIComponent(match[1]));
+      if (!issue) return json(404, { errorMessages: ['Issue does not exist'] });
+      const fields = {
+        summary: issue.summary,
+        description: issue.description,
+        status: issue.status,
+      };
+      const rendered = (searchParams.get('expand') ?? '').includes('renderedFields');
+      return json(200, {
+        key: issue.key,
+        fields,
+        ...(rendered ? { renderedFields: { description: render(issue.description) } } : {}),
+      });
+    }
+    if ((match = /^\/rest\/api\/2\/issue\/([^/]+)\/transitions$/.exec(pathname))) {
+      const issue = issues.get(decodeURIComponent(match[1]));
+      if (!issue) return json(404, { errorMessages: ['Issue does not exist'] });
+      const transitions = Object.values(STATUSES)
+        .filter((status) => status.name !== issue.status.name)
+        .map((status, i) => ({ id: String(11 + i), name: `Move to ${status.name}`, to: status }));
+      if (method === 'GET') return json(200, { transitions });
+      const chosen = transitions.find((t) => t.id === body.transition.id);
+      if (!chosen) return json(400, { errorMessages: ['invalid transition'] });
+      issue.status = chosen.to;
+      return json(204);
+    }
+    if ((match = /^\/rest\/api\/2\/issue\/([^/]+)\/comment$/.exec(pathname)) && method === 'POST') {
+      const issue = issues.get(decodeURIComponent(match[1]));
+      if (!issue) return json(404, { errorMessages: ['Issue does not exist'] });
+      const comment = { id: String(nextComment++), body: body.body };
+      issue.comments.push(comment);
+      return json(201, comment);
+    }
+    if ((match = /^\/rest\/api\/2\/issue\/([^/]+)\/comment\/(\d+)$/.exec(pathname))) {
+      const issue = issues.get(decodeURIComponent(match[1]));
+      const comment = issue?.comments.find((c) => c.id === match[2]);
+      if (!comment) return json(404, { errorMessages: ['Comment does not exist'] });
+      const rendered = (searchParams.get('expand') ?? '').includes('renderedBody');
+      return json(200, { ...comment, ...(rendered ? { renderedBody: render(comment.body) } : {}) });
+    }
+    return json(404, { errorMessages: [`no route ${method} ${pathname}`] });
+  };
+  return {
+    fetchImpl,
+    calls,
+    env: { JIRA_USER: user, JIRA_TOKEN: token },
+    options: { project },
+    baseUrl: 'https://jira.example',
+  };
+}

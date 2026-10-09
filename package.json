@@ -56,7 +56,8 @@
     "test": "playwright test",
     "test:smoke": "playwright test --project=api --grep @smoke",
     "gates": "npm run lint && npm run format:check && npm run types:check && npm run config:check && npm run test:hooks && npm run test:scripts && npm run contract:check && npm run lint:qa && npm run coverage:status && npm run test:unit && npm run scan:denylist:self-test",
-    "tm:open": "allure open reports/allure-report"
+    "tm:open": "allure open reports/allure-report",
+    "tracker": "node scripts/tracker/cli.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

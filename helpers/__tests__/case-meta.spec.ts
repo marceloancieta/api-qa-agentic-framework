@@ -35,6 +35,11 @@ test.describe('issueUrl', () => {
     expect(issueUrl(tracker, 'PROJ-12')).toBe('https://tracker.example/browse/PROJ-12');
   });
 
+  test('a GitHub key links by its number', () => {
+    const github = { keyPattern: '#\\d+', issueUrl: 'https://github.com/acme/api/issues/{key}' };
+    expect(issueUrl(github, '#42')).toBe('https://github.com/acme/api/issues/42');
+  });
+
   test('rejects a key that does not match the whole pattern', () => {
     expect(() => issueUrl(tracker, 'PROJ-12x')).toThrow(/not a key matching/);
     expect(() => issueUrl(tracker, 'XPROJ-12')).toThrow(/not a key matching/);
