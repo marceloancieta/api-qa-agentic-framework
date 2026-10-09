@@ -146,13 +146,20 @@ export function collectResults(resultsDir, cases, packs) {
   }
   results.sort((a, b) => a.identity.localeCompare(b.identity));
   excluded.sort((a, b) => a.name.localeCompare(b.name) || a.file.localeCompare(b.file));
-  return { runSize: run.length, outside: all.length - inPacks.length, results, excluded };
+  const recordedRuns = [...new Set(run.map((r) => label(r, 'run')).filter(Boolean))].sort();
+  return {
+    runSize: run.length,
+    outside: all.length - inPacks.length,
+    recordedRuns,
+    results,
+    excluded,
+  };
 }
 
 export function buildManifest({ root = REPO_ROOT, packs, resultsDir, runId, now = new Date() }) {
   const selected = packs ?? servicePacks(root);
   const cases = collectCases(root, selected);
-  const { runSize, outside, results, excluded } = collectResults(
+  const { runSize, outside, recordedRuns, results, excluded } = collectResults(
     resultsDir ?? join(root, 'allure-results'),
     cases,
     selected,
@@ -167,6 +174,7 @@ export function buildManifest({ root = REPO_ROOT, packs, resultsDir, runId, now 
     excluded,
     runSize,
     outside,
+    recordedRuns,
   };
 }
 

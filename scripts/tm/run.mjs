@@ -21,7 +21,7 @@ import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { REPO_ROOT } from '../lib/cli.mjs';
-import { createLogger } from '../lib/log.mjs';
+import { createLogger, RUN_ID_VARIABLE } from '../lib/log.mjs';
 import { loadAdapter } from './adapters/index.mjs';
 import { buildManifest } from './manifest.mjs';
 
@@ -34,6 +34,11 @@ export function testManagementConfig(root = REPO_ROOT) {
   if (!file) throw new Error('No qa-config.json or qa-config.example.json found.');
   const section = JSON.parse(readFileSync(join(root, file), 'utf8')).test_management ?? {};
   return { provider: section.provider ?? 'allure-report', options: section.options ?? {} };
+}
+
+/** The run id the results were recorded under, when they agree on one. */
+export function recordedRunId(manifest) {
+  return manifest.recordedRuns?.length === 1 ? manifest.recordedRuns[0] : null;
 }
 
 export async function publish({ adapter, manifest, log, dryRun = false }) {
@@ -77,12 +82,14 @@ export async function publish({ adapter, manifest, log, dryRun = false }) {
 }
 
 export async function report({ adapter, manifest, log, name }) {
-  for (const item of manifest.excluded) log.warn('result not reported', item);
+  for (const item of manifest.excluded) log.warn('result without a case identity', item);
   if (!adapter.capabilities.runs) {
     log.info('report skipped: the tool records no runs', { provider: adapter.name });
     return { skipped: true };
   }
-  if (manifest.results.length === 0) {
+  // A definitions-first tool can only record attributed cases; a results-first tool (a report)
+  // still shows the whole run.
+  if (manifest.results.length === 0 && adapter.capabilities.definitions) {
     log.warn('no results to report: run the API suite first', {
       excluded: manifest.excluded.length,
     });
@@ -123,14 +130,16 @@ async function main() {
     );
     process.exit(2);
   }
-  const log = createLogger(`tm-${phase}`);
-  const { provider, options } = testManagementConfig();
-  const adapter = await loadAdapter(provider, options, { root: REPO_ROOT, log });
   const manifest = buildManifest({
     packs: values.service ? [values.service] : undefined,
     resultsDir: values.results ? resolve(values.results) : undefined,
-    runId: log.runId,
   });
+  // Continue the test run's id when this step runs in a separate process (L-48).
+  process.env[RUN_ID_VARIABLE] ||= recordedRunId(manifest) ?? '';
+  const log = createLogger(`tm-${phase}`);
+  manifest.runId = log.runId;
+  const { provider, options } = testManagementConfig();
+  const adapter = await loadAdapter(provider, options, { root: REPO_ROOT, log });
   const outcome =
     phase === 'publish'
       ? await publish({ adapter, manifest, log, dryRun: values['dry-run'] })

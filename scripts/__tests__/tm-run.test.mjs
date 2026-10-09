@@ -90,7 +90,11 @@ test('report starts, fills and closes a run; unpublished cases and unattributed 
   const stored = await adapter.readRun(outcome.run);
   assert.ok(stored.closedAt, 'the run is closed');
   assert.equal(stored.runId, 'r-test');
-  assert.ok(log.lines.some((l) => l.message === 'result not reported' && l.name === 'no case id'));
+  assert.ok(
+    log.lines.some(
+      (l) => l.message === 'result without a case identity' && l.name === 'no case id',
+    ),
+  );
 });
 
 test('the run is closed even when reporting fails', async () => {

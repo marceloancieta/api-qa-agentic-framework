@@ -4,6 +4,7 @@
 import { adapterProblems } from '../adapter.mjs';
 
 const MODULES = {
+  'allure-report': () => import('./allure-report/index.mjs'),
   local: () => import('./local/index.mjs'),
 };
 

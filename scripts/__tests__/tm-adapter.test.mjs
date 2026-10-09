@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -12,7 +12,35 @@ import {
   retryDelay,
 } from '../tm/adapter.mjs';
 import { createAdapter } from '../tm/adapters/local/index.mjs';
-import { describeAdapterContract } from '../tm/contract.mjs';
+import { createAdapter as createAllureReport } from '../tm/adapters/allure-report/index.mjs';
+import { describeAdapterContract, sampleResults } from '../tm/contract.mjs';
+
+// Allure results for the contract's sample cases, as a test run would leave them.
+function allureRoot() {
+  const root = mkdtempSync(join(tmpdir(), 'tm-allure-'));
+  mkdirSync(join(root, 'allure-results'));
+  const t = Date.UTC(2026, 9, 9, 12);
+  for (const { identity, status } of sampleResults()) {
+    writeFileSync(
+      join(root, 'allure-results', identity + '-result.json'),
+      JSON.stringify({
+        uuid: identity,
+        historyId: identity,
+        testCaseId: identity,
+        name: identity,
+        fullName: 'services/shop/specs/items.spec.ts › ' + identity,
+        status,
+        stage: 'finished',
+        start: t,
+        stop: t + 5,
+        labels: [],
+      }),
+    );
+  }
+  return root;
+}
+
+describeAdapterContract('allure-report', () => createAllureReport({}, { root: allureRoot() }));
 
 describeAdapterContract('local', () =>
   createAdapter({ dir: 'store' }, { root: mkdtempSync(join(tmpdir(), 'tm-local-')) }),
