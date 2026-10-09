@@ -1,0 +1,7 @@
+{
+  "name": "lint-docs-fixture",
+  "private": true,
+  "scripts": {
+    "gates": "node --version"
+  }
+}
