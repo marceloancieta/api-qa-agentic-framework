@@ -111,7 +111,7 @@ export const expect = baseExpect.extend({
       message: () =>
         pass
           ? `expected the value not to match schema "${name}"`
-          : `value does not match schema "${name}" (OpenAPI ${validator.version}):\n  ${problems.join('\n  ')}`,
+          : `value does not match schema "${name}" (${validator.format}):\n  ${problems.join('\n  ')}`,
     };
   },
 });

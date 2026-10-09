@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createSchemaValidator, specVersion, toDraft07 } from '../schema';
+import { createSchemaValidator } from '../schema';
 
 // The same resource described in each supported version.
 const pet = (nullable: Record<string, unknown>) => ({
@@ -13,6 +13,8 @@ const pet = (nullable: Record<string, unknown>) => ({
     weight: { type: 'number', minimum: 0, exclusiveMinimum: true },
   },
 });
+
+const FORMATS = { '2.0': 'swagger-2.0', '3.0': 'openapi-3.0', '3.1': 'openapi-3.1' } as const;
 
 const docs = {
   '2.0': { swagger: '2.0', definitions: { Pet: pet({ 'x-nullable': true }) } },
@@ -38,7 +40,7 @@ test.describe('createSchemaValidator', () => {
   for (const [version, doc] of Object.entries(docs)) {
     test(`${version}: same verdicts for the same resource`, () => {
       const validator = createSchemaValidator(doc);
-      expect(validator.version).toBe(version);
+      expect(validator.format).toBe(FORMATS[version as keyof typeof FORMATS]);
       expect(validator.names).toEqual(['Pet']);
       expect(validator.validate('Pet', { id: 1, name: 'rex', nickname: null, weight: 1 })).toEqual(
         [],
@@ -84,26 +86,6 @@ test.describe('createSchemaValidator', () => {
   });
 });
 
-test.describe('specVersion', () => {
-  test('rejects what it does not support', () => {
-    expect(() => specVersion({ openapi: '4.0.0' })).toThrow(/Unsupported.*4\.0\.0/);
-    expect(() => specVersion({})).toThrow(/\(none\)/);
-  });
-});
-
-test.describe('toDraft07', () => {
-  test('nullable without a type becomes anyOf with null', () => {
-    expect(toDraft07({ $ref: '#/x', nullable: true }, 'nullable')).toEqual({
-      anyOf: [{ $ref: '#/x' }, { type: 'null' }],
-    });
-  });
-
-  test('a property named like a keyword is left alone', () => {
-    const schema = { type: 'object', properties: { nullable: { type: 'boolean' } } };
-    expect(toDraft07(schema, 'nullable')).toEqual(schema);
-  });
-
-  test('exclusiveMinimum false keeps the inclusive minimum', () => {
-    expect(toDraft07({ minimum: 1, exclusiveMinimum: false }, 'nullable')).toEqual({ minimum: 1 });
-  });
+test('an unsupported version is rejected', () => {
+  expect(() => createSchemaValidator({ openapi: '4.0.0' })).toThrow(/Unsupported.*4.0.0/);
 });

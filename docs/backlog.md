@@ -26,8 +26,6 @@ Complete: CORE-01 to CORE-18 are in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| CON-01 | `scripts/lib/openapi.mjs` normalizer for Swagger 2.0 / OpenAPI 3.0 / 3.1 (JSON or YAML); any other version fails loudly; invalid content (e.g. a non-compiling `pattern`) is reported, not fatal. | ADR 0003, L-32 | todo |
-| CON-02 | Cross-version equivalence self-test: the same resource in 2.0 and 3.0 yields the same model, floor and probes. Fixtures: Petstore v2, petstore3, hand-written 3.1. | ADR 0003 | todo |
 | CON-03 | `swagger-digest` over the normalized model: properties, **parameters** and **response codes**; description changes on operations reported as a separate low-severity drift class; `--live` compares against the real spec URL. | L-02, L-29, L-30 | todo |
 | CON-04 | `derive-probe-matrix` covering body, path and query parameters; report covered/gap for both scheduled and exploratory probes. | L-29, exp | todo |
 | CON-05 | Pairwise reduction for parameter combinations in the probe matrix (bounded, deterministic). | practice | todo |
@@ -145,3 +143,5 @@ Complete: CORE-01 to CORE-18 are in **Done**.
 | CORE-14 | `skipUnless` and `requireData`: skips warn and annotate; data in the wrong state fails as a precondition. | `394bb44` |
 | CORE-15 | Run lock (`allure-results.lock`, pid + age staleness, `QA_ALLOW_CONCURRENT_RUNS=1`), taken in global setup before the results are cleared and released in global teardown. | `394bb44` |
 | CORE-18 | State comparison by field bucket (identity, business, provenance, volatile) with normalizers, unclassified-field reporting, `expectOnlyChanged` and inventory comparison; Petstore pet and order models. | `394bb44` |
+| CON-01 | `scripts/lib/openapi.mjs`: Swagger 2.0 / OpenAPI 3.0 / 3.1, JSON or YAML, into one model with 2020-12 schemas (`#/schemas/<Name>` refs), operations with merged parameters, bodies and responses by media type, effective security; problems reported, unsupported versions rejected; typed for TS (`openapi.d.mts`). `helpers/schema.ts` now validates every version through it. | E2 phase 1 |
+| CON-02 | Equivalence self-test: the Shelter resource in 2.0 JSON, 3.0 JSON and 3.1 YAML normalizes to the identical model; Petstore v2 and v3 normalize without problems. Floor and probe equivalence is added with those scripts. | E2 phase 1 |

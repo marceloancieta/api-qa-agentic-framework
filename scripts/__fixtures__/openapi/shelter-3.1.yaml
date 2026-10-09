@@ -1,0 +1,89 @@
+# The Shelter resource in OpenAPI 3.1, written natively (type arrays, numeric exclusive bounds,
+# examples) and in YAML, to prove both the version and the syntax normalize to the same model.
+openapi: 3.1.0
+info:
+  title: Shelter
+  version: 1.0.0
+servers:
+  - url: https://{host}/v1
+    variables:
+      host:
+        default: api.example.test
+security:
+  - apiKey: []
+paths:
+  /animals:
+    post:
+      operationId: createAnimal
+      summary: Register an animal
+      tags: [animals]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Animal' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Animal' }
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /animals/{animalId}:
+    get:
+      operationId: getAnimal
+      summary: Read an animal
+      tags: [animals]
+      security: []
+      parameters:
+        - name: animalId
+          in: path
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: verbose
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Animal' }
+        '404':
+          description: Not found
+components:
+  securitySchemes:
+    apiKey: { type: apiKey, in: header, name: X-Api-Key }
+  schemas:
+    Animal:
+      type: object
+      required: [name]
+      properties:
+        id: { type: integer, format: int64, readOnly: true }
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: '^[A-Za-z ]+$'
+          examples: [Rex]
+        weight: { type: number, exclusiveMinimum: 0 }
+        nickname: { type: [string, 'null'] }
+        status: { type: string, enum: [active, adopted] }
+        tags:
+          type: array
+          items: { $ref: '#/components/schemas/Tag' }
+    Tag:
+      type: object
+      properties:
+        label: { type: string }
+    Error:
+      type: object
+      required: [code]
+      properties:
+        code: { type: integer, format: int32 }
+        message: { type: string }
