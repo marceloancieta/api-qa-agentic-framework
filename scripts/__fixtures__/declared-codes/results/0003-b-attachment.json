@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8080/api/v3/pet",
+    "headers": {}
+  },
+  "response": {
+    "status": 422,
+    "headers": {},
+    "body": null
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "finds pets by status",
+  "fullName": "pets.spec.ts > finds pets by status",
+  "start": 1791001800000,
+  "stop": 1791001800800,
+  "attachments": [
+    {
+      "name": "0002-a",
+      "source": "0002-a-attachment.json",
+      "type": "application/json"
+    }
+  ],
+  "steps": [
+    {
+      "name": "step",
+      "attachments": [],
+      "steps": [
+        {
+          "name": "inner",
+          "attachments": [
+            {
+              "name": "0002-b",
+              "source": "0002-b-attachment.json",
+              "type": "application/json"
+            }
+          ],
+          "steps": []
+        }
+      ]
+    }
+  ]
+}

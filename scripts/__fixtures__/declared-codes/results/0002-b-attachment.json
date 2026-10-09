@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "http://localhost:8080/api/v3/pet/findByStatus",
+    "headers": {}
+  },
+  "response": {
+    "status": 500,
+    "headers": {},
+    "body": null
+  }
+}

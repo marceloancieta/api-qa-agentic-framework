@@ -1,0 +1,85 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Floor terms", "version": "1.0.0" },
+  "security": [{ "token": [] }],
+  "paths": {
+    "/accounts/{accountId}/notes": {
+      "parameters": [
+        {
+          "name": "accountId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "minimum": 1 }
+        }
+      ],
+      "post": {
+        "parameters": [
+          { "name": "X-Trace", "in": "header", "required": true, "schema": { "type": "string" } },
+          {
+            "name": "tags",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "maxItems": 5,
+              "items": { "type": "string", "enum": ["a", "b"] }
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/Note" } }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "400": { "description": "Invalid" },
+          "401": { "description": "No credentials" },
+          "403": { "description": "Not allowed" },
+          "4XX": { "description": "Other client errors" },
+          "default": { "description": "Anything else" }
+        }
+      }
+    },
+    "/notes/batch": {
+      "put": {
+        "security": [{}, { "token": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Note" } }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Stored" }, "401": { "description": "Bad token" } }
+      }
+    },
+    "/health": {
+      "get": { "security": [], "responses": { "200": { "description": "Up" } } }
+    }
+  },
+  "components": {
+    "securitySchemes": { "token": { "type": "http", "scheme": "bearer" } },
+    "schemas": {
+      "Note": {
+        "type": "object",
+        "required": ["id", "text", "level"],
+        "properties": {
+          "id": { "type": "integer", "readOnly": true },
+          "text": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^\\S" },
+          "level": { "type": "string", "pattern": "^(low|high)$" },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": true,
+            "maximum": 10,
+            "multipleOf": 0.5
+          },
+          "kind": { "$ref": "#/components/schemas/Kind" },
+          "meta": { "type": "object", "properties": { "deep": { "enum": ["x"] } } }
+        }
+      },
+      "Kind": { "type": "string", "enum": ["memo", "todo"], "nullable": true }
+    }
+  }
+}

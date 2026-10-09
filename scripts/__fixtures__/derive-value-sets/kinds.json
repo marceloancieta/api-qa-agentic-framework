@@ -1,0 +1,82 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Value set kinds", "version": "1.0.0" },
+  "paths": {
+    "/shipments/{carrier}": {
+      "parameters": [
+        {
+          "name": "carrier",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "pattern": "^(ground|air)$" }
+        }
+      ],
+      "post": {
+        "operationId": "createShipment",
+        "parameters": [
+          {
+            "name": "speed",
+            "in": "query",
+            "schema": { "type": "array", "items": { "type": "string", "enum": ["slow", "fast"] } }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "priority": { "type": "integer", "enum": [1, 2, 3] } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "state": { "const": "queued" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/labels": {
+      "get": {
+        "parameters": [
+          { "name": "format", "in": "header", "schema": { "enum": ["pdf", "zpl", null] } }
+        ],
+        "responses": { "200": { "description": "ok" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Shipment": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["new", "sent", "new"] },
+          "size": { "type": ["string", "null"], "enum": ["S", "M", "L", null] },
+          "code": { "type": "string", "pattern": "^[A-Z]{3}$" },
+          "version": { "type": "string", "pattern": "^(?:v1\\.0|v2\\.0)$" },
+          "parcel": {
+            "type": "object",
+            "properties": { "kind": { "enum": ["box", "tube"] } }
+          },
+          "tags": { "type": "array", "items": { "enum": ["fragile", "cold"] } },
+          "flags": { "type": "object", "additionalProperties": { "enum": ["on", "off"] } },
+          "x.y": { "enum": ["a", "b"] },
+          "owner": { "$ref": "#/components/schemas/Owner" }
+        }
+      },
+      "Owner": {
+        "allOf": [{ "type": "object", "properties": { "role": { "enum": ["admin", "user"] } } }]
+      },
+      "ShipmentStatus": { "type": "string", "enum": ["draft", "final"] }
+    }
+  }
+}

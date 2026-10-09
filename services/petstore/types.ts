@@ -1,10 +1,13 @@
-// Hand-written until types and value sets are generated from the OpenAPI document (E2).
+// Enum value sets and their unions are generated from the OpenAPI document (generated/enums.ts,
+// `node scripts/derive-value-sets.mjs --service petstore --write`); the names below stay as aliases
+// so builders and specs keep one vocabulary. The interfaces are still hand-written.
 
-export const PET_STATUSES = ['available', 'pending', 'sold'] as const;
-export type PetStatus = (typeof PET_STATUSES)[number];
+import { ORDER_STATUS_VALUES, PET_STATUS_VALUES } from './generated/enums';
+import type { OrderStatus, PetStatus } from './generated/enums';
 
-export const ORDER_STATUSES = ['placed', 'approved', 'delivered'] as const;
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export type { OrderStatus, PetStatus };
+export const PET_STATUSES = PET_STATUS_VALUES;
+export const ORDER_STATUSES = ORDER_STATUS_VALUES;
 
 export interface Pet {
   id?: number;

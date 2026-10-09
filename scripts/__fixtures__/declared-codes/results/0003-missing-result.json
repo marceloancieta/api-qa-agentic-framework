@@ -1,0 +1,39 @@
+{
+  "name": "reads a missing pet",
+  "fullName": "pets.spec.ts > reads a missing pet",
+  "start": 1791001800900,
+  "stop": 1791001802000,
+  "attachments": [
+    {
+      "name": "0003-a",
+      "source": "0003-a-attachment.json",
+      "type": "application/json"
+    },
+    {
+      "name": "0003-b",
+      "source": "0003-b-attachment.json",
+      "type": "application/json"
+    },
+    {
+      "name": "0003-c",
+      "source": "0003-c-attachment.json",
+      "type": "application/json"
+    },
+    {
+      "name": "0003-d",
+      "source": "0003-d-attachment.json",
+      "type": "application/json"
+    },
+    {
+      "name": "0003-e",
+      "source": "0003-e-attachment.json",
+      "type": "application/json"
+    },
+    {
+      "name": "0003-f",
+      "source": "0003-f-attachment.json",
+      "type": "application/json"
+    }
+  ],
+  "steps": []
+}

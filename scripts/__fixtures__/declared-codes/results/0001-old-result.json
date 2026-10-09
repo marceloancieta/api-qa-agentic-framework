@@ -1,0 +1,14 @@
+{
+  "name": "an earlier run",
+  "fullName": "old.spec.ts > an earlier run",
+  "start": 1791000000000,
+  "stop": 1791000000500,
+  "attachments": [
+    {
+      "name": "0001-a",
+      "source": "0001-a-attachment.json",
+      "type": "application/json"
+    }
+  ],
+  "steps": []
+}

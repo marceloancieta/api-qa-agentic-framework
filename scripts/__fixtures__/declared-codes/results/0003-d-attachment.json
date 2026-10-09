@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "PATCH",
+    "url": "http://localhost:8080/api/v3/pet/7",
+    "headers": {}
+  },
+  "response": {
+    "status": 405,
+    "headers": {},
+    "body": null
+  }
+}

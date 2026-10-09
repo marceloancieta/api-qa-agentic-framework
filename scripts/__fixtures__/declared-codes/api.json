@@ -1,0 +1,101 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Codes",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/api/v3"
+    }
+  ],
+  "paths": {
+    "/pet": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "r200"
+          },
+          "4XX": {
+            "description": "r4XX"
+          }
+        }
+      }
+    },
+    "/pet/findByStatus": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "r200"
+          },
+          "400": {
+            "description": "r400"
+          },
+          "default": {
+            "description": "rdefault"
+          }
+        }
+      }
+    },
+    "/pet/{petId}": {
+      "parameters": [
+        {
+          "name": "petId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "get": {
+        "responses": {
+          "200": {
+            "description": "r200"
+          },
+          "400": {
+            "description": "r400"
+          }
+        }
+      },
+      "delete": {
+        "responses": {
+          "200": {
+            "description": "r200"
+          },
+          "400": {
+            "description": "r400"
+          }
+        }
+      }
+    },
+    "/files/{name}.json": {
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "responses": {
+          "200": {
+            "description": "r200"
+          }
+        }
+      }
+    },
+    "/store/inventory": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "r200"
+          }
+        }
+      }
+    }
+  }
+}

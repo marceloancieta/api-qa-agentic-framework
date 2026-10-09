@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "http://localhost:8080/api/v3/pet/anon%3A1f2e3d",
+    "headers": {}
+  },
+  "response": {
+    "status": 404,
+    "headers": {},
+    "body": null
+  }
+}

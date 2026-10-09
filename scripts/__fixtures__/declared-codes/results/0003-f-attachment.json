@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "http://localhost:8080/api/v3/files/report.json",
+    "headers": {}
+  },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": null
+  }
+}

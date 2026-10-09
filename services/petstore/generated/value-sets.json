@@ -1,0 +1,41 @@
+{
+  "generatedBy": "scripts/derive-value-sets.mjs",
+  "source": "services/petstore/openapi.json",
+  "valueSets": [
+    {
+      "key": "Order.status",
+      "kind": "schema",
+      "schema": "Order",
+      "path": ".status",
+      "source": "enum",
+      "values": ["placed", "approved", "delivered"],
+      "nullable": false,
+      "typeName": "OrderStatus",
+      "constName": "ORDER_STATUS_VALUES"
+    },
+    {
+      "key": "Pet.status",
+      "kind": "schema",
+      "schema": "Pet",
+      "path": ".status",
+      "source": "enum",
+      "values": ["available", "pending", "sold"],
+      "nullable": false,
+      "typeName": "PetStatus",
+      "constName": "PET_STATUS_VALUES"
+    },
+    {
+      "key": "GET /pet/findByStatus query:status",
+      "kind": "parameter",
+      "operation": "GET /pet/findByStatus",
+      "in": "query",
+      "name": "status",
+      "path": "",
+      "source": "enum",
+      "values": ["available", "pending", "sold"],
+      "nullable": false,
+      "typeName": "FindPetsByStatusStatusParam",
+      "constName": "FIND_PETS_BY_STATUS_STATUS_PARAM_VALUES"
+    }
+  ]
+}
