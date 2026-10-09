@@ -49,6 +49,12 @@ versus observed response codes. See [`docs/contract-tooling.md`](docs/contract-t
 coverage checks and the unit tests. Lanes for known gaps, published cases and flakiness, the quality
 gate and mutation testing run on demand. See [`docs/quality-gates.md`](docs/quality-gates.md).
 
+## Test management and trackers
+
+Results and case definitions reach the test-management tool through adapters (`allure-report` by
+default, `local`, and others behind the same contract); issues are read and filed through a tracker
+interface (GitHub, Jira). See [`docs/test-management.md`](docs/test-management.md).
+
 ## Example service pack
 
 [`services/petstore/`](services/petstore/README.md) runs the framework against Swagger Petstore v3

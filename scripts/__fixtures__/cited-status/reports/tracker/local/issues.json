@@ -1,0 +1,7 @@
+{
+  "next": 3,
+  "issues": {
+    "LOCAL-1": { "title": "still open", "body": "", "status": "open", "category": "open", "comments": [] },
+    "LOCAL-2": { "title": "already fixed", "body": "", "status": "done", "category": "done", "comments": [] }
+  }
+}

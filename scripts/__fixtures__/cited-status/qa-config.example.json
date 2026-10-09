@@ -1,0 +1,7 @@
+{
+  "tracker": {
+    "provider": "local",
+    "key_pattern": "LOCAL-[0-9]+",
+    "options": { "dir": "reports/tracker/local" }
+  }
+}

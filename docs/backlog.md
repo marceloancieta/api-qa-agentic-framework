@@ -28,20 +28,13 @@ Complete: CON-01 to CON-09 are in **Done**.
 
 ## E3 - Linters and gates
 
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| GATE-07 | `cited-status`: re-read "until X ships" / "waiting on X" claims against the configured tracker (opt-in). Needs the tracker interface from E4 (TM-*), so it is built there. | L-11, L-26 | blocked |
+Complete: GATE-01 to GATE-11 are in **Done** (GATE-07 closed in E4, once the tracker existed).
 
 ## E4 - Test management
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| TM-01 | Neutral case manifest (spec titles + registry; results from `allure-results`); results without identity dropped and named. | ADR 0004, L-05, L-17 | todo |
-| TM-02 | Adapter interface + contract tests; the `local` adapter (definitions-first) as reference and template. | ADR 0004 | todo |
-| TM-03 | Adapters `allure-report` (default) and `allure-testops` (optional); `testrail` documented only. | ADR 0004 | todo |
-| TM-04 | Adapter base: retries with backoff for `429`/`5xx`, idempotent close, structured ids, scoped operations (by keys or run), read-back equality after every write. | L-04, L-46 | todo |
-| TM-05 | Tracker scripts (read, create, transition, comment) in Node behind a tracker interface; tokens never on the command line; read-back of rendered content. | exp, L-43, L-47 | todo |
-| TM-06 | Correlation id and timestamps in all tooling output. | exp, L-48 | todo |
+| TM-03 | Adapters `allure-report` (default, done in `49c462c`) and `allure-testops` (optional; pending a trial instance to validate against); `testrail` documented in `docs/test-management.md`. | ADR 0004 | in-progress |
 
 ## E5 - Agentic process
 
@@ -144,3 +137,9 @@ Complete: CON-01 to CON-09 are in **Done**.
 | GATE-09 | `flake-lane`: `--repeat-each` detection with zero retries, `@quarantine` convention and release candidates; every lane refuses a non-zero `QA_RETRIES`. | `53b1926` |
 | GATE-10 | Stryker (`stryker.config.mjs`, command runner over node:test) on `scripts/lib` and `.claude/hooks/lib`, on demand via `npm run mutation`; feeds the quality gate. | `55f7187` |
 | GATE-11 | `npm run gates`: lint, format, types, config, hook and script tests, contract check, `lint:qa` (three linters and their self-tests), coverage status, unit tests, denylist self-test. `docs/quality-gates.md`. | `2d7df05` |
+| TM-01 | `scripts/tm/manifest.mjs`: cases from registries joined with specs, latest results of the packs keyed by identity, unattributed results excluded with reasons, unit-test results counted apart; shared `scripts/lib/results.mjs`. | `def84ad` |
+| TM-02 | Adapter interface and contract tests (`scripts/tm/contract.mjs`, with a negative control); `local` adapter as reference and template; `tm:publish` / `tm:report`. | `dc5883d` |
+| TM-04 | Adapter base: HTTP retries for 429/5xx/network with Retry-After or backoff (`scripts/lib/http.mjs`), idempotent close, scoped operations, read-back after every write. | `dc5883d`, `e239e96` |
+| TM-05 | Tracker interface (`scripts/tracker/`): local, GitHub and Jira adapters behind a verified wrapper (read-back, rendered placeholders kept), credentials from the environment only, contract tests over fakes; `npm run tracker`. | `e239e96` |
+| TM-06 | Run id and timestamps on tool output (`scripts/lib/log.mjs`); the run id is set by the test run, carried as a result label and reused by `tm:report`. | `3616cd8`, `49c462c` |
+| GATE-07 | `cited-status`: waiting claims, workarounds and `knownGap` arms checked against the tracker; stale, unknown-key and workaround-without-exit findings; opt-in, exact fixture. | E4 tracker |
