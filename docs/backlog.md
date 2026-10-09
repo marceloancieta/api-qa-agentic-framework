@@ -36,7 +36,7 @@ Complete: CON-01 to CON-09 are in **Done**.
 | GATE-04 | `coverage-status` over the full registry lifecycle (`draft` → `approved` → `automated` → `published`, `blocked`), every column checked. | exp | todo |
 | GATE-05 | Requirements traceability matrix generated from registry + results (requirement → case → technique → file → status → defect). | practice | todo |
 | GATE-06 | `known-gap-lane` (one Playwright process per known-gap case) and a published-case lane; a passing known-gap is reported for investigation. | L-14, L-31 | todo |
-| GATE-07 | `cited-status`: re-read "until X ships" / "waiting on X" claims against the configured tracker (opt-in). | L-11, L-26 | todo |
+| GATE-07 | `cited-status`: re-read "until X ships" / "waiting on X" claims against the configured tracker (opt-in). Needs the tracker interface from E4 (TM-*), so it is built there. | L-11, L-26 | blocked |
 | GATE-08 | Quality gate (`scripts/quality-gate.mjs`): optional metric sources (pass rate, p95, DAST findings, mutation score), thresholds in `qa-config.quality_gate`, one Strategy per check, verdict PASS / REVIEW / FAIL; validates its own input. | practice, ADR 0007 | todo |
 | GATE-09 | Anti-flake lane: `--repeat-each` detection run, quarantine tag, gate lanes run with zero retries. | practice, L-27 | todo |
 | GATE-10 | Mutation testing (Stryker) over `scripts/lib` and hook libraries, feeding the quality gate. | practice | todo |
