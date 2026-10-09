@@ -36,8 +36,9 @@ import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadModel } from './lib/openapi.mjs';
 import { parseCli, REPO_ROOT, resolveSpecSource } from './lib/cli.mjs';
+import { groupRuns, RUN_GAP_MINUTES } from './lib/results.mjs';
 
-export const RUN_GAP_MINUTES = 10;
+export { groupRuns, RUN_GAP_MINUTES };
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -190,20 +191,6 @@ function attachmentSources(node, found = []) {
   }
   for (const step of node.steps ?? []) attachmentSources(step, found);
   return found;
-}
-
-/** Group test results into runs separated by idle gaps; returns the runs oldest first. */
-export function groupRuns(results, gapMs = RUN_GAP_MINUTES * 60_000) {
-  const sorted = [...results].sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
-  const runs = [];
-  let lastStop = -Infinity;
-  for (const result of sorted) {
-    const start = result.start ?? 0;
-    if (runs.length === 0 || start - lastStop > gapMs) runs.push([]);
-    runs[runs.length - 1].push(result);
-    lastStop = Math.max(lastStop, result.stop ?? start);
-  }
-  return runs;
 }
 
 /**

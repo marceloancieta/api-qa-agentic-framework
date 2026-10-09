@@ -49,7 +49,7 @@ import { classifyCall, literalText, loadCorpus, parseSpecFile, ts } from './lib/
 import { loadRegistries, STATUSES } from './lib/registry.mjs';
 import { loadModel } from './lib/openapi.mjs';
 import { operationFloor } from './derive-floor.mjs';
-import { groupRuns } from './declared-codes.mjs';
+import { groupRuns } from './lib/results.mjs';
 
 /** Every rule a finding can carry, in report order. */
 export const RULES = [

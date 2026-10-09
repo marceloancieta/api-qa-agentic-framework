@@ -50,6 +50,7 @@
     "lanes:flake": "node scripts/flake-lane.mjs --quarantine-report",
     "quality:gate": "node scripts/quality-gate.mjs --summary reports/quality-gate.md",
     "mutation": "stryker run",
+    "tm:manifest": "node scripts/tm/manifest.mjs",
     "test": "playwright test",
     "test:smoke": "playwright test --project=api --grep @smoke",
     "gates": "npm run lint && npm run format:check && npm run types:check && npm run config:check && npm run test:hooks && npm run test:scripts && npm run contract:check && npm run lint:qa && npm run coverage:status && npm run test:unit && npm run scan:denylist:self-test"
