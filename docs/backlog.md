@@ -142,4 +142,4 @@ Complete: GATE-01 to GATE-11 are in **Done** (GATE-07 closed in E4, once the tra
 | TM-04 | Adapter base: HTTP retries for 429/5xx/network with Retry-After or backoff (`scripts/lib/http.mjs`), idempotent close, scoped operations, read-back after every write. | `dc5883d`, `e239e96` |
 | TM-05 | Tracker interface (`scripts/tracker/`): local, GitHub and Jira adapters behind a verified wrapper (read-back, rendered placeholders kept), credentials from the environment only, contract tests over fakes; `npm run tracker`. | `e239e96` |
 | TM-06 | Run id and timestamps on tool output (`scripts/lib/log.mjs`); the run id is set by the test run, carried as a result label and reused by `tm:report`. | `3616cd8`, `49c462c` |
-| GATE-07 | `cited-status`: waiting claims, workarounds and `knownGap` arms checked against the tracker; stale, unknown-key and workaround-without-exit findings; opt-in, exact fixture. | E4 tracker |
+| GATE-07 | `cited-status`: waiting claims, workarounds and `knownGap` arms checked against the tracker; stale, unknown-key and workaround-without-exit findings; opt-in, exact fixture. | `1ca6689` |
