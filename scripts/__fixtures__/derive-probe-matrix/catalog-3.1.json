@@ -1,0 +1,79 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Catalog", "version": "1.0.0" },
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "listItems",
+        "parameters": [
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["asc", "desc"] }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["book", "film", "game"] }
+          },
+          { "name": "archived", "in": "query", "schema": { "type": "boolean" } },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100 }
+          },
+          { "name": "X-Locale", "in": "header", "schema": { "type": "string", "maxLength": 5 } }
+        ],
+        "responses": { "200": { "description": "Items" } }
+      },
+      "post": {
+        "operationId": "createItem",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Item" } } }
+        },
+        "responses": { "201": { "description": "Created" }, "400": { "description": "Invalid" } }
+      }
+    },
+    "/items/{sku}": {
+      "get": {
+        "operationId": "getItem",
+        "parameters": [
+          {
+            "name": "sku",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Z]{3}-[0-9]{4}$" }
+          }
+        ],
+        "responses": { "200": { "description": "Found" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Item": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "title"],
+        "properties": {
+          "code": { "type": "string", "pattern": "[a-" },
+          "title": { "type": "string", "maxLength": 20, "pattern": ".*" },
+          "contact": { "type": "string", "format": "email" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "quantity": { "type": "integer", "format": "int32", "minimum": 0 },
+          "price": { "type": "number", "exclusiveMaximum": 1000 },
+          "labels": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "uniqueItems": true,
+            "items": { "type": "string", "enum": ["new", "sale"] }
+          },
+          "variant": { "oneOf": [{ "type": "string" }, { "type": "integer" }] }
+        }
+      }
+    }
+  }
+}
