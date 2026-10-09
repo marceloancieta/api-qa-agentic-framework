@@ -1,0 +1,32 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Tree", "version": "1.0.0" },
+  "paths": {
+    "/nodes": {
+      "post": {
+        "summary": "Create a node",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Node" } } }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Node": {
+        "type": "object",
+        "properties": {
+          "parent": { "$ref": "#/components/schemas/Node" },
+          "children": { "type": "array", "items": { "$ref": "#/components/schemas/Node" } },
+          "meta": {
+            "type": "object",
+            "additionalProperties": { "type": "string", "maxLength": 20 }
+          },
+          "value": { "oneOf": [{ "type": "string" }, { "type": "integer" }] }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,523 @@
+{
+  "descriptions": {
+    "DELETE /pet/{petId}": "82f3236b19065fd5",
+    "DELETE /store/order/{orderId}": "0732964f5248ea20",
+    "DELETE /user/{username}": "b57804514a2d47e7",
+    "GET /pet/findByStatus": "83716725618ee17a",
+    "GET /pet/findByTags": "0cdcce24e77811e7",
+    "GET /pet/{petId}": "f2d99938502bc40d",
+    "GET /store/inventory": "7be8aa8803bd0246",
+    "GET /store/order/{orderId}": "db9a6272167f4751",
+    "GET /user/login": "7d8a7a69b1d608c2",
+    "GET /user/logout": "dc70851ae782e2cb",
+    "GET /user/{username}": "2fe2da793afe4164",
+    "POST /pet": "25495177a5d9e577",
+    "POST /pet/{petId}": "e17bbe13af1c1555",
+    "POST /pet/{petId}/uploadImage": "b5db8d701c4a5b82",
+    "POST /store/order": "9b1f404ab0bad087",
+    "POST /user": "576db1f64f873b10",
+    "POST /user/createWithList": "80cd77b57fb574ba",
+    "PUT /pet": "fe83bacd43b384f4",
+    "PUT /user/{username}": "7c0219f3c214b2da"
+  },
+  "digestVersion": 1,
+  "operations": {
+    "DELETE /pet/{petId}": {
+      "parameters": {
+        "header:api_key": "string",
+        "path:petId": "integer required format=\"int64\""
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "content-type": "none"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "petstore_auth"
+    },
+    "DELETE /store/order/{orderId}": {
+      "parameters": {
+        "path:orderId": "integer required format=\"int64\""
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "content-type": "none"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "404": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "DELETE /user/{username}": {
+      "parameters": {
+        "path:username": "string required"
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "content-type": "none"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "404": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "GET /pet/findByStatus": {
+      "parameters": {
+        "query:status": "string required enum=[\"available\",\"pending\",\"sold\"] default=\"available\""
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "array",
+          "$[]": "ref=Pet",
+          "content-type": "application/json, application/xml"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "petstore_auth"
+    },
+    "GET /pet/findByTags": {
+      "parameters": {
+        "query:tags": "array required",
+        "query:tags[]": "string"
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "array",
+          "$[]": "ref=Pet",
+          "content-type": "application/json, application/xml"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "petstore_auth"
+    },
+    "GET /pet/{petId}": {
+      "parameters": {
+        "path:petId": "integer required format=\"int64\""
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "ref=Pet",
+          "content-type": "application/json, application/xml"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "404": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "api_key | petstore_auth"
+    },
+    "GET /store/inventory": {
+      "parameters": {},
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "object",
+          "${*}": "integer format=\"int32\"",
+          "content-type": "application/json"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "api_key"
+    },
+    "GET /store/order/{orderId}": {
+      "parameters": {
+        "path:orderId": "integer required format=\"int64\""
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "ref=Order",
+          "content-type": "application/json, application/xml"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "404": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "GET /user/login": {
+      "parameters": {
+        "query:password": "string",
+        "query:username": "string"
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "string",
+          "content-type": "application/json, application/xml"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "GET /user/logout": {
+      "parameters": {},
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "GET /user/{username}": {
+      "parameters": {
+        "path:username": "string required"
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "ref=User",
+          "content-type": "application/json, application/xml"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "404": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "POST /pet": {
+      "parameters": {},
+      "requestBody": {
+        "$": "ref=Pet object required",
+        "$.category": "ref=Category object",
+        "$.category.id": "integer format=\"int64\"",
+        "$.category.name": "string",
+        "$.id": "integer format=\"int64\"",
+        "$.name": "string required",
+        "$.photoUrls": "array required",
+        "$.photoUrls[]": "string",
+        "$.status": "string enum=[\"available\",\"pending\",\"sold\"]",
+        "$.tags": "array",
+        "$.tags[]": "ref=Tag object",
+        "$.tags[].id": "integer format=\"int64\"",
+        "$.tags[].name": "string",
+        "content-type": "application/json, application/x-www-form-urlencoded, application/xml"
+      },
+      "responses": {
+        "200": {
+          "$": "ref=Pet",
+          "content-type": "application/json, application/xml"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "422": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "petstore_auth"
+    },
+    "POST /pet/{petId}": {
+      "parameters": {
+        "path:petId": "integer required format=\"int64\"",
+        "query:name": "string",
+        "query:status": "string"
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "ref=Pet",
+          "content-type": "application/json, application/xml"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "petstore_auth"
+    },
+    "POST /pet/{petId}/uploadImage": {
+      "parameters": {
+        "path:petId": "integer required format=\"int64\"",
+        "query:additionalMetadata": "string"
+      },
+      "requestBody": {
+        "$": "string format=\"binary\"",
+        "content-type": "application/octet-stream"
+      },
+      "responses": {
+        "200": {
+          "$": "ref=ApiResponse",
+          "content-type": "application/json"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "404": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "petstore_auth"
+    },
+    "POST /store/order": {
+      "parameters": {},
+      "requestBody": {
+        "$": "ref=Order object",
+        "$.complete": "boolean",
+        "$.id": "integer format=\"int64\"",
+        "$.petId": "integer format=\"int64\"",
+        "$.quantity": "integer format=\"int32\"",
+        "$.shipDate": "string format=\"date-time\"",
+        "$.status": "string enum=[\"placed\",\"approved\",\"delivered\"]",
+        "content-type": "application/json, application/x-www-form-urlencoded, application/xml"
+      },
+      "responses": {
+        "200": {
+          "$": "ref=Order",
+          "content-type": "application/json"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "422": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "POST /user": {
+      "parameters": {},
+      "requestBody": {
+        "$": "ref=User object",
+        "$.email": "string",
+        "$.firstName": "string",
+        "$.id": "integer format=\"int64\"",
+        "$.lastName": "string",
+        "$.password": "string",
+        "$.phone": "string",
+        "$.userStatus": "integer format=\"int32\"",
+        "$.username": "string",
+        "content-type": "application/json, application/x-www-form-urlencoded, application/xml"
+      },
+      "responses": {
+        "200": {
+          "$": "ref=User",
+          "content-type": "application/json, application/xml"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "POST /user/createWithList": {
+      "parameters": {},
+      "requestBody": {
+        "$": "array",
+        "$[]": "ref=User object",
+        "$[].email": "string",
+        "$[].firstName": "string",
+        "$[].id": "integer format=\"int64\"",
+        "$[].lastName": "string",
+        "$[].password": "string",
+        "$[].phone": "string",
+        "$[].userStatus": "integer format=\"int32\"",
+        "$[].username": "string",
+        "content-type": "application/json"
+      },
+      "responses": {
+        "200": {
+          "$": "ref=User",
+          "content-type": "application/json, application/xml"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "PUT /pet": {
+      "parameters": {},
+      "requestBody": {
+        "$": "ref=Pet object required",
+        "$.category": "ref=Category object",
+        "$.category.id": "integer format=\"int64\"",
+        "$.category.name": "string",
+        "$.id": "integer format=\"int64\"",
+        "$.name": "string required",
+        "$.photoUrls": "array required",
+        "$.photoUrls[]": "string",
+        "$.status": "string enum=[\"available\",\"pending\",\"sold\"]",
+        "$.tags": "array",
+        "$.tags[]": "ref=Tag object",
+        "$.tags[].id": "integer format=\"int64\"",
+        "$.tags[].name": "string",
+        "content-type": "application/json, application/x-www-form-urlencoded, application/xml"
+      },
+      "responses": {
+        "200": {
+          "$": "ref=Pet",
+          "content-type": "application/json, application/xml"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "404": {
+          "content-type": "none"
+        },
+        "422": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "petstore_auth"
+    },
+    "PUT /user/{username}": {
+      "parameters": {
+        "path:username": "string required"
+      },
+      "requestBody": {
+        "$": "ref=User object",
+        "$.email": "string",
+        "$.firstName": "string",
+        "$.id": "integer format=\"int64\"",
+        "$.lastName": "string",
+        "$.password": "string",
+        "$.phone": "string",
+        "$.userStatus": "integer format=\"int32\"",
+        "$.username": "string",
+        "content-type": "application/json, application/x-www-form-urlencoded, application/xml"
+      },
+      "responses": {
+        "200": {
+          "content-type": "none"
+        },
+        "400": {
+          "content-type": "none"
+        },
+        "404": {
+          "content-type": "none"
+        },
+        "default": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    }
+  },
+  "schemas": {
+    "ApiResponse": {
+      "$": "object",
+      "$.code": "integer format=\"int32\"",
+      "$.message": "string",
+      "$.type": "string"
+    },
+    "Category": {
+      "$": "object",
+      "$.id": "integer format=\"int64\"",
+      "$.name": "string"
+    },
+    "Order": {
+      "$": "object",
+      "$.complete": "boolean",
+      "$.id": "integer format=\"int64\"",
+      "$.petId": "integer format=\"int64\"",
+      "$.quantity": "integer format=\"int32\"",
+      "$.shipDate": "string format=\"date-time\"",
+      "$.status": "string enum=[\"placed\",\"approved\",\"delivered\"]"
+    },
+    "Pet": {
+      "$": "object",
+      "$.category": "ref=Category",
+      "$.id": "integer format=\"int64\"",
+      "$.name": "string required",
+      "$.photoUrls": "array required",
+      "$.photoUrls[]": "string",
+      "$.status": "string enum=[\"available\",\"pending\",\"sold\"]",
+      "$.tags": "array",
+      "$.tags[]": "ref=Tag"
+    },
+    "Tag": {
+      "$": "object",
+      "$.id": "integer format=\"int64\"",
+      "$.name": "string"
+    },
+    "User": {
+      "$": "object",
+      "$.email": "string",
+      "$.firstName": "string",
+      "$.id": "integer format=\"int64\"",
+      "$.lastName": "string",
+      "$.password": "string",
+      "$.phone": "string",
+      "$.userStatus": "integer format=\"int32\"",
+      "$.username": "string"
+    }
+  }
+}
