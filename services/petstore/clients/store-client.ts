@@ -13,10 +13,10 @@ export class StoreClient extends BaseClient {
   }
 
   getOrder(id: number | string): Promise<APIResponse> {
-    return this.get(`store/order/${this.segment(id)}`);
+    return this.get(this.route('store/order/{orderId}', { orderId: id }));
   }
 
   deleteOrder(id: number | string): Promise<APIResponse> {
-    return this.delete(`store/order/${this.segment(id)}`);
+    return this.delete(this.route('store/order/{orderId}', { orderId: id }));
   }
 }

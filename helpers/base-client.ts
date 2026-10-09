@@ -5,6 +5,7 @@
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 import { noAuth, type AuthStrategy, type QueryParams } from './auth';
 import { attachExchange } from './evidence';
+import { pseudonym, type RedactionPolicy } from './redact';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD';
 
@@ -24,31 +25,37 @@ export class BaseClient {
   constructor(
     protected readonly context: APIRequestContext,
     protected readonly auth: AuthStrategy = noAuth,
+    /** The pack's identity fields and extra secret keys, applied to every recorded exchange. */
+    protected readonly redaction: RedactionPolicy = {},
   ) {}
 
-  /** Percent-encode one path segment, so an id can never change the route. */
-  protected segment(value: string | number): string {
-    return encodeURIComponent(String(value));
+  /**
+   * A path from an OpenAPI-style template: `this.route('user/{username}', { username })`. Values
+   * are percent-encoded, so an id can never change the route, and parameters named like an identity
+   * field are pseudonymized in the evidence, like the same field in a body.
+   */
+  protected route(template: string, params: PathParams = {}): Route {
+    return { template, params };
   }
 
-  protected get(path: string, options?: RequestOptions): Promise<APIResponse> {
-    return this.send('GET', path, options);
+  protected get(target: Target, options?: RequestOptions): Promise<APIResponse> {
+    return this.send('GET', target, options);
   }
 
-  protected post(path: string, options?: RequestOptions): Promise<APIResponse> {
-    return this.send('POST', path, options);
+  protected post(target: Target, options?: RequestOptions): Promise<APIResponse> {
+    return this.send('POST', target, options);
   }
 
-  protected put(path: string, options?: RequestOptions): Promise<APIResponse> {
-    return this.send('PUT', path, options);
+  protected put(target: Target, options?: RequestOptions): Promise<APIResponse> {
+    return this.send('PUT', target, options);
   }
 
-  protected patch(path: string, options?: RequestOptions): Promise<APIResponse> {
-    return this.send('PATCH', path, options);
+  protected patch(target: Target, options?: RequestOptions): Promise<APIResponse> {
+    return this.send('PATCH', target, options);
   }
 
-  protected delete(path: string, options?: RequestOptions): Promise<APIResponse> {
-    return this.send('DELETE', path, options);
+  protected delete(target: Target, options?: RequestOptions): Promise<APIResponse> {
+    return this.send('DELETE', target, options);
   }
 
   /**
@@ -57,13 +64,14 @@ export class BaseClient {
    */
   protected async send(
     method: HttpMethod,
-    path: string,
+    target: Target,
     options: RequestOptions = {},
   ): Promise<APIResponse> {
     const outgoing = { headers: { ...options.headers }, params: { ...options.params } };
     const useAuth = options.auth ?? true;
     if (useAuth) this.auth.apply(outgoing);
 
+    const path = typeof target === 'string' ? target : expand(target, (value) => value);
     const data =
       typeof options.data === 'string' ? Buffer.from(options.data, 'utf8') : options.data;
     const response = await this.context.fetch(path, {
@@ -74,10 +82,50 @@ export class BaseClient {
       timeout: options.timeout,
     });
     await attachExchange(
-      { method, url: response.url(), headers: outgoing.headers, body: data },
+      {
+        method,
+        url: this.recordedUrl(response.url(), path, target),
+        headers: outgoing.headers,
+        body: data,
+      },
       response,
-      this.auth.secretKeys,
+      {
+        secretKeys: [...this.auth.secretKeys, ...(this.redaction.secretKeys ?? [])],
+        identityFields: this.redaction.identityFields,
+      },
     );
     return response;
   }
+
+  // The URL as evidence: identity path parameters replaced by their pseudonyms.
+  private recordedUrl(url: string, path: string, target: Target): string {
+    if (typeof target === 'string') return url;
+    const identity = new Set((this.redaction.identityFields ?? []).map((f) => f.toLowerCase()));
+    const recorded = expand(target, (value, name) =>
+      identity.has(name.toLowerCase()) ? pseudonym(value) : value,
+    );
+    const parsed = new URL(url);
+    if (!parsed.pathname.endsWith(path)) return url;
+    parsed.pathname = parsed.pathname.slice(0, -path.length) + recorded;
+    return parsed.toString();
+  }
+}
+
+export type PathParams = Record<string, string | number>;
+
+export interface Route {
+  template: string;
+  params: PathParams;
+}
+
+type Target = string | Route;
+
+function expand(route: Route, transform: (value: string, name: string) => string): string {
+  return route.template.replace(/\{([^}]+)\}/g, (_match, name: string) => {
+    const value = route.params[name];
+    if (value === undefined) {
+      throw new Error(`Path "${route.template}" needs parameter "${name}".`);
+    }
+    return encodeURIComponent(transform(String(value), name));
+  });
 }

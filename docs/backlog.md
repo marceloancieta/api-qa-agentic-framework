@@ -22,13 +22,9 @@ E9 docs and release · Later (after v0.1.0).
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| CORE-08 | `redact` with key-based masking plus a configurable list of identity fields; anonymization helpers (mask, hash, substitute, generalize) for captured data. | practice, L-42 | in-progress |
-| CORE-09 | `allureMeta`: stable identity `<service>-<version>-<TC id>`, tags mirrored from the title, `knownGap(key, why)` emitting the issue link; `<PLACEHOLDER>` in prose wrapped in code spans. | L-14, L-22, L-47 | todo |
 | CORE-10 | `resourceGuard` protocol (compare before repairing, fix only real differences, report instead of throwing, flag intended vs unintended changes); verdict reported outside an armed expected-failure. | L-15, L-39 | todo |
-| CORE-11 | Schema validation helper picking the ajv draft by spec version (3.0 converted, 3.1 via `ajv/dist/2020`). | ADR 0003 | todo |
 | CORE-14 | Data-gated cases skip loudly (warning), never silently; fixture state promises verified, not only existence. | L-40 | todo |
 | CORE-15 | Run lock against concurrent local runs sharing `allure-results/`. | L-46 | todo |
-| CORE-17 | Error-envelope catalog per service pack and a helper asserting the envelope by failure kind (shape vs meaning), keyed on the field, never on message text. | L-50 | todo |
 | CORE-18 | State-comparison helper with field buckets (identity, business, provenance, volatile), volatile-id policy and dependent-resource inventory, over API round-trips. | L-53 | todo |
 
 ## E2 - Contract tooling
@@ -126,6 +122,7 @@ E9 docs and release · Later (after v0.1.0).
 | FUT-04 | More auth strategies (`basic`, `oauth2-client-credentials`). | practice | todo |
 | FUT-06 | Differential testing against a reference implementation, e.g. two versions of an API serving the same requests, using the field-bucket model. | exp | todo |
 | FUT-05 | Template repository / `npx create-api-qa` scaffolder. | plan | todo |
+| FUT-07 | Second service pack: VAmPI (single container, OpenAPI 3, JWT, users owning books) run in both its secure and vulnerable modes, so the same actor-based authorization matrix (OWASP API1 BOLA) passes on one and detects the flaw on the other. Needs a `login` auth strategy (credentials from variables, token minted and refreshed) and the container bound to localhost only. Verify image, tag and spec path before adopting. | plan | todo |
 
 ---
 
@@ -145,3 +142,7 @@ E9 docs and release · Later (after v0.1.0).
 | CORE-05 | Flows as plain functions over an actor's clients; `step` and `expectStatus` helpers; Petstore `purchasePet`. | `bac8f06` |
 | CORE-06 | Builders (`aPet`, `anOrder`) and Object Mother (`PetMother`) on a seeded faker; enum value sets are hand-written constants until CON-08 generates them. | `bac8f06` |
 | CORE-07 | Seeded `rng` (root `QA_SEED` printed at start, per-test seed from the title path, replay hint on failure) and `clock` (`QA_CLOCK` pins it). | `bac8f06` |
+| CORE-08 | Redaction: built-in secret keys masked; pack identity fields pseudonymized (HMAC with a per-run salt) in bodies, query and route parameters; anonymization helpers `mask`, `hash`, `substitute`, `generalize`. | E1 slice 3 |
+| CORE-09 | Case metadata: identity `<service>-<version>-<TC id>` from the title, suite labels from `service.json`, `operation()`, `knownGap()` checked against `tracker.key_pattern` with `tracker.issue_url`, placeholders wrapped in code spans; Playwright tags reach Allure natively. | E1 slice 3 |
+| CORE-11 | Schema validation by spec version (2.0 and 3.0 converted to draft-07, 3.1 with draft 2020-12, OpenAPI formats) and the `toMatchSchema` matcher. | E1 slice 3 |
+| CORE-17 | Error-envelope catalog per pack and `expectErrorEnvelope` (shape vs meaning, field read from keys with spelling tolerance, never from message text); Petstore catalog. | E1 slice 3 |

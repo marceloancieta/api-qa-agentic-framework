@@ -3,7 +3,7 @@
 // test-management adapter) receives them without a reporter-specific call.
 
 import { test, type APIResponse } from '@playwright/test';
-import { redact, redactUrl } from './redact';
+import { redact, redactUrl, type RedactionPolicy } from './redact';
 
 export interface Exchange {
   method: string;
@@ -28,12 +28,20 @@ function requestBody(data: unknown): unknown {
   return data;
 }
 
+// The policy each response was recorded with, so later excerpts of it (flow errors) redact the same way.
+const policies = new WeakMap<APIResponse, RedactionPolicy>();
+
+export function redactionFor(response: APIResponse): RedactionPolicy {
+  return policies.get(response) ?? {};
+}
+
 /** Attach one request/response pair. A call made outside a test (worker setup) records nothing. */
 export async function attachExchange(
   request: Exchange,
   response: APIResponse,
-  secretKeys: readonly string[] = [],
+  policy: RedactionPolicy = {},
 ): Promise<void> {
+  policies.set(response, policy);
   let info: ReturnType<typeof test.info>;
   try {
     info = test.info();
@@ -43,18 +51,18 @@ export async function attachExchange(
   const record = {
     request: {
       method: request.method,
-      url: redactUrl(request.url, secretKeys),
-      headers: redact(request.headers, secretKeys),
-      body: redact(requestBody(request.body), secretKeys),
+      url: redactUrl(request.url, policy),
+      headers: redact(request.headers, policy),
+      body: redact(requestBody(request.body), policy),
     },
     response: {
       status: response.status(),
-      headers: redact(response.headers(), secretKeys),
-      body: redact(readableBody(await response.text()), secretKeys),
+      headers: redact(response.headers(), policy),
+      body: redact(readableBody(await response.text()), policy),
     },
   };
   const index = info.attachments.length + 1;
-  const path = new URL(request.url).pathname;
+  const path = new URL(record.request.url).pathname;
   await info.attach(`${index} ${request.method} ${path} -> ${response.status()}`, {
     body: JSON.stringify(record, null, 2),
     contentType: 'application/json',

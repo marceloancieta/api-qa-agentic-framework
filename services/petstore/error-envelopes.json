@@ -1,0 +1,39 @@
+{
+  "envelopes": {
+    "input-error": {
+      "description": "Request rejected by the framework before the handler: unparseable body, wrong parameter type, value outside an enum. The offending name appears only inside the message text.",
+      "status": [400],
+      "content_type": "application/json",
+      "schema": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "integer" },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      },
+      "field_paths": []
+    },
+    "server-error": {
+      "description": "Unhandled failure. The message carries a log reference, not a cause. Observed for a body whose field has the wrong JSON type, where a 400 would be expected.",
+      "status": [500],
+      "content_type": "application/json",
+      "schema": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "integer" },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      },
+      "field_paths": []
+    },
+    "not-found": {
+      "description": "Handler-level miss (pet, order or user). Plain text body, served with an XML content type.",
+      "status": [404],
+      "content_type": "application/xml",
+      "schema": { "type": "string", "minLength": 1 },
+      "field_paths": []
+    }
+  }
+}

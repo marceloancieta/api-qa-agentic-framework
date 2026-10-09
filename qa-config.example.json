@@ -29,7 +29,8 @@
   },
   "tracker": {
     "key_pattern": null,
-    "base_url": null
+    "base_url": null,
+    "issue_url": null
   },
   "policies": {
     "commit": {

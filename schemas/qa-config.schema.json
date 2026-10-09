@@ -59,7 +59,12 @@
           "description": "Regex (JavaScript syntax) of an issue key, e.g. \"PROJ-\\d+\". null disables every tracker-key rule.",
           "type": ["string", "null"]
         },
-        "base_url": { "type": ["string", "null"], "format": "uri" }
+        "base_url": { "type": ["string", "null"], "format": "uri" },
+        "issue_url": {
+          "description": "Link to one issue, with {key} where the key goes, e.g. \"https://tracker.example/browse/{key}\". Used by knownGap().",
+          "type": ["string", "null"],
+          "pattern": "\\{key\\}"
+        }
       }
     },
     "policies": {

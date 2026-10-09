@@ -14,7 +14,7 @@ test.describe('Petstore smoke', { tag: '@smoke' }, () => {
     }
   });
 
-  test('a created pet can be read back and deleted', async ({ pets, qa, faker }) => {
+  test('a created pet can be read back and deleted', async ({ pets, qa, faker, contract }) => {
     test.skip(!qa.allowWrites, `environment "${qa.environment}" does not allow writes`);
 
     const pet = PetMother.available(faker);
@@ -24,7 +24,9 @@ test.describe('Petstore smoke', { tag: '@smoke' }, () => {
 
       const read = await pets.getById(id);
       expect(read.status()).toBe(200);
-      expect(await read.json()).toMatchObject({ ...pet });
+      const body: unknown = await read.json();
+      expect(body).toMatchSchema(contract, 'Pet');
+      expect(body).toMatchObject({ ...pet });
 
       expect((await pets.remove(id)).status()).toBe(200);
       expect((await pets.getById(id)).status()).toBe(404);

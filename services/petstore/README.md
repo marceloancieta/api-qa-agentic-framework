@@ -8,9 +8,11 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 
 | Path | Holds | Status |
 |---|---|---|
-| `service.json` | Name and API version; the version is part of every case identity. | present |
+| `service.json` | Name, API version (part of every case identity), identity fields to pseudonymize in evidence, contract file. | present |
+| `openapi.json` | The contract under test (Petstore 1.0.28, OpenAPI 3.0.4, Apache-2.0). Response bodies are validated against its schemas. | present |
+| `error-envelopes.json` | The error formats this API answers with, by kind, for `expectErrorEnvelope`. | present |
 | `types.ts` | Request and response types and enum value sets (generated from the OpenAPI document from E2 on). | present |
-| `clients/` | One client per resource, extending `helpers/base-client.ts`. Methods return the raw response. | present |
+| `clients/` | One client per resource, extending `helpers/base-client.ts`. Paths with parameters use `this.route('pet/{petId}', { petId })`. Methods return the raw response. | present |
 | `fixtures.ts` | The core `test` extended with this pack's clients and `actor(name)`. Specs import from here. | present |
 | `specs/` | Playwright specs, run by the `api` project. | present |
 | `__tests__/` | Offline unit tests of the pack (builders), run by the `unit` project. | present |
@@ -44,3 +46,19 @@ Cases that write check `qa.allowWrites` and skip with the reason when the enviro
   test records its `QA_SEED`; rerun with that value to get the same data. `QA_CLOCK` pins "now".
 
 See `specs/purchase.spec.ts` for all three together.
+
+## Contract checks
+
+- **Schemas.** `expect(body).toMatchSchema(contract, 'Pet')` validates a body against the OpenAPI
+  schema with the JSON Schema dialect of the document's version, and lists every mismatch.
+- **Error envelopes.** `await expectErrorEnvelope(response, envelopes, 'input-error')` checks status,
+  content type and body shape of a documented error kind. Pass `{ field }` only for envelopes that
+  report the field in a key; Petstore's do not, so its cases assert the kind only.
+- **Identity.** A title that starts with a case id (`TC-PET-01 ...`) gives the result the stable
+  identity `petstore-v3-TC-PET-01`; tags in the title or `{ tag }` reach the results unchanged.
+- **Known gaps.** When an open issue keeps a case red, mark it with `test.fail` and take its
+  reason from `knownGap(key, why)`, which also adds the issue link to the result. It needs
+  `tracker.key_pattern` and `tracker.issue_url` in qa-config.
+
+Observed and not yet tracked: a pet body whose `name` is a number answers `500` (server-error)
+instead of `400`, and not-found bodies are plain text served as `application/xml`.

@@ -28,6 +28,7 @@ interface QaConfigFile {
     actors?: Record<string, AuthConfig>;
   };
   test_management?: { provider?: string };
+  tracker?: { key_pattern?: string | null; issue_url?: string | null };
 }
 
 export interface QaRuntime {
@@ -41,6 +42,7 @@ export interface QaRuntime {
   /** Named credentials from `api.actors`, without the built-in `default` and `anonymous`. */
   actors: Record<string, AuthConfig>;
   testManagement: string;
+  tracker: { keyPattern: string | null; issueUrl: string | null };
 }
 
 /**
@@ -89,6 +91,10 @@ export function loadRuntime(env: NodeJS.ProcessEnv = process.env, root = REPO_RO
     auth: api.auth ?? { type: 'none' },
     actors: api.actors ?? {},
     testManagement: file.test_management?.provider ?? 'allure-report',
+    tracker: {
+      keyPattern: file.tracker?.key_pattern ?? null,
+      issueUrl: file.tracker?.issue_url ?? null,
+    },
   };
 }
 

@@ -2,10 +2,12 @@
 // Order matters. Clearing is destructive, so it happens only after every check has passed: a
 // misconfigured run fails with the old results still on disk.
 
+import { randomBytes } from 'node:crypto';
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FullConfig } from '@playwright/test';
 import { REPO_ROOT, loadRuntime } from '../helpers/config';
+import { SALT_VARIABLE } from '../helpers/redact';
 import { rootSeed, SEED_VARIABLE } from '../helpers/rng';
 
 export const RESULTS_DIR = join(REPO_ROOT, 'allure-results');
@@ -35,4 +37,7 @@ export default function globalSetup(config: FullConfig): void {
   // its test seeds from the same root, and the printed value replays the whole run.
   process.env[SEED_VARIABLE] = rootSeed();
   console.log(`[seed] ${SEED_VARIABLE}=${process.env[SEED_VARIABLE]}`);
+
+  // One pseudonym salt for the whole run, shared by the workers and never printed.
+  process.env[SALT_VARIABLE] ||= randomBytes(16).toString('hex');
 }

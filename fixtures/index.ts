@@ -1,12 +1,13 @@
 // Core fixtures every service pack builds on. A pack extends this `test` with its own clients
 // (see services/<name>/fixtures.ts); the core never imports from a pack.
 
-import { test as base, expect, type APIRequestContext } from '@playwright/test';
+import { test as base, expect as baseExpect, type APIRequestContext } from '@playwright/test';
 import { Faker, en } from '@faker-js/faker';
 import { createAuth, type AuthStrategy } from '../helpers/auth';
 import { clockFromEnv, type Clock } from '../helpers/clock';
 import { actorAuth, loadRuntime, type QaRuntime } from '../helpers/config';
 import { createRng, rootSeed, SEED_VARIABLE, testSeed, type Rng } from '../helpers/rng';
+import type { SchemaValidator } from '../helpers/schema';
 
 /** One named credential with its own request context, so cookies never leak between actors. */
 export interface ActorSession {
@@ -99,4 +100,18 @@ export const test = base.extend<CoreTestFixtures, CoreWorkerFixtures>({
   },
 });
 
-export { expect };
+export const expect = baseExpect.extend({
+  /** `expect(body).toMatchSchema(contract, 'Pet')`: every mismatch is listed in the failure. */
+  toMatchSchema(received: unknown, validator: SchemaValidator, name: string) {
+    const problems = validator.validate(name, received);
+    const pass = problems.length === 0;
+    return {
+      pass,
+      name: 'toMatchSchema',
+      message: () =>
+        pass
+          ? `expected the value not to match schema "${name}"`
+          : `value does not match schema "${name}" (OpenAPI ${validator.version}):\n  ${problems.join('\n  ')}`,
+    };
+  },
+});

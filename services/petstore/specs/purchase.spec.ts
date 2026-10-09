@@ -12,6 +12,7 @@ test.describe('Petstore purchase', () => {
     qa,
     faker,
     clock,
+    contract,
   }) => {
     test.skip(!qa.allowWrites, `environment "${qa.environment}" does not allow writes`);
 
@@ -24,7 +25,9 @@ test.describe('Petstore purchase', () => {
 
       const read = await buyer.store.getOrder(purchase.order?.id as number);
       expect(read.status()).toBe(200);
-      expect(await read.json()).toMatchObject({
+      const body: unknown = await read.json();
+      expect(body).toMatchSchema(contract, 'Order');
+      expect(body).toMatchObject({
         id: order.id,
         petId: pet.id,
         quantity: 2,

@@ -3,6 +3,7 @@
 // status stops the flow with a readable error instead of being returned for the spec to assert.
 
 import { test, type APIResponse } from '@playwright/test';
+import { redactionFor } from './evidence';
 import { redact } from './redact';
 
 const EXCERPT_LENGTH = 300;
@@ -21,7 +22,7 @@ async function excerpt(response: APIResponse): Promise<string> {
   const raw = await response.text();
   let shown = raw;
   try {
-    shown = JSON.stringify(redact(JSON.parse(raw)));
+    shown = JSON.stringify(redact(JSON.parse(raw), redactionFor(response)));
   } catch {
     // Not JSON: show the text as received.
   }

@@ -13,14 +13,15 @@ export class PetClient extends BaseClient {
   }
 
   getById(id: number | string): Promise<APIResponse> {
-    return this.get(`pet/${this.segment(id)}`);
+    return this.get(this.route('pet/{petId}', { petId: id }));
   }
 
-  findByStatus(status: PetStatus): Promise<APIResponse> {
+  /** Any string is accepted so negative cases can send values outside the enum. */
+  findByStatus(status: PetStatus | (string & {})): Promise<APIResponse> {
     return this.get('pet/findByStatus', { params: { status } });
   }
 
   remove(id: number | string): Promise<APIResponse> {
-    return this.delete(`pet/${this.segment(id)}`);
+    return this.delete(this.route('pet/{petId}', { petId: id }));
   }
 }
