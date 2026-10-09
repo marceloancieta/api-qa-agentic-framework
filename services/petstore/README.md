@@ -18,6 +18,8 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `__tests__/` | Offline unit tests of the pack (builders), run by the `unit` project. | present |
 | `flows/` | Multi-step business sequences over an actor's clients, one named step each. | present |
 | `builders/` | Test Data Builders (`aPet`, `anOrder`) and the Object Mother (`PetMother`). | present |
+| `state-models.ts` | Field buckets (identity, business, provenance, volatile) for comparing pets and orders. | present |
+| `guards.ts` | Resource guards for shared seed data (`seedPet(pets, id)`). | present |
 | `rules/` | Business rules and decision tables as YAML. | E5 |
 | `registry/` | Designed test cases and their status. | E5/E6 |
 | `docs/` | `contract-notes.md`: observed departures from the contract and their status. API map in E6. | present |
@@ -46,6 +48,18 @@ Cases that write check `qa.allowWrites` and skip with the reason when the enviro
   test records its `QA_SEED`; rerun with that value to get the same data. `QA_CLOCK` pins "now".
 
 See `specs/purchase.spec.ts` for all three together.
+
+## Shared data and preconditions
+
+- **Prefer dedicated data.** Builders create what a case needs. When a case must touch shared data
+  (Petstore's seed pets 1-10), wrap it in `withResourceGuard(seedPet(pets, id), { expectChange }, ...)`:
+  the pet is compared after the case and repaired only where it differs, and a change the case did not
+  expect is reported as a finding. See `specs/shared-data.spec.ts`.
+- **Compare states by field bucket.** `expectSameState(sent, readBack, ORDER_FIELDS)` and
+  `expectOnlyChanged(before, after, PET_FIELDS, ['status'])` compare field by field; date-times are
+  compared as instants and generated values are never asserted as literals.
+- **Skips are visible.** `skipUnless(condition, reason)` and `requireData(what, find, problems)` warn
+  and annotate when a case cannot run, and fail (rather than skip) when data exists in the wrong state.
 
 ## Contract checks
 

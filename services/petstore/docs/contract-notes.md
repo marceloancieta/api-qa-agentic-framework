@@ -12,9 +12,10 @@ linked to an issue once the repository has a tracker.
 |---|---|---|---|---|
 | PN-01 | A pet body whose `name` has the wrong JSON type (a number) answers `500` with a log reference, where a `400` input error is expected. A body missing `name` does the same. | `POST /pet` with `{"name": 5}` or `{"photoUrls": []}` | defect | `untracked` |
 | PN-02 | "Not found" answers (pet, order, user) are plain text (`Pet not found`) served as `Content-Type: application/xml`. The document declares no body for these 404s. | `GET /pet/{id}` for an id that was never created | contract drift | `untracked` |
-| PN-03 | Input errors name the offending parameter only inside `message`; no key carries the field, so a case can assert the error kind but not which field was blamed. | `GET /pet/findByStatus?status=lost` | contract gap | `by-design` |
+| PN-03 | Input errors name the offending parameter only inside `message`; no key carries the field. Cases check the error kind; which field was blamed is not observable. | `GET /pet/findByStatus?status=lost` | contract gap | `by-design` |
 | PN-04 | `shipDate` is echoed with a `+00:00` offset where the request sent `Z` (`2026-10-09T10:00:00.000Z` comes back as `2026-10-09T10:00:00.000+00:00`). Same instant, different text. | `POST /store/order`, then `GET /store/order/{id}` | format difference | `by-design` |
 | PN-05 | The `api_key` header is accepted with any value and not required for the operations used so far, so this API cannot demonstrate an authorization matrix (see backlog FUT-07). | Any request with or without `api_key` | environment limit | `by-design` |
+| PN-06 | `PUT /pet` stores a pet whose `status` is outside the enum (`lost`) or that lacks the required `name`, and answers `200`. Found while designing the shared-data guard: a probe of this kind corrupted seed pet 1 until it was restored by hand. Cases that probe it must use a dedicated pet or run inside `withResourceGuard(..., { expectChange: false })`. | `PUT /pet` with `{"id": <id>, "name": "x", "photoUrls": [], "status": "lost"}` | defect | `untracked` |
 
 The error formats themselves are catalogued in `../error-envelopes.json`; PN-01 and PN-02 are why
 `server-error` and `not-found` exist there.

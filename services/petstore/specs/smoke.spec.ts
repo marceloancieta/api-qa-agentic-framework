@@ -2,6 +2,7 @@
 
 import { test, expect } from '../fixtures';
 import { PetMother } from '../builders/mother';
+import { skipUnless } from '../../../helpers/data-gate';
 
 test.describe('Petstore smoke', { tag: '@smoke' }, () => {
   test('GET /store/inventory returns counts per status', async ({ store }) => {
@@ -15,7 +16,7 @@ test.describe('Petstore smoke', { tag: '@smoke' }, () => {
   });
 
   test('a created pet can be read back and deleted', async ({ pets, qa, faker, contract }) => {
-    test.skip(!qa.allowWrites, `environment "${qa.environment}" does not allow writes`);
+    skipUnless(qa.allowWrites, `environment "${qa.environment}" does not allow writes`);
 
     const pet = PetMother.available(faker);
     const id = pet.id as number;

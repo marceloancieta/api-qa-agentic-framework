@@ -5,6 +5,9 @@ import { test, expect } from '../fixtures';
 import { aPet } from '../builders/pet-builder';
 import { anOrder } from '../builders/order-builder';
 import { cancelPurchase, purchasePet, type Purchase } from '../flows/purchase';
+import { skipUnless } from '../../../helpers/data-gate';
+import { expectSameState } from '../../../helpers/state-compare';
+import { ORDER_FIELDS } from '../state-models';
 
 test.describe('Petstore purchase', () => {
   test('a placed order can be read back with its pet and quantity', async ({
@@ -14,7 +17,7 @@ test.describe('Petstore purchase', () => {
     clock,
     contract,
   }) => {
-    test.skip(!qa.allowWrites, `environment "${qa.environment}" does not allow writes`);
+    skipUnless(qa.allowWrites, `environment "${qa.environment}" does not allow writes`);
 
     const buyer = await actor('default');
     const pet = aPet(faker).withStatus('available').build();
@@ -27,12 +30,8 @@ test.describe('Petstore purchase', () => {
       expect(read.status()).toBe(200);
       const body: unknown = await read.json();
       expect(body).toMatchSchema(contract, 'Order');
-      expect(body).toMatchObject({
-        id: order.id,
-        petId: pet.id,
-        quantity: 2,
-        status: 'placed',
-      });
+      // Field by field; the ship date is compared as an instant (contract note PN-04).
+      expectSameState({ ...order, petId: pet.id }, body, ORDER_FIELDS);
     } finally {
       await cancelPurchase(buyer, purchase);
     }

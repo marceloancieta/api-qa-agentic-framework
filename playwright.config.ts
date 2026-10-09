@@ -32,6 +32,7 @@ function retries(): number {
 
 export default defineConfig({
   globalSetup: './fixtures/global-setup.ts',
+  globalTeardown: './fixtures/global-teardown.ts',
   // Files run in parallel; cases inside a file run in order in one worker. Unlike a serial describe,
   // a failure does not abandon the cases after it, so every case keeps its own verdict.
   fullyParallel: false,

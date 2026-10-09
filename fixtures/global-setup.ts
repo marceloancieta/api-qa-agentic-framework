@@ -9,6 +9,7 @@ import type { FullConfig } from '@playwright/test';
 import { REPO_ROOT, loadRuntime } from '../helpers/config';
 import { SALT_VARIABLE } from '../helpers/redact';
 import { rootSeed, SEED_VARIABLE } from '../helpers/rng';
+import { acquireRunLock } from '../helpers/run-lock';
 
 export const RESULTS_DIR = join(REPO_ROOT, 'allure-results');
 
@@ -31,6 +32,7 @@ export function assertResultsReporter(config: FullConfig, provider: string): voi
 
 export default function globalSetup(config: FullConfig): void {
   assertResultsReporter(config, loadRuntime().testManagement);
+  acquireRunLock();
   rmSync(RESULTS_DIR, { recursive: true, force: true });
 
   // Fix the root seed before workers start: they inherit this environment, so every worker derives

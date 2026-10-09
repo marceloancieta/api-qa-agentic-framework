@@ -20,12 +20,7 @@ E9 docs and release · Later (after v0.1.0).
 
 ## E1 - Execution core
 
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| CORE-10 | `resourceGuard` protocol (compare before repairing, fix only real differences, report instead of throwing, flag intended vs unintended changes); verdict reported outside an armed expected-failure. | L-15, L-39 | todo |
-| CORE-14 | Data-gated cases skip loudly (warning), never silently; fixture state promises verified, not only existence. | L-40 | todo |
-| CORE-15 | Run lock against concurrent local runs sharing `allure-results/`. | L-46 | todo |
-| CORE-18 | State-comparison helper with field buckets (identity, business, provenance, volatile), volatile-id policy and dependent-resource inventory, over API round-trips. | L-53 | todo |
+Complete: CORE-01 to CORE-18 are in **Done**.
 
 ## E2 - Contract tooling
 
@@ -146,3 +141,7 @@ E9 docs and release · Later (after v0.1.0).
 | CORE-09 | Case metadata: identity `<service>-<version>-<TC id>` from the title, suite labels from `service.json`, `operation()`, `knownGap()` checked against `tracker.key_pattern` with `tracker.issue_url`, placeholders wrapped in code spans; Playwright tags reach Allure natively. | `72a55f3` |
 | CORE-11 | Schema validation by spec version (2.0 and 3.0 converted to draft-07, 3.1 with draft 2020-12, OpenAPI formats) and the `toMatchSchema` matcher. | `72a55f3` |
 | CORE-17 | Error-envelope catalog per pack and `expectErrorEnvelope` (shape vs meaning, field read from keys with spelling tolerance, never from message text); Petstore catalog. | `72a55f3` |
+| CORE-10 | `withResourceGuard`: capture, run, compare, repair only real differences, confirm; never throws over the case; unintended changes and failed repairs reported as attachment, annotation and soft failure, plus stderr when the case is armed with `test.fail`. Petstore `seedPet` guard. | E1 slice 4 |
+| CORE-14 | `skipUnless` and `requireData`: skips warn and annotate; data in the wrong state fails as a precondition. | E1 slice 4 |
+| CORE-15 | Run lock (`allure-results.lock`, pid + age staleness, `QA_ALLOW_CONCURRENT_RUNS=1`), taken in global setup before the results are cleared and released in global teardown. | E1 slice 4 |
+| CORE-18 | State comparison by field bucket (identity, business, provenance, volatile) with normalizers, unclassified-field reporting, `expectOnlyChanged` and inventory comparison; Petstore pet and order models. | E1 slice 4 |
