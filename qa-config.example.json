@@ -42,5 +42,13 @@
     "pull_request": {
       "required_labels": []
     }
+  },
+  "quality_gate": {
+    "pass_rate": {
+      "format": "allure-results",
+      "source": "allure-results",
+      "fail_below_pct": 90,
+      "review_below_pct": 100
+    }
   }
 }

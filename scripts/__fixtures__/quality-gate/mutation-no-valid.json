@@ -1,0 +1,14 @@
+{
+  "files": {
+    "a.mjs": {
+      "mutants": [
+        {
+          "id": "0",
+          "mutatorName": "X",
+          "status": "Ignored",
+          "location": {}
+        }
+      ]
+    }
+  }
+}

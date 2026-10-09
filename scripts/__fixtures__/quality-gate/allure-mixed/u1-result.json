@@ -1,0 +1,16 @@
+{
+  "uuid": "u1",
+  "historyId": "u1",
+  "name": "u1",
+  "fullName": "spec.ts#u1",
+  "status": "passed",
+  "stage": "finished",
+  "start": 0,
+  "stop": 5000,
+  "labels": [
+    {
+      "name": "parentSuite",
+      "value": "unit"
+    }
+  ]
+}

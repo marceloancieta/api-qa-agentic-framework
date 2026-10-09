@@ -1,0 +1,31 @@
+{
+  "suites": [
+    {
+      "title": "a.spec.ts",
+      "specs": [
+        {
+          "title": "odd",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "exploded",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

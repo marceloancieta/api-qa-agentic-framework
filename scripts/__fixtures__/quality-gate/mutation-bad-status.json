@@ -1,0 +1,20 @@
+{
+  "files": {
+    "a.mjs": {
+      "mutants": [
+        {
+          "id": "0",
+          "mutatorName": "X",
+          "status": "Killed",
+          "location": {}
+        },
+        {
+          "id": "1",
+          "mutatorName": "X",
+          "status": "Exploded",
+          "location": {}
+        }
+      ]
+    }
+  }
+}

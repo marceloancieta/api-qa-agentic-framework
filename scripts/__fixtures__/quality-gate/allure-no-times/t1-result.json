@@ -1,0 +1,19 @@
+{
+  "uuid": "t1",
+  "historyId": "t1",
+  "name": "t1",
+  "fullName": "spec.ts#t1",
+  "status": "passed",
+  "stage": "finished",
+  "start": 0,
+  "labels": [
+    {
+      "name": "story",
+      "value": "GET /pet"
+    },
+    {
+      "name": "parentSuite",
+      "value": "Petstore"
+    }
+  ]
+}

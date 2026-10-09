@@ -1,0 +1,20 @@
+{
+  "uuid": "a5-try1",
+  "historyId": "a5",
+  "name": "a5-try1",
+  "fullName": "spec.ts#a5-try1",
+  "status": "failed",
+  "stage": "finished",
+  "start": 1000,
+  "stop": 1900,
+  "labels": [
+    {
+      "name": "story",
+      "value": "GET /store/inventory"
+    },
+    {
+      "name": "parentSuite",
+      "value": "Petstore"
+    }
+  ]
+}

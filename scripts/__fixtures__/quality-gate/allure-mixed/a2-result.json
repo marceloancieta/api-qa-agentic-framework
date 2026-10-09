@@ -1,0 +1,20 @@
+{
+  "uuid": "a2",
+  "historyId": "a2",
+  "name": "a2",
+  "fullName": "spec.ts#a2",
+  "status": "passed",
+  "stage": "finished",
+  "start": 0,
+  "stop": 120,
+  "labels": [
+    {
+      "name": "story",
+      "value": "POST /pet"
+    },
+    {
+      "name": "parentSuite",
+      "value": "Petstore"
+    }
+  ]
+}

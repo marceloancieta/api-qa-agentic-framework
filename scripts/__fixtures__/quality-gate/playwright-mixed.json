@@ -1,0 +1,482 @@
+{
+  "config": {},
+  "suites": [
+    {
+      "title": "specs/pet.spec.ts",
+      "file": "specs/pet.spec.ts",
+      "specs": [
+        {
+          "title": "TC-PET-1 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-2 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-3 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-4 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-5 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-6 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-7 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-8 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-9 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-10 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-11 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-12 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-13 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-14 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-15 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-16 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-17 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-18 passes",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "expected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-19 flaky",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "flaky",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "failed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": [
+                    {
+                      "message": "boom"
+                    }
+                  ]
+                },
+                {
+                  "status": "passed",
+                  "retry": 1,
+                  "duration": 10,
+                  "errors": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-20 fails",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "unexpected",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "failed",
+                  "retry": 0,
+                  "duration": 10,
+                  "errors": [
+                    {
+                      "message": "boom"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "TC-PET-21 skipped",
+          "file": "specs/pet.spec.ts",
+          "line": 1,
+          "tags": [],
+          "tests": [
+            {
+              "projectName": "api",
+              "expectedStatus": "passed",
+              "status": "skipped",
+              "annotations": [],
+              "results": []
+            }
+          ]
+        }
+      ],
+      "suites": []
+    }
+  ],
+  "stats": {}
+}

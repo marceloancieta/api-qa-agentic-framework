@@ -1,0 +1,20 @@
+{
+  "uuid": "a3",
+  "historyId": "a3",
+  "name": "a3",
+  "fullName": "spec.ts#a3",
+  "status": "passed",
+  "stage": "finished",
+  "start": 0,
+  "stop": 140,
+  "labels": [
+    {
+      "name": "story",
+      "value": "PUT /pet"
+    },
+    {
+      "name": "parentSuite",
+      "value": "Petstore"
+    }
+  ]
+}

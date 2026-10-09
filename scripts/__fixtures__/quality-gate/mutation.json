@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1",
+  "thresholds": {
+    "high": 80,
+    "low": 60
+  },
+  "files": {
+    "scripts/lib/a.mjs": {
+      "language": "javascript",
+      "source": "",
+      "mutants": [
+        {
+          "id": "0",
+          "mutatorName": "X",
+          "status": "Killed",
+          "location": {}
+        },
+        {
+          "id": "1",
+          "mutatorName": "X",
+          "status": "Killed",
+          "location": {}
+        },
+        {
+          "id": "2",
+          "mutatorName": "X",
+          "status": "Killed",
+          "location": {}
+        },
+        {
+          "id": "3",
+          "mutatorName": "X",
+          "status": "Killed",
+          "location": {}
+        },
+        {
+          "id": "4",
+          "mutatorName": "X",
+          "status": "Timeout",
+          "location": {}
+        },
+        {
+          "id": "5",
+          "mutatorName": "X",
+          "status": "Survived",
+          "location": {}
+        }
+      ]
+    },
+    "scripts/lib/b.mjs": {
+      "language": "javascript",
+      "source": "",
+      "mutants": [
+        {
+          "id": "0",
+          "mutatorName": "X",
+          "status": "Killed",
+          "location": {}
+        },
+        {
+          "id": "1",
+          "mutatorName": "X",
+          "status": "Killed",
+          "location": {}
+        },
+        {
+          "id": "2",
+          "mutatorName": "X",
+          "status": "Killed",
+          "location": {}
+        },
+        {
+          "id": "3",
+          "mutatorName": "X",
+          "status": "NoCoverage",
+          "location": {}
+        },
+        {
+          "id": "4",
+          "mutatorName": "X",
+          "status": "CompileError",
+          "location": {}
+        },
+        {
+          "id": "5",
+          "mutatorName": "X",
+          "status": "Ignored",
+          "location": {}
+        }
+      ]
+    }
+  }
+}

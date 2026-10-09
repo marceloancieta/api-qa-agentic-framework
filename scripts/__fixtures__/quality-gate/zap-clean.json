@@ -1,0 +1,8 @@
+{
+  "site": [
+    {
+      "@name": "http://localhost:8080",
+      "alerts": []
+    }
+  ]
+}
