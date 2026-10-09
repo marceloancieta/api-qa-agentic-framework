@@ -42,3 +42,6 @@ Thumbs.db
 
 # Personal Claude Code overrides; the team file .claude/settings.json stays tracked
 .claude/settings.local.json
+
+# Git worktrees created for parallel agent work
+.claude/worktrees/

@@ -10,6 +10,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 |---|---|---|
 | `service.json` | Name, API version (part of every case identity), identity fields to pseudonymize in evidence, contract file. | present |
 | `openapi.json` | The contract under test (Petstore 1.0.28, OpenAPI 3.0.4, Apache-2.0). Response bodies are validated against its schemas. | present |
+| `generated/` | Contract outputs (do not edit): `value-sets.json`, `enums.ts`, `probe-matrix.json`. See `docs/contract-tooling.md`. | present |
 | `error-envelopes.json` | The error formats this API answers with, by kind, for `expectErrorEnvelope`. | present |
 | `types.ts` | Request and response types and enum value sets (generated from the OpenAPI document from E2 on). | present |
 | `clients/` | One client per resource, extending `helpers/base-client.ts`. Paths with parameters use `this.route('pet/{petId}', { petId })`. Methods return the raw response. | present |
@@ -70,6 +71,9 @@ See `specs/purchase.spec.ts` for all three together.
   report the field in a key; Petstore's do not, so its cases assert the kind only.
 - **Identity.** A title that starts with a case id (`TC-PET-01 ...`) gives the result the stable
   identity `petstore-v3-TC-PET-01`; tags in the title or `{ tag }` reach the results unchanged.
+- **Probe coverage.** `npm run contract:probes` lists the contract probes of every operation. A spec
+  covers one by containing `probe:<id>`, usually at the end of the test title; `--gaps` lists the
+  uncovered ones, and `npm run contract:probes:write` records new coverage.
 - **Known gaps.** When an open issue keeps a case red, mark it with `test.fail` and take its
   reason from `knownGap(key, why)`, which also adds the issue link to the result. It needs
   `tracker.key_pattern` and `tracker.issue_url` in qa-config.

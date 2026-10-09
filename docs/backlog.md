@@ -24,15 +24,7 @@ Complete: CORE-01 to CORE-18 are in **Done**.
 
 ## E2 - Contract tooling
 
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| CON-03 | `swagger-digest` over the normalized model: properties, **parameters** and **response codes**; description changes on operations reported as a separate low-severity drift class; `--live` compares against the real spec URL. | L-02, L-29, L-30 | todo |
-| CON-04 | `derive-probe-matrix` covering body, path and query parameters; report covered/gap for both scheduled and exploratory probes. | L-29, exp | todo |
-| CON-05 | Pairwise reduction for parameter combinations in the probe matrix (bounded, deterministic). | practice | todo |
-| CON-06 | Service-wide probe battery: malformed and truncated JSON bodies, wrong content type, path-parameter validation, applied to every operation. | L-34, exp | todo |
-| CON-07 | `declared-codes`: declared vs reachable codes in both directions, flagging unreachable declared codes and undeclared answers. | L-33, exp | todo |
-| CON-08 | `derive-value-sets` and `derive-floor` reading the model; generated TypeScript types for enums instead of hand-written unions. | L-36, exp | todo |
-| CON-09 | Tracked Petstore digest under `docs/discovery/`. | roadmap | todo |
+Complete: CON-01 to CON-09 are in **Done**.
 
 ## E3 - Linters and gates
 
@@ -145,3 +137,10 @@ Complete: CORE-01 to CORE-18 are in **Done**.
 | CORE-18 | State comparison by field bucket (identity, business, provenance, volatile) with normalizers, unclassified-field reporting, `expectOnlyChanged` and inventory comparison; Petstore pet and order models. | `394bb44` |
 | CON-01 | `scripts/lib/openapi.mjs`: Swagger 2.0 / OpenAPI 3.0 / 3.1, JSON or YAML, into one model with 2020-12 schemas (`#/schemas/<Name>` refs), operations with merged parameters, bodies and responses by media type, effective security; problems reported, unsupported versions rejected; typed for TS (`openapi.d.mts`). `helpers/schema.ts` now validates every version through it. | `6798d63` |
 | CON-02 | Equivalence self-test: the Shelter resource in 2.0 JSON, 3.0 JSON and 3.1 YAML normalizes to the identical model; Petstore v2 and v3 normalize without problems. Floor and probe equivalence is added with those scripts. | `6798d63` |
+| CON-03 | `swagger-digest`: sorted, flat digest of parameters, bodies, response codes and content, security and named schemas; operation text in its own low-severity drift class; `--check` fails on structural drift, `--live` compares the deployed spec. Shared `--service/--spec/--live` flags in `scripts/lib/cli.mjs`. | `3f0fd88`, `bc285db` |
+| CON-04 | `derive-probe-matrix`: scheduled probes from explicit constraints (body via refs and allOf, path, query, header), exploratory probes from declared types, coverage through `probe:<id>` references in specs; `generated/probe-matrix.json` tracked and checked. | `81ead37` |
+| CON-05 | `scripts/lib/pairwise.mjs`: deterministic greedy all-pairs, bounded to 12 factors of 8 values, used for combinations of independent optional parameters. | `81ead37` |
+| CON-06 | Service-wide battery on every operation: malformed and truncated JSON, wrong content type, empty required body, invalid path parameters (wrong type, overlong, encoded slash). | `81ead37` |
+| CON-07 | `declared-codes`: declared vs observed codes from the latest run evidence, both directions; codes only `default` covers count as undeclared; most specific path template wins. | `dc24fee` |
+| CON-08 | `derive-value-sets` (enums, const and literal patterns into `generated/value-sets.json` and `enums.ts`, collision-safe names, Petstore pack switched to them) and `derive-floor` (documented per-operation formula, every term printed). | `dc24fee` |
+| CON-09 | Tracked `docs/discovery/petstore-digest.json`, kept current by `npm run contract:check` in the gates. | `bc285db` |

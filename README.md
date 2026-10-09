@@ -37,6 +37,12 @@ then the `api` project runs. When it fails, no API case runs. Add `--no-deps` to
 `QA_ENV` picks the environment and `API_BASE_URL` overrides its URL. Each API call is attached
 to its test as redacted evidence. Results go to `allure-results/` and `playwright-report/`.
 
+## Contract tooling
+
+The `contract:*` scripts read the API description (Swagger 2.0, OpenAPI 3.0 or 3.1) and report
+contract drift, probe coverage, value sets, the minimum number of cases per operation, and declared
+versus observed response codes. See [`docs/contract-tooling.md`](docs/contract-tooling.md).
+
 ## Example service pack
 
 [`services/petstore/`](services/petstore/README.md) runs the framework against Swagger Petstore v3

@@ -17,7 +17,7 @@
 //                a pattern that is itself a closed value set counts under valueSets instead
 //   valueSets    one per input field restricted to a closed value set (enum, const, literal
 //                alternation; on the field or on its array items), for a value outside the set
-//   pathParams   one per path parameter, for an identifier that does not exist or is malformed
+//   pathParams   one per path parameter: a malformed value, or one naming no resource
 //   errors       one per declared 4xx/5xx response (explicit code or `4XX` range); 401 and 403 are
 //                left to `security` when the operation is secured; `default` adds nothing, since
 //                it promises no particular code

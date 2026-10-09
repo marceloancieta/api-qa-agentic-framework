@@ -7,7 +7,7 @@
   },
   "totals": {
     "scheduled": {
-      "covered": 0,
+      "covered": 1,
       "total": 44
     },
     "exploratory": {
@@ -15,7 +15,7 @@
       "total": 149
     },
     "service-wide": {
-      "covered": 0,
+      "covered": 1,
       "total": 45
     },
     "unprobeable": 0
@@ -74,7 +74,7 @@
     {
       "operation": "GET /pet/findByStatus",
       "scheduled": {
-        "covered": 0,
+        "covered": 1,
         "total": 2
       },
       "exploratory": {
@@ -114,7 +114,7 @@
         "total": 0
       },
       "service-wide": {
-        "covered": 0,
+        "covered": 1,
         "total": 3
       },
       "unprobeable": 0
@@ -2063,7 +2063,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/errors.spec.ts"]
     },
     {
       "id": "p-d5d4a0da19",
@@ -2123,7 +2124,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/errors.spec.ts"]
     },
     {
       "id": "p-9785590d88",

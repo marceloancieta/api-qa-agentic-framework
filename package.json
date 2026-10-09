@@ -25,9 +25,20 @@
     "hooks:install": "git config core.hooksPath .githooks",
     "petstore:up": "docker compose up -d --wait petstore",
     "petstore:down": "docker compose down",
+    "contract:digest": "node scripts/swagger-digest.mjs --write",
+    "contract:digest:check": "node scripts/swagger-digest.mjs --check",
+    "contract:digest:live": "node scripts/swagger-digest.mjs --live --check",
+    "contract:probes": "node scripts/derive-probe-matrix.mjs",
+    "contract:probes:write": "node scripts/derive-probe-matrix.mjs --write",
+    "contract:probes:check": "node scripts/derive-probe-matrix.mjs --check",
+    "contract:value-sets": "node scripts/derive-value-sets.mjs --write",
+    "contract:value-sets:check": "node scripts/derive-value-sets.mjs --check",
+    "contract:floor": "node scripts/derive-floor.mjs",
+    "contract:codes": "node scripts/declared-codes.mjs",
+    "contract:check": "npm run contract:digest:check && npm run contract:probes:check && npm run contract:value-sets:check",
     "test": "playwright test",
     "test:smoke": "playwright test --project=api --grep @smoke",
-    "gates": "npm run lint && npm run format:check && npm run types:check && npm run config:check && npm run test:hooks && npm run test:scripts && npm run test:unit && npm run scan:denylist:self-test"
+    "gates": "npm run lint && npm run format:check && npm run types:check && npm run config:check && npm run test:hooks && npm run test:scripts && npm run contract:check && npm run test:unit && npm run scan:denylist:self-test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

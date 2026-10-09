@@ -1,0 +1,45 @@
+# Contract tooling
+
+Scripts that read an API description and tell you what to test and what changed. All of them read
+the same normalized model (`scripts/lib/openapi.mjs`, ADR 0003), so Swagger 2.0, OpenAPI 3.0 and
+OpenAPI 3.1, in JSON or YAML, give the same results.
+
+Every tool takes the same source flags:
+
+| Flag | Source |
+|---|---|
+| `--service <name>` | The pack's `services/<name>/service.json` names its document. Default when there is one pack. |
+| `--spec <file\|url>` | An explicit document. |
+| `--live` | The `spec_url` of the active qa-config environment (`QA_ENV` selects it). |
+
+## Tools
+
+| Command | Answers | Output |
+|---|---|---|
+| `npm run contract:digest` | What does the contract look like now? | `docs/discovery/<service>-digest.json` (tracked) |
+| `npm run contract:digest:check` | Did the contract change since it was tracked? Exits 1 on structural drift; text-only drift is a notice. | report by drift class |
+| `npm run contract:digest:live` | Has the deployed contract moved away from the tracked one? | same report |
+| `npm run contract:probes` | Which negative and boundary probes does each operation deserve, and which are covered by a spec? `--gaps` lists the uncovered ones. | table; `--write` updates `generated/probe-matrix.json` |
+| `npm run contract:value-sets` | Which closed value sets (enums, literal patterns) does the contract define? | `generated/value-sets.json` and `generated/enums.ts` |
+| `npm run contract:floor` | How many cases does each operation need at least? Every term of the formula is printed. | table; `--json` |
+| `npm run contract:codes` | Which declared response codes were never reached, and which answers were not declared? Reads the latest run's evidence in `allure-results/`. `--strict` fails on undeclared answers. | table; `--json` |
+| `npm run contract:check` | Are the tracked digest, probe matrix and value sets current? Runs in `npm run gates`. | exit code |
+
+## Probes
+
+Probes come in three classes:
+
+- **scheduled**: derived from an explicit constraint (length, bounds, pattern, enum, required). This
+  class includes pairwise combinations of independent optional parameters (`scripts/lib/pairwise.mjs`).
+- **exploratory**: derived from declared types (wrong type, null, unknown property, numeric overflow).
+- **service-wide**: applied to every operation (malformed or truncated JSON, wrong content type,
+  empty required body, and invalid path parameters).
+
+Each probe has a stable id (`p-` and ten hex digits). A spec covers a probe by containing
+`probe:<id>`, usually at the end of the test title. After adding or removing such references, run
+`npm run contract:probes:write` so the tracked matrix records the new coverage.
+
+## Floor
+
+The floor formula is defined once, in the header of `scripts/derive-floor.mjs`. A test-design
+review compares a registry's case count with this number rather than with an estimate.

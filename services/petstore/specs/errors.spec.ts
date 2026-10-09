@@ -7,11 +7,17 @@ import { expectErrorEnvelope } from '../../../helpers/error-envelope';
 import { GENERATED_ID_MAX } from '../builders/pet-builder';
 
 test.describe('Petstore error envelopes', { tag: '@negative' }, () => {
-  test('a non-numeric pet id is rejected as an input error', async ({ pets, envelopes }) => {
+  test('a non-numeric pet id is rejected as an input error probe:p-658044b361', async ({
+    pets,
+    envelopes,
+  }) => {
     await expectErrorEnvelope(await pets.getById('abc'), envelopes, 'input-error');
   });
 
-  test('a status outside the enum is rejected as an input error', async ({ pets, envelopes }) => {
+  test('a status outside the enum is rejected as an input error probe:p-71b75f7773', async ({
+    pets,
+    envelopes,
+  }) => {
     await expectErrorEnvelope(await pets.findByStatus('lost'), envelopes, 'input-error');
   });
 

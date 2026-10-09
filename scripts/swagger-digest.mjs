@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * A compact, deterministic fingerprint of an API description, kept in git so that a contract change
- * becomes a reviewable diff instead of a surprise in a failing test.
+ * A compact, deterministic fingerprint of an API description, kept in git: when the contract moves,
+ * the change is read in a pull request first, not discovered later through a red test.
  *
  * The digest is built from the normalized model (ADR 0003), so Swagger 2.0, OpenAPI 3.0 and 3.1
  * descriptions of the same API produce the same digest. It records every constrained element, not

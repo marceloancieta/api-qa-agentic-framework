@@ -54,7 +54,12 @@ export default defineConfig({
   },
   projects: [
     // Unit tests of the core and the packs: no network, part of `npm run gates`.
-    { name: 'unit', testDir: '.', testMatch: '**/__tests__/**/*.spec.ts' },
+    {
+      name: 'unit',
+      testDir: '.',
+      testMatch: '**/__tests__/**/*.spec.ts',
+      testIgnore: '**/.claude/worktrees/**',
+    },
     { name: 'preflight', testDir: './fixtures', testMatch: 'preflight.setup.ts' },
     {
       name: 'api',

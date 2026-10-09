@@ -21,6 +21,7 @@
     "allure-report",
     "test-results",
     "playwright-report",
-    "scripts/__fixtures__"
+    "scripts/__fixtures__",
+    ".claude/worktrees"
   ]
 }

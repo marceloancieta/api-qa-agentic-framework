@@ -14,6 +14,7 @@ export default tseslint.config(
       'playwright-report/',
       'tools/',
       'scripts/__fixtures__/',
+      '.claude/worktrees/',
     ],
   },
   js.configs.recommended,
