@@ -20,7 +20,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `builders/` | Test Data Builders (`aPet`, `anOrder`) and the Object Mother (`PetMother`). | present |
 | `rules/` | Business rules and decision tables as YAML. | E5 |
 | `registry/` | Designed test cases and their status. | E5/E6 |
-| `docs/` | Contract notes, error envelopes, API map. | E5/E6 |
+| `docs/` | `contract-notes.md`: observed departures from the contract and their status. API map in E6. | present |
 
 ## Writing a spec
 
@@ -60,5 +60,4 @@ See `specs/purchase.spec.ts` for all three together.
   reason from `knownGap(key, why)`, which also adds the issue link to the result. It needs
   `tracker.key_pattern` and `tracker.issue_url` in qa-config.
 
-Observed and not yet tracked: a pet body whose `name` is a number answers `500` (server-error)
-instead of `400`, and not-found bodies are plain text served as `application/xml`.
+Where this API departs from its contract is recorded in [`docs/contract-notes.md`](docs/contract-notes.md).

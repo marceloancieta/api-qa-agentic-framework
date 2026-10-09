@@ -37,6 +37,13 @@ then the `api` project runs. When it fails, no API case runs. Add `--no-deps` to
 `QA_ENV` picks the environment and `API_BASE_URL` overrides its URL. Each API call is attached
 to its test as redacted evidence. Results go to `allure-results/` and `playwright-report/`.
 
+## Example service pack
+
+[`services/petstore/`](services/petstore/README.md) runs the framework against Swagger Petstore v3
+in Docker. It is both the template for a new pack and a worked example: its
+[contract notes](services/petstore/docs/contract-notes.md) list real departures from the published
+contract that the suite surfaced.
+
 ## License
 
 [Apache License 2.0](LICENSE). See [NOTICE](NOTICE).
