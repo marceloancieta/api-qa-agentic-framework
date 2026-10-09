@@ -1,0 +1,10 @@
+#!/bin/sh
+# Runs the full quality gate before anything leaves this machine.
+# The same gate runs in CI; running it here just reports problems sooner.
+# To bypass once: QA_NO_GATES=1 git push   (or git push --no-verify)
+if [ "${QA_NO_GATES:-}" = "1" ]; then
+  echo "[pre-push] QA_NO_GATES=1: quality gate bypassed for this push."
+  exit 0
+fi
+echo "[pre-push] npm run gates (bypass once with QA_NO_GATES=1)"
+exec npm run gates

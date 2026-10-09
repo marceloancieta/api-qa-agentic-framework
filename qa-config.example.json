@@ -1,0 +1,45 @@
+{
+  "$schema": "./schemas/qa-config.schema.json",
+  "project": {
+    "name": "petstore-example"
+  },
+  "api": {
+    "default_environment": "local",
+    "environments": {
+      "local": {
+        "base_url": "http://localhost:8080/api/v3",
+        "spec_url": "http://localhost:8080/api/v3/openapi.json",
+        "allow_writes": true
+      },
+      "public": {
+        "base_url": "https://petstore3.swagger.io/api/v3",
+        "spec_url": "https://petstore3.swagger.io/api/v3/openapi.json",
+        "allow_writes": false
+      }
+    },
+    "auth": {
+      "type": "api_key",
+      "in": "header",
+      "name": "api_key",
+      "env": "API_KEY"
+    }
+  },
+  "test_management": {
+    "provider": "allure-report"
+  },
+  "tracker": {
+    "key_pattern": null,
+    "base_url": null
+  },
+  "policies": {
+    "commit": {
+      "require_tracker_key": false,
+      "max_tracker_keys": 1,
+      "conventional_commits": false,
+      "protected_branches": []
+    },
+    "pull_request": {
+      "required_labels": []
+    }
+  }
+}

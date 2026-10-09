@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marceloancieta/api-qa-agentic-framework/schemas/qa-config.schema.json",
+  "title": "qa-config",
+  "description": "Per-project configuration of the API QA framework. Copy qa-config.example.json to qa-config.json (git-ignored) and adjust. Secrets never go here: they live in .env and are referenced by variable name.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project", "api", "test_management"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
+      }
+    },
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_environment", "environments", "auth"],
+      "properties": {
+        "default_environment": { "type": "string", "minLength": 1 },
+        "environments": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/environment" }
+        },
+        "auth": { "$ref": "#/$defs/auth" }
+      }
+    },
+    "test_management": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider"],
+      "properties": {
+        "provider": {
+          "description": "Adapter under scripts/tm/adapters/<provider>.",
+          "enum": ["allure-report", "local", "allure-testops", "testrail"]
+        },
+        "options": { "type": "object" }
+      }
+    },
+    "tracker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key_pattern": {
+          "description": "Regex (JavaScript syntax) of an issue key, e.g. \"PROJ-\\d+\". null disables every tracker-key rule.",
+          "type": ["string", "null"]
+        },
+        "base_url": { "type": ["string", "null"], "format": "uri" }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "require_tracker_key": { "type": "boolean", "default": false },
+            "max_tracker_keys": { "type": "integer", "minimum": 1, "default": 1 },
+            "conventional_commits": { "type": "boolean", "default": false },
+            "protected_branches": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": []
+            }
+          }
+        },
+        "pull_request": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "required_labels": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": []
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base_url"],
+      "properties": {
+        "base_url": { "type": "string", "format": "uri" },
+        "spec_url": { "type": "string", "format": "uri" },
+        "allow_writes": {
+          "description": "false marks a shared/public environment: write tests must skip there.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "auth": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": { "type": { "const": "none" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "in", "name", "env"],
+          "properties": {
+            "type": { "const": "api_key" },
+            "in": { "enum": ["header", "query"] },
+            "name": { "type": "string", "minLength": 1 },
+            "env": { "$ref": "#/$defs/envVar" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "env"],
+          "properties": {
+            "type": { "const": "bearer" },
+            "env": { "$ref": "#/$defs/envVar" }
+          }
+        }
+      ]
+    },
+    "envVar": {
+      "description": "Name of the environment variable that holds the secret (never the secret itself).",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    }
+  }
+}

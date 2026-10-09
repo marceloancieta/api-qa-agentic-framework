@@ -1,0 +1,4 @@
+#!/bin/sh
+# Secret scan (gitleaks) + local denylist on the staged changes. Logic lives in Node so it behaves
+# the same on every OS. Enable once per clone: npm run hooks:install
+exec node scripts/secret-scan.mjs --staged

@@ -1,0 +1,44 @@
+# Secrets and per-machine config - NEVER commit
+.env
+.env.*
+!.env.example
+qa-config.json
+
+# Real or provisioned test data. Only the `.example.json` sibling (placeholders) is tracked.
+*.local.json
+
+# Node
+node_modules/
+npm-debug.log*
+*.tsbuildinfo
+# package-lock.json IS committed: `npm ci` (CI) refuses to run without it.
+
+# Test runner output
+/playwright-report/
+/test-results/
+/blob-report/
+/drift-results/
+/playwright/.cache/
+
+# Allure
+/allure-results/
+/allure-report/
+/.allure/
+/allure-results.lock
+
+# Spec discovery cache is regenerable; the small generated digest IS tracked so a contract change
+# shows up as a reviewable diff.
+/docs/discovery/*.json
+!/docs/discovery/*-digest*.json
+
+# Downloaded tool binaries
+/tools/
+
+# Editors and operating systems
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Personal Claude Code overrides; the team file .claude/settings.json stays tracked
+.claude/settings.local.json

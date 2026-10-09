@@ -1,0 +1,12 @@
+# Files Claude should not load into context: local secrets and configuration,
+# installed packages and generated reports.
+.env
+.env.*
+!.env.example
+qa-config.json
+node_modules/
+/test-results/
+/playwright-report/
+/allure-results/
+/allure-report/
+/docs/discovery/*.json
