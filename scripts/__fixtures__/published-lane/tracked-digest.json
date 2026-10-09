@@ -1,0 +1,40 @@
+{
+  "digestVersion": 1,
+  "descriptions": { "DELETE /books/{bookId}": "1111111111111111" },
+  "operations": {
+    "DELETE /books/{bookId}": {
+      "parameters": { "path:bookId": "integer required" },
+      "requestBody": {},
+      "responses": { "204": { "content-type": "none" } },
+      "security": "none"
+    },
+    "GET /books/{bookId}": {
+      "parameters": { "path:bookId": "integer required" },
+      "requestBody": {},
+      "responses": { "200": { "$": "ref=Book", "content-type": "application/json" } },
+      "security": "none"
+    },
+    "GET /shelves": {
+      "parameters": { "query:limit": "integer" },
+      "requestBody": {},
+      "responses": {
+        "200": { "$": "array", "$[]": "ref=Shelf", "content-type": "application/json" }
+      },
+      "security": "none"
+    },
+    "POST /books": {
+      "parameters": {},
+      "requestBody": {
+        "$": "ref=Book required",
+        "content-type": "application/json"
+      },
+      "responses": { "201": { "content-type": "none" } },
+      "security": "api_key"
+    }
+  },
+  "schemas": {
+    "Author": { "$": "object", "$.name": "string" },
+    "Book": { "$": "object", "$.author": "ref=Author", "$.title": "string required" },
+    "Shelf": { "$": "object", "$.label": "string" }
+  }
+}

@@ -1,0 +1,401 @@
+[
+  {
+    "title": "steady",
+    "titlePath": ["steady"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 3,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "wobbly",
+    "titlePath": ["group", "wobbly"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 8,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "broken",
+    "titlePath": ["broken"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 13,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "unexpected",
+    "attempts": [
+      {
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "data missing",
+    "titlePath": ["data missing"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 17,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "skipped",
+    "attempts": [
+      {
+        "status": "skipped",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "held back",
+    "titlePath": ["held back"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 21,
+    "project": "api",
+    "tags": ["quarantine"],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "held back, unsteady",
+    "titlePath": ["held back, unsteady"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 25,
+    "project": "api",
+    "tags": ["quarantine"],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "armed gap",
+    "titlePath": ["armed gap"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 29,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "failed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "steady",
+    "titlePath": ["steady"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 3,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "wobbly",
+    "titlePath": ["group", "wobbly"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 8,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "unexpected",
+    "attempts": [
+      {
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "broken",
+    "titlePath": ["broken"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 13,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "unexpected",
+    "attempts": [
+      {
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "data missing",
+    "titlePath": ["data missing"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 17,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "skipped",
+    "attempts": [
+      {
+        "status": "skipped",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "held back",
+    "titlePath": ["held back"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 21,
+    "project": "api",
+    "tags": ["quarantine"],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "held back, unsteady",
+    "titlePath": ["held back, unsteady"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 25,
+    "project": "api",
+    "tags": ["quarantine"],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "unexpected",
+    "attempts": [
+      {
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "armed gap",
+    "titlePath": ["armed gap"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 29,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "failed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "steady",
+    "titlePath": ["steady"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 3,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "wobbly",
+    "titlePath": ["group", "wobbly"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 8,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "broken",
+    "titlePath": ["broken"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 13,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "unexpected",
+    "attempts": [
+      {
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "data missing",
+    "titlePath": ["data missing"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 17,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "skipped",
+    "attempts": [
+      {
+        "status": "skipped",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "held back",
+    "titlePath": ["held back"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 21,
+    "project": "api",
+    "tags": ["quarantine"],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "held back, unsteady",
+    "titlePath": ["held back, unsteady"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 25,
+    "project": "api",
+    "tags": ["quarantine"],
+    "annotations": [],
+    "expectedStatus": "passed",
+    "outcome": "unexpected",
+    "attempts": [
+      {
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  },
+  {
+    "title": "armed gap",
+    "titlePath": ["armed gap"],
+    "file": "demo/specs/repeats.spec.ts",
+    "line": 29,
+    "project": "api",
+    "tags": [],
+    "annotations": [],
+    "expectedStatus": "failed",
+    "outcome": "expected",
+    "attempts": [
+      {
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 5,
+        "errors": []
+      }
+    ]
+  }
+]
