@@ -27,7 +27,16 @@
           "minProperties": 1,
           "additionalProperties": { "$ref": "#/$defs/environment" }
         },
-        "auth": { "$ref": "#/$defs/auth" }
+        "auth": { "$ref": "#/$defs/auth" },
+        "actors": {
+          "description": "Extra named credentials for actor(name). \"default\" is api.auth and \"anonymous\" sends no credentials; both are built in.",
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "not": { "enum": ["default", "anonymous"] }
+          },
+          "additionalProperties": { "$ref": "#/$defs/auth" }
+        }
       }
     },
     "test_management": {

@@ -1,7 +1,7 @@
 // Smoke: proves the core end to end (config, auth, clients, evidence) against the configured Petstore.
 
 import { test, expect } from '../fixtures';
-import type { Pet } from '../types';
+import { PetMother } from '../builders/mother';
 
 test.describe('Petstore smoke', { tag: '@smoke' }, () => {
   test('GET /store/inventory returns counts per status', async ({ store }) => {
@@ -14,17 +14,11 @@ test.describe('Petstore smoke', { tag: '@smoke' }, () => {
     }
   });
 
-  test('a created pet can be read back and deleted', async ({ pets, qa }, testInfo) => {
+  test('a created pet can be read back and deleted', async ({ pets, qa, faker }) => {
     test.skip(!qa.allowWrites, `environment "${qa.environment}" does not allow writes`);
 
-    // One id per worker keeps parallel runs apart without random data (seeded data arrives in CORE-06).
-    const id = 9_100_000 + testInfo.workerIndex;
-    const pet: Pet = {
-      id,
-      name: 'smoke-pet',
-      photoUrls: [],
-      status: 'available',
-    };
+    const pet = PetMother.available(faker);
+    const id = pet.id as number;
     try {
       expect((await pets.create(pet)).status()).toBe(200);
 

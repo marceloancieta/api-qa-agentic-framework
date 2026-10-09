@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test, expect } from '@playwright/test';
-import { loadRuntime, missingEnvVars, requiredEnvVars } from '../config';
+import { actorAuth, loadRuntime, missingEnvVars, requiredEnvVars } from '../config';
 
 function configDir(files: Record<string, unknown>): string {
   const dir = mkdtempSync(join(tmpdir(), 'qa-config-'));
@@ -20,6 +20,7 @@ const sample = {
       shared: { base_url: 'https://shared.example/api' },
     },
     auth: { type: 'bearer', env: 'TOKEN' },
+    actors: { user: { type: 'api_key', in: 'header', name: 'k', env: 'USER_KEY' } },
   },
 };
 
@@ -66,5 +67,22 @@ test.describe('environment variables', () => {
 
   test('blank values count as missing', () => {
     expect(missingEnvVars(['A', 'B', 'C'], { A: 'x', B: ' ' })).toEqual(['B', 'C']);
+  });
+});
+
+test.describe('actorAuth', () => {
+  const qa = () => loadRuntime({}, configDir({ 'qa-config.example.json': sample }));
+
+  test('default is api.auth and anonymous sends nothing', () => {
+    expect(actorAuth(qa(), 'default')).toEqual({ type: 'bearer', env: 'TOKEN' });
+    expect(actorAuth(qa(), 'anonymous')).toEqual({ type: 'none' });
+  });
+
+  test('a named actor comes from api.actors', () => {
+    expect(actorAuth(qa(), 'user')).toMatchObject({ type: 'api_key', env: 'USER_KEY' });
+  });
+
+  test('an unknown actor fails and lists the known ones', () => {
+    expect(() => actorAuth(qa(), 'admin')).toThrow(/admin.*default, anonymous, user/);
   });
 });

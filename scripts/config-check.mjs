@@ -14,6 +14,7 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
 const SCHEMA_PATH = 'schemas/qa-config.schema.json';
+const RESERVED_ACTORS = ['default', 'anonymous'];
 
 const ajv = new Ajv2020({ allErrors: true, strict: true, useDefaults: false });
 addFormats(ajv);
@@ -27,6 +28,11 @@ export function semanticErrors(config) {
     errors.push(
       `api.default_environment "${api.default_environment}" is not one of: ${Object.keys(api.environments).join(', ')}`,
     );
+  }
+  for (const name of Object.keys(api.actors ?? {})) {
+    if (RESERVED_ACTORS.includes(name)) {
+      errors.push(`api.actors.${name} is built in and cannot be redefined (use another name)`);
+    }
   }
   const pattern = config.tracker?.key_pattern;
   if (typeof pattern === 'string') {

@@ -52,8 +52,8 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    // Core unit tests: no network, part of `npm run gates`.
-    { name: 'unit', testDir: './helpers', testMatch: '**/__tests__/**/*.spec.ts' },
+    // Unit tests of the core and the packs: no network, part of `npm run gates`.
+    { name: 'unit', testDir: '.', testMatch: '**/__tests__/**/*.spec.ts' },
     { name: 'preflight', testDir: './fixtures', testMatch: 'preflight.setup.ts' },
     {
       name: 'api',

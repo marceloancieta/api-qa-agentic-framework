@@ -25,6 +25,7 @@ interface QaConfigFile {
     default_environment?: string;
     environments?: Record<string, EnvironmentConfig>;
     auth?: AuthConfig;
+    actors?: Record<string, AuthConfig>;
   };
   test_management?: { provider?: string };
 }
@@ -37,6 +38,8 @@ export interface QaRuntime {
   specUrl: string | null;
   allowWrites: boolean;
   auth: AuthConfig;
+  /** Named credentials from `api.actors`, without the built-in `default` and `anonymous`. */
+  actors: Record<string, AuthConfig>;
   testManagement: string;
 }
 
@@ -84,8 +87,24 @@ export function loadRuntime(env: NodeJS.ProcessEnv = process.env, root = REPO_RO
     specUrl: selected.spec_url ?? null,
     allowWrites: selected.allow_writes ?? false,
     auth: api.auth ?? { type: 'none' },
+    actors: api.actors ?? {},
     testManagement: file.test_management?.provider ?? 'allure-report',
   };
+}
+
+export const DEFAULT_ACTOR = 'default';
+export const ANONYMOUS_ACTOR = 'anonymous';
+
+/** The credential an actor uses: `default` is `api.auth`, `anonymous` sends none. */
+export function actorAuth(qa: QaRuntime, name: string): AuthConfig {
+  if (name === DEFAULT_ACTOR) return qa.auth;
+  if (name === ANONYMOUS_ACTOR) return { type: 'none' };
+  const auth = qa.actors[name];
+  if (!auth) {
+    const known = [DEFAULT_ACTOR, ANONYMOUS_ACTOR, ...Object.keys(qa.actors)].join(', ');
+    throw new Error(`Actor "${name}" is not defined in ${qa.source} api.actors. Known: ${known}.`);
+  }
+  return auth;
 }
 
 /** Environment variable names the active auth needs. Names only: values never leave the process. */

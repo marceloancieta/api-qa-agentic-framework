@@ -22,10 +22,6 @@ E9 docs and release · Later (after v0.1.0).
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| CORE-04 | `actor(name)` fixture: the same clients bound to a named credential (`owner`, `user`, `anonymous`), enabling authorization matrices (OWASP API1 BOLA). | practice, ADR 0007 | todo |
-| CORE-05 | `flows/` convention: plain functions over an actor's clients for repeated multi-step business sequences. | practice, ADR 0007 | todo |
-| CORE-06 | Test Data Builders + Object Mother derived from the normalized OpenAPI model (enums from value sets); Faker with a fixed seed printed on failure. | practice, L-36 | todo |
-| CORE-07 | Seeded RNG and controllable clock fixtures; no global randomness or fixed sleeps in specs. | practice, L-27 | todo |
 | CORE-08 | `redact` with key-based masking plus a configurable list of identity fields; anonymization helpers (mask, hash, substitute, generalize) for captured data. | practice, L-42 | in-progress |
 | CORE-09 | `allureMeta`: stable identity `<service>-<version>-<TC id>`, tags mirrored from the title, `knownGap(key, why)` emitting the issue link; `<PLACEHOLDER>` in prose wrapped in code spans. | L-14, L-22, L-47 | todo |
 | CORE-10 | `resourceGuard` protocol (compare before repairing, fix only real differences, report instead of throwing, flag intended vs unintended changes); verdict reported outside an armed expected-failure. | L-15, L-39 | todo |
@@ -145,3 +141,7 @@ E9 docs and release · Later (after v0.1.0).
 | CORE-12 | `playwright.config.ts`: `--list` writes no results, extra reporters through `QA_JSON_REPORT`/`QA_JUNIT_REPORT`, `--reporter` refused, retries 0 unless `QA_RETRIES`. | `db2296d` |
 | CORE-13 | `preflight` setup project: required variables asserted by name, host reachability, `--no-deps` to skip. | `db2296d` |
 | CORE-16 | Petstore smoke spec (inventory read, pet create/read/delete). | `db2296d` |
+| CORE-04 | `actor(name)`: the pack's clients bound to `default`, `anonymous` or an `api.actors` credential, one request context per actor. | E1 slice 2 |
+| CORE-05 | Flows as plain functions over an actor's clients; `step` and `expectStatus` helpers; Petstore `purchasePet`. | E1 slice 2 |
+| CORE-06 | Builders (`aPet`, `anOrder`) and Object Mother (`PetMother`) on a seeded faker; enum value sets are hand-written constants until CON-08 generates them. | E1 slice 2 |
+| CORE-07 | Seeded `rng` (root `QA_SEED` printed at start, per-test seed from the title path, replay hint on failure) and `clock` (`QA_CLOCK` pins it). | E1 slice 2 |

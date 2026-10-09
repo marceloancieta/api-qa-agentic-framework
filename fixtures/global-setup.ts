@@ -6,6 +6,7 @@ import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FullConfig } from '@playwright/test';
 import { REPO_ROOT, loadRuntime } from '../helpers/config';
+import { rootSeed, SEED_VARIABLE } from '../helpers/rng';
 
 export const RESULTS_DIR = join(REPO_ROOT, 'allure-results');
 
@@ -29,4 +30,9 @@ export function assertResultsReporter(config: FullConfig, provider: string): voi
 export default function globalSetup(config: FullConfig): void {
   assertResultsReporter(config, loadRuntime().testManagement);
   rmSync(RESULTS_DIR, { recursive: true, force: true });
+
+  // Fix the root seed before workers start: they inherit this environment, so every worker derives
+  // its test seeds from the same root, and the printed value replays the whole run.
+  process.env[SEED_VARIABLE] = rootSeed();
+  console.log(`[seed] ${SEED_VARIABLE}=${process.env[SEED_VARIABLE]}`);
 }
