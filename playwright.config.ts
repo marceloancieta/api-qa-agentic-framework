@@ -20,6 +20,13 @@ const extraReporters: ReporterDescription[] = [
     : []),
 ];
 
+// Git worktrees nested under this checkout (parallel agent work) hold their own copies of the tests.
+// Anchored to this config's directory, so a checkout that is itself such a worktree keeps its tests.
+const escapedRoot = __dirname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\\|\//g, '[\\\\/]');
+const worktreesOfThisCheckout = new RegExp(
+  `^${escapedRoot}[\\\\/]\\.claude[\\\\/]worktrees[\\\\/]`,
+);
+
 // Retries hide flakiness, so they are off unless a lane opts in. Gate lanes never set QA_RETRIES.
 function retries(): number {
   const raw = process.env.QA_RETRIES ?? '0';
@@ -58,7 +65,8 @@ export default defineConfig({
       name: 'unit',
       testDir: '.',
       testMatch: '**/__tests__/**/*.spec.ts',
-      testIgnore: '**/.claude/worktrees/**',
+      // Worktrees of this checkout, not this checkout's own path when it is itself a worktree.
+      testIgnore: worktreesOfThisCheckout,
     },
     { name: 'preflight', testDir: './fixtures', testMatch: 'preflight.setup.ts' },
     {

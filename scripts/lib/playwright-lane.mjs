@@ -5,9 +5,11 @@
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 
-const CLI = join('node_modules', '@playwright', 'test', 'cli.js');
+// Resolved like an import, so it is found from a git worktree that has no node_modules of its own.
+const CLI = createRequire(import.meta.url).resolve('@playwright/test/cli');
 
 /**
  * One record per test: `{ title, titlePath, file, line, project, tags, annotations, expectedStatus,
