@@ -1,0 +1,6 @@
+{
+  "name": "petstore",
+  "version": "v3",
+  "title": "Swagger Petstore (OpenAPI 3.0)",
+  "description": "Example service pack. The local Docker image is the system under test for every write."
+}

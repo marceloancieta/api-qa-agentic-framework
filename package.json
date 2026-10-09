@@ -15,6 +15,8 @@
     "format:check": "prettier --check .",
     "config:check": "node scripts/config-check.mjs --all",
     "test:hooks": "node --test \".claude/hooks/__tests__/*.test.mjs\"",
+    "test:unit": "playwright test --project=unit",
+    "types:check": "tsc -p .",
     "scan:denylist": "node scripts/scan-denylist.mjs --tracked",
     "scan:denylist:history": "node scripts/scan-denylist.mjs --history",
     "scan:denylist:self-test": "node scripts/scan-denylist.mjs --self-test",
@@ -22,11 +24,16 @@
     "hooks:install": "git config core.hooksPath .githooks",
     "petstore:up": "docker compose up -d --wait petstore",
     "petstore:down": "docker compose down",
-    "gates": "npm run lint && npm run format:check && npm run config:check && npm run test:hooks && npm run scan:denylist:self-test"
+    "test": "playwright test",
+    "test:smoke": "playwright test --project=api --grep @smoke",
+    "gates": "npm run lint && npm run format:check && npm run types:check && npm run config:check && npm run test:hooks && npm run test:unit && npm run scan:denylist:self-test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.5",
+    "allure-js-commons": "^3.12.2",
+    "allure-playwright": "^3.12.2",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",

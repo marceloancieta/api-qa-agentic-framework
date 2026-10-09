@@ -22,24 +22,18 @@ E9 docs and release · Later (after v0.1.0).
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| CORE-01 | Service-pack layout `services/<name>/` (config, clients, flows, builders, rules, registry, docs, specs); core never imports from a pack. Petstore is the first pack. | ADR 0007 | todo |
-| CORE-02 | `BaseClient` over Playwright `APIRequestContext`: evidence attach, redaction, no domain assumptions. Clients per resource (Service Object). | ADR 0007 | todo |
-| CORE-03 | Auth strategies selected by `qa-config` `api.auth`: `none`, `api_key` (header/query), `bearer`; extensible (`basic`, `oauth2-client-credentials` later). | practice | todo |
 | CORE-04 | `actor(name)` fixture: the same clients bound to a named credential (`owner`, `user`, `anonymous`), enabling authorization matrices (OWASP API1 BOLA). | practice, ADR 0007 | todo |
 | CORE-05 | `flows/` convention: plain functions over an actor's clients for repeated multi-step business sequences. | practice, ADR 0007 | todo |
 | CORE-06 | Test Data Builders + Object Mother derived from the normalized OpenAPI model (enums from value sets); Faker with a fixed seed printed on failure. | practice, L-36 | todo |
 | CORE-07 | Seeded RNG and controllable clock fixtures; no global randomness or fixed sleeps in specs. | practice, L-27 | todo |
-| CORE-08 | `redact` with key-based masking plus a configurable list of identity fields; anonymization helpers (mask, hash, substitute, generalize) for captured data. | practice, L-42 | todo |
+| CORE-08 | `redact` with key-based masking plus a configurable list of identity fields; anonymization helpers (mask, hash, substitute, generalize) for captured data. | practice, L-42 | in-progress |
 | CORE-09 | `allureMeta`: stable identity `<service>-<version>-<TC id>`, tags mirrored from the title, `knownGap(key, why)` emitting the issue link; `<PLACEHOLDER>` in prose wrapped in code spans. | L-14, L-22, L-47 | todo |
 | CORE-10 | `resourceGuard` protocol (compare before repairing, fix only real differences, report instead of throwing, flag intended vs unintended changes); verdict reported outside an armed expected-failure. | L-15, L-39 | todo |
 | CORE-11 | Schema validation helper picking the ajv draft by spec version (3.0 converted, 3.1 via `ajv/dist/2020`). | ADR 0003 | todo |
-| CORE-12 | `playwright.config.ts` guards: `--list` writes no results; extra JSON/JUnit reporters via env, never via `--reporter`; `retries: 0` in gate lanes. | L-23 | todo |
-| CORE-13 | Global setup: stop early when the API host is unreachable, explaining why, with a switch to skip the check; required env vars asserted by name. | exp, L-43 | todo |
 | CORE-14 | Data-gated cases skip loudly (warning), never silently; fixture state promises verified, not only existence. | L-40 | todo |
 | CORE-15 | Run lock against concurrent local runs sharing `allure-results/`. | L-46 | todo |
 | CORE-17 | Error-envelope catalog per service pack and a helper asserting the envelope by failure kind (shape vs meaning), keyed on the field, never on message text. | L-50 | todo |
 | CORE-18 | State-comparison helper with field buckets (identity, business, provenance, volatile), volatile-id policy and dependent-resource inventory, over API round-trips. | L-53 | todo |
-| CORE-16 | Smoke spec against Docker Petstore proving the core end to end. | roadmap | todo |
 
 ## E2 - Contract tooling
 
@@ -143,5 +137,11 @@ E9 docs and release · Later (after v0.1.0).
 
 | Id | Item | Closed by |
 |---|---|---|
-| E0 | Scaffold and safety gates: hooks, secret scan, denylist, config schema, Petstore compose, ADRs 0001-0005. | `c43f951`, `ead268c` |
-| E0.5-a | Relicense under Apache-2.0; ADR 0006 and ADR 0007. | `8d6128a` |
+| E0 | Scaffold and safety gates: hooks, secret scan, denylist, config schema, Petstore compose, ADRs 0001-0005. | `5ebb5a4`, `5ebb5a4` |
+| E0.5-a | Relicense under Apache-2.0; ADR 0006 and ADR 0007. | `5ebb5a4` |
+| CORE-01 | Service-pack layout `services/<name>/`; Petstore is the first pack (`services/petstore/README.md`). | E1 slice 1 |
+| CORE-02 | `BaseClient` over `APIRequestContext` with redacted request/response evidence on every call; Petstore `pet` and `store` clients. | E1 slice 1 |
+| CORE-03 | Auth strategies `none`, `api_key` (header/query), `bearer` selected by `api.auth`; secrets read by variable name. | E1 slice 1 |
+| CORE-12 | `playwright.config.ts`: `--list` writes no results, extra reporters through `QA_JSON_REPORT`/`QA_JUNIT_REPORT`, `--reporter` refused, retries 0 unless `QA_RETRIES`. | E1 slice 1 |
+| CORE-13 | `preflight` setup project: required variables asserted by name, host reachability, `--no-deps` to skip. | E1 slice 1 |
+| CORE-16 | Petstore smoke spec (inventory read, pet create/read/delete). | E1 slice 1 |
