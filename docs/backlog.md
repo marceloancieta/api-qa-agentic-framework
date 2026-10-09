@@ -30,17 +30,7 @@ Complete: CON-01 to CON-09 are in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| GATE-01 | `lint-harness`: `xfail-armed-early`, `known-gap-untracked`, `metadata-after-skip`, `optional-assertion`, `shared-fixture-mutation`, module-scope I/O in specs, unnormalized comparisons. Each with an exact-set self-test and negative controls. | L-03, L-13..L-19, L-24 | todo |
-| GATE-02 | `lint-suite`: no real identifiers/PII in designs and specs; reserved fictional values built in, so no allow-list is needed. | L-41 | todo |
-| GATE-03 | `lint-docs`: fact-ownership checks, orphan rules/references, dead paths, count claims, backlog row shape and status enum, derived tag tables in registries. | L-07..L-12, exp | todo |
-| GATE-04 | `coverage-status` over the full registry lifecycle (`draft` → `approved` → `automated` → `published`, `blocked`), every column checked. | exp | todo |
-| GATE-05 | Requirements traceability matrix generated from registry + results (requirement → case → technique → file → status → defect). | practice | todo |
-| GATE-06 | `known-gap-lane` (one Playwright process per known-gap case) and a published-case lane; a passing known-gap is reported for investigation. | L-14, L-31 | todo |
 | GATE-07 | `cited-status`: re-read "until X ships" / "waiting on X" claims against the configured tracker (opt-in). Needs the tracker interface from E4 (TM-*), so it is built there. | L-11, L-26 | blocked |
-| GATE-08 | Quality gate (`scripts/quality-gate.mjs`): optional metric sources (pass rate, p95, DAST findings, mutation score), thresholds in `qa-config.quality_gate`, one Strategy per check, verdict PASS / REVIEW / FAIL; validates its own input. | practice, ADR 0007 | todo |
-| GATE-09 | Anti-flake lane: `--repeat-each` detection run, quarantine tag, gate lanes run with zero retries. | practice, L-27 | todo |
-| GATE-10 | Mutation testing (Stryker) over `scripts/lib` and hook libraries, feeding the quality gate. | practice | todo |
-| GATE-11 | Single `npm run gates` composite including every self-test. | roadmap | todo |
 
 ## E4 - Test management
 
@@ -144,3 +134,13 @@ Complete: CON-01 to CON-09 are in **Done**.
 | CON-07 | `declared-codes`: declared vs observed codes from the latest run evidence, both directions; codes only `default` covers count as undeclared; most specific path template wins. | `dc24fee` |
 | CON-08 | `derive-value-sets` (enums, const and literal patterns into `generated/value-sets.json` and `enums.ts`, collision-safe names, Petstore pack switched to them) and `derive-floor` (documented per-operation formula, every term printed). | `dc24fee` |
 | CON-09 | Tracked `docs/discovery/petstore-digest.json`, kept current by `npm run contract:check` in the gates. | `bc285db` |
+| GATE-01 | `lint-harness` over every pack's specs through the syntax tree: `xfail-armed-early`, `known-gap-untracked`, `metadata-after-skip`, `optional-assertion`, `shared-fixture-mutation`, `module-scope-io`, `unnormalized-comparison`; exact self-test. Shared libraries `registry`, `corpus`, `lint`, `playwright-lane`. | `dac81ae`, `74bf315` |
+| GATE-02 | `lint-suite`: real e-mails, hosts, IPs, phones, JWTs, UUIDs and long ids in specs, registries and docs; only built-in reserved values accepted, no allow-list; exact self-test. | `74bf315` |
+| GATE-03 | `lint-docs`: dead links and paths, orphan docs, backlog row shape and status enum, computed count claims, ADR index, lesson guards due by completed stage, registry shape; exact self-test. Fixed the two stale guards it found. | `df5d0de`, `6d84a05` |
+| GATE-04 | `coverage-status`: registry lifecycle against the specs (AST) and the latest results, orphan tests, untracked known gaps, per-registry counts and floor vs cases. | `30b3698` |
+| GATE-05 | `traceability`: requirement -> case -> technique -> spec -> status -> result -> defect, uncovered requirements listed apart; `--write` to `docs/traceability/<pack>.md`. | `30b3698` |
+| GATE-06 | `known-gap-lane` (one process per armed case; a passing gap is investigated) and `published-lane` (published cases, optionally only those touching changed operations). Lanes run from worktrees and share helpers in `scripts/lib/playwright-lane.mjs`. | `80c478f`, `53b1926`, `57c7a42` |
+| GATE-08 | `quality-gate`: optional `qa-config.quality_gate` checks (pass rate, p95, DAST, mutation score), one strategy each, PASS / REVIEW / FAIL with SKIPPED for missing sources, validated input, JSON artifact and Markdown summary. | `55f7187` |
+| GATE-09 | `flake-lane`: `--repeat-each` detection with zero retries, `@quarantine` convention and release candidates; every lane refuses a non-zero `QA_RETRIES`. | `53b1926` |
+| GATE-10 | Stryker (`stryker.config.mjs`, command runner over node:test) on `scripts/lib` and `.claude/hooks/lib`, on demand via `npm run mutation`; feeds the quality gate. | `55f7187` |
+| GATE-11 | `npm run gates`: lint, format, types, config, hook and script tests, contract check, `lint:qa` (three linters and their self-tests), coverage status, unit tests, denylist self-test. `docs/quality-gates.md`. | E3 integration |

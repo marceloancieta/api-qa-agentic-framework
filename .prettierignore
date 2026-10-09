@@ -7,3 +7,4 @@ playwright-report/
 tools/
 *.md
 .claude/worktrees/
+reports/

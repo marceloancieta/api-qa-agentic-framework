@@ -15,6 +15,7 @@ export default tseslint.config(
       'tools/',
       'scripts/__fixtures__/',
       '.claude/worktrees/',
+      'reports/',
     ],
   },
   js.configs.recommended,

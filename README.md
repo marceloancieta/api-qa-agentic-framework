@@ -43,6 +43,12 @@ The `contract:*` scripts read the API description (Swagger 2.0, OpenAPI 3.0 or 3
 contract drift, probe coverage, value sets, the minimum number of cases per operation, and declared
 versus observed response codes. See [`docs/contract-tooling.md`](docs/contract-tooling.md).
 
+## Quality gates
+
+`npm run gates` runs the linters (harness, test data, docs) with their self-tests, the contract and
+coverage checks and the unit tests. Lanes for known gaps, published cases and flakiness, the quality
+gate and mutation testing run on demand. See [`docs/quality-gates.md`](docs/quality-gates.md).
+
 ## Example service pack
 
 [`services/petstore/`](services/petstore/README.md) runs the framework against Swagger Petstore v3

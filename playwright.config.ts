@@ -26,6 +26,8 @@ const escapedRoot = __dirname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\
 const worktreesOfThisCheckout = new RegExp(
   `^${escapedRoot}[\\\\/]\\.claude[\\\\/]worktrees[\\\\/]`,
 );
+// Generated output, including the sandbox copy a mutation run leaves behind if it is interrupted.
+const reportsOfThisCheckout = new RegExp(`^${escapedRoot}[\\\\/]reports[\\\\/]`);
 
 // Retries hide flakiness, so they are off unless a lane opts in. Gate lanes never set QA_RETRIES.
 function retries(): number {
@@ -65,8 +67,7 @@ export default defineConfig({
       name: 'unit',
       testDir: '.',
       testMatch: '**/__tests__/**/*.spec.ts',
-      // Worktrees of this checkout, not this checkout's own path when it is itself a worktree.
-      testIgnore: worktreesOfThisCheckout,
+      testIgnore: [worktreesOfThisCheckout, reportsOfThisCheckout],
     },
     { name: 'preflight', testDir: './fixtures', testMatch: 'preflight.setup.ts' },
     {
