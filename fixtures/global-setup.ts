@@ -10,6 +10,7 @@ import { REPO_ROOT, loadRuntime } from '../helpers/config';
 import { SALT_VARIABLE } from '../helpers/redact';
 import { rootSeed, SEED_VARIABLE } from '../helpers/rng';
 import { acquireRunLock } from '../helpers/run-lock';
+import { RUN_ID_VARIABLE, runId } from '../scripts/lib/log.mjs';
 
 export const RESULTS_DIR = join(REPO_ROOT, 'allure-results');
 
@@ -39,6 +40,9 @@ export default function globalSetup(config: FullConfig): void {
   // its test seeds from the same root, and the printed value replays the whole run.
   process.env[SEED_VARIABLE] = rootSeed();
   console.log(`[seed] ${SEED_VARIABLE}=${process.env[SEED_VARIABLE]}`);
+
+  // The run id ties this run's results to the tools that later upload or file them (L-48).
+  console.log(`[run] ${RUN_ID_VARIABLE}=${runId()}`);
 
   // One pseudonym salt for the whole run, shared by the workers and never printed.
   process.env[SALT_VARIABLE] ||= randomBytes(16).toString('hex');

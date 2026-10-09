@@ -30,6 +30,8 @@ export function caseIdentity(service: Pick<ServicePack, 'name' | 'version'>, tit
 
 /** Labels every case of a pack gets; called by the pack's automatic fixture. */
 export async function applyCaseMeta(service: ServicePack, testInfo: TestInfo): Promise<void> {
+  const run = process.env.QA_RUN_ID;
+  if (run) await allure.label('run', run);
   await allure.parentSuite(service.title);
   await allure.suite(service.version);
   const identity = caseIdentity(service, testInfo.title);
