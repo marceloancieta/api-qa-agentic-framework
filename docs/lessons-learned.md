@@ -286,3 +286,9 @@ can remove it. A case that reproduces such a defect is not just mutating, it is 
 cannot share a run with other cases, and the run must end by restoring the service. Find these at
 intake, with writes measured against data the run creates, before any suite depends on the broken
 read. *Guarded by:* the `@destructive` tag (E6) and its isolated lane (GATE-12).
+
+**L-60 - Parallel agents need disjoint data.** Agents that run against the same environment at the
+same time can each mistake the other's records for leftovers, and one of them deleted a record
+outside the range it was given. Give each agent its own id range or name prefix, and let it delete
+only the ids its own create responses returned, never records it found by listing or searching.
+*Guarded by:* the `spec-author` launch prompt and `qa-automate` (E7).

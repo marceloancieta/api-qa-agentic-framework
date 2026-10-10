@@ -64,6 +64,7 @@ A disagreement between two files about a fact missing from this table means the 
 | `docs/references/bug-reporting.md` or `docs/references/defect-rubric.md` | `qa-report-bug`, the registry rule's Defect column, `cited-status` |
 | `docs/references/contract-analysis.md` | `qa-intake`, `qa-design`, `docs/templates/feature-contract.md` |
 | a phase skill | `CLAUDE.md` (the pipeline table), the skills before and after it |
+| an agent in `.claude/agents/` | `CLAUDE.md` (the agents table), the skills that launch it, `scripts/__tests__/agent-guide.test.mjs` |
 | a variable in `.env.example` or qa-config | `README.md` setup, the docs that name it, `schemas/qa-config.schema.json` |
 
 A linter sees statements that conflict, not updates that were never made, so this table is walked by

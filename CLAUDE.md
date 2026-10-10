@@ -52,11 +52,17 @@ session, and the others when matching files are touched:
   what was said, or it changes files the user reviews next. Every phase is a skill.
 - **Use an agent** (subagent) when the work is a self-contained question with a defined output that
   gains from a fresh context: reviewing a spec against its registry case, investigating one contract
-  discrepancy, searching a large codebase. The agent returns a report and changes nothing the user
-  has not approved.
+  discrepancy, searching a large codebase. The agent returns a report and writes only what its row
+  below allows.
 - Never hand an agent a gate. Approvals happen in the conversation.
 
-The review agents of this framework are planned in backlog AGT-01 and AGT-02.
+The agents live in `.claude/agents/`. Each one declares its tools, and one that writes nothing has
+no tool that edits files (`scripts/__tests__/agent-guide.test.mjs`):
+
+| Agent | Use it to | Writes |
+|---|---|---|
+| `spec-author` | write the specs of an assigned set of approved cases, run them and report | the spec files it is assigned |
+| `api-spec-reviewer` | review a spec against its registry cases: title claim, oracles, coincidence, layering | nothing |
 
 ## Hooks
 

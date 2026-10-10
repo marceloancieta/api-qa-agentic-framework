@@ -3,9 +3,10 @@ name: qa-automate
 description: >-
   Phase 2 of API test work. Turns the approved cases of a registry into Playwright specs in
   services/<pack>/specs/, building or extending the pack's clients, builders and flows first, then
-  checks them (types, lint, harness and suite linters) and runs them to prove they behave as designed.
-  Use when the user asks to automate, implement or codify approved test cases, or to write the specs
-  for a feature. Updates registry rows to automated. Does not publish definitions or report runs.
+  checks them (types, lint, harness and suite linters), runs them to prove they behave as designed
+  and has each spec reviewed by the api-spec-reviewer agent. Use when the user asks to automate,
+  implement or codify approved test cases, or to write the specs for a feature. Updates registry
+  rows to automated. Does not publish definitions or report runs.
 ---
 
 # qa-automate: write and prove the specs
@@ -22,11 +23,18 @@ go to data they create, or to shared data under a resource guard, in an environm
 
 ## Steps
 
-1. **Build what the cases need first**: client methods, builders, flows, error envelopes, state
-   models. A spec never contains a URL, a header or hand-built JSON for a contract type.
+1. **Build what the cases need first**, in the conversation: client methods, builders, flows, error
+   envelopes, state models. They are shared files, so no spec author edits them. A spec never
+   contains a URL, a header or hand-built JSON for a contract type.
 2. **Write the specs**, one test per approved case, titled `TC-<FEATURE>-NN <title> <tags>`. Group
-   them by feature and category in `services/<pack>/specs/`. Follow the case shape in the
-   generation rule: metadata, preconditions, named steps, unconditional assertions.
+   them by feature and category in `services/<pack>/specs/` and follow the case shape in the
+   generation rule. Write a small feature in the conversation. Otherwise split the cases by spec file
+   and launch one `spec-author` agent per file, in parallel when neither the files nor the data
+   ranges overlap. Its launch prompt names the pack, the environment, the registry file, the case
+   ids, the spec files it owns, the data range it may create (an id range or a name prefix no other
+   author uses) and whether a `@destructive` case may be run alone. When an author reports
+   **Needs**, build those blocks here (step 1) and resume the same author. Its candidate findings go
+   to `qa-report-bug`.
 3. **Known defects**: a case the registry maps to an open issue arms
    `test.fail(true, await knownGap('<KEY>', why))` right before the action and carries `@known-gap`.
    Finding a new defect while automating goes through `qa-report-bug`; the case keeps its status.
@@ -40,19 +48,26 @@ go to data they create, or to shared data under a resource guard, in an environm
    npx playwright test services/<pack>/specs/<file> --list --grep @regression
    ```
    Every designed case appears exactly once across the layer tags.
-5. **Run** the new specs against the environment
-   (`npx playwright test services/<pack>/specs/<file>`). Data-backed cases pass, or fail as armed
-   known gaps. Data-gated cases skip with a reason. Anything else is a test error to fix, or a finding
-   for `qa-report-bug`.
-6. **Record**: covered probes with `npm run contract:probes:write`, then each automated row moves to
+5. **Run** the new specs together against the environment
+   (`npx playwright test services/<pack>/specs/<file> ...`), the `@destructive` ones alone after
+   them. Authors' runs replace each other's results, so this run is the one step 7 reads.
+   Data-backed cases pass, or fail as armed known gaps. Data-gated cases skip with a reason. Anything
+   else is a test error to fix, or a finding for `qa-report-bug`.
+6. **Review**: launch the `api-spec-reviewer` agent on every new or changed spec, as a fresh agent
+   and never the author, whose context carries its own assumptions. Fix every `blocker` and `major`
+   (resume the author with the report, or fix here), run again and re-review until the verdict is
+   `approve`. A `minor` may be accepted with a reason that goes into the gate summary.
+7. **Record**: covered probes with `npm run contract:probes:write`, then each automated row moves to
    `automated` with its Spec column filled. `npm run coverage:status` must not report the feature.
-7. **Review gate.** Show the spec files, the run summary (passed, failed as armed, skipped with
-   reasons) and the registry diff. Wait for approval.
-8. **Hand off** to `qa-publish`.
+8. **Review gate.** Show the spec files with their reviewer verdicts and accepted minors, the run
+   summary (passed, failed as armed, skipped with reasons), data left behind and the registry diff.
+   Wait for approval. Agents never hold this gate (`CLAUDE.md`, Skill or agent).
+9. **Hand off** to `qa-publish`.
 
 ## If it stops halfway
 
-- Rows move to `automated` only for specs that exist and ran. Never mark ahead of the code.
+- Rows move to `automated` only for specs that exist, ran and were approved by the reviewer. Never
+  mark ahead of the code.
 - A spec that cannot be finished is removed, or parked with `test.fixme` and its row left `approved`.
   `coverage:status` reports a parked case, so nothing hides.
 - Data the run created that it could not clean up is listed in the summary, with how to remove it.
@@ -60,5 +75,6 @@ go to data they create, or to shared data under a resource guard, in an environm
 ## Do not
 
 - Automate `draft` cases or change a case's meaning while coding it. Send it back to `qa-design`.
+- Let two authors share a spec file, a data range or a building block they would both edit (L-60).
 - Publish, report runs, or edit case definitions in the test-management tool.
 - Commit real identifiers or personal data. Use builders and placeholders.

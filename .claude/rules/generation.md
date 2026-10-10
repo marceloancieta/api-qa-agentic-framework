@@ -64,4 +64,5 @@ ADR 0007; `services/petstore/` is the worked example.
 
 `npm run types:check`, `npm run lint`, `npm run lint:qa` and a run of the spec against the
 environment. Data-backed cases pass or fail as designed, data-gated cases skip with their reason, and
-nothing skips silently.
+nothing skips silently. Then the `api-spec-reviewer` agent, never the spec's author, returns
+`approve` for it (`qa-automate`).
