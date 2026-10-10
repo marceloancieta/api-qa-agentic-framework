@@ -41,7 +41,9 @@ Unmarked code is meant to be clean: a finding on it is a false positive.
    scan these files and `--list` finds no tests in them; both are expected.
 3. Compare the report with the tables below: each expected finding with the same case, check and
    line, each verdict, and every finding outside the table (a look-alike flagged, or a guess).
-   Severity is part of the result; a different severity is a partial match.
+   Severity is part of the result; a different severity is a partial match. A row that accepts
+   two grades is borderline: runs of the agent have differed on it, and the file's verdict is the
+   same with either grade (the test checks that).
 
 ## Expected findings
 
@@ -49,9 +51,9 @@ Unmarked code is meant to be clean: a finding on it is a false positive.
 |---|---|---|---|---|
 | TC-PETREV-02 | `title-claim` | blocker | `pet-core.spec.ts` | Only the name is read back; a PUT that ignores `status` passes although the title claims it is stored. |
 | TC-PETREV-02 | `vacuous-assertion` | major | `pet-core.spec.ts` | The schema check reads the request `changed`, not the response; a response of any shape passes. |
-| TC-PETREV-03 | `missing-oracle` | major | `pet-core.spec.ts` | No read-back after the refused write (L-35); a server that answers `400` but stores the pet without its name passes. The `@data-integrity` tag goes with the fix. |
+| TC-PETREV-03 | `missing-oracle` | major or blocker | `pet-core.spec.ts` | No read-back after the refused write (L-35); a server that answers `400` but stores the pet without its name passes. Borderline: the refusal is checked (major), but "the pet unchanged" is part of the expected result (blocker). The `@data-integrity` tag goes with the fix. |
 | TC-PETREV-05 | `coincidental-pass` | blocker | `pet-core.spec.ts` | The pet comes from `PetMother.minimal`, so it has no tags; "kept" equals what a server that drops omitted tags stores. |
-| TC-PETREV-08 | `vacuous-assertion` | blocker | `pet-core.spec.ts` | The loop has no length check and the case created no sold pet; an empty list passes. |
+| TC-PETREV-08 | `vacuous-assertion` | major or blocker | `pet-core.spec.ts` | The loop has no length check and the case created no sold pet; an empty list passes. Borderline: the item shape is checked while someone else's sold pet exists (major), and on nothing when none does (blocker). |
 | TC-PETREV-09 | `registry-fidelity` | blocker | `pet-core.spec.ts` | The registry expects `404` and no pet created; the spec asserts that the PUT creates the pet, so it passes on the very defect the case was designed to catch. |
 | TC-PETREV-12 | `layering` | major | `pet-core.spec.ts` | The value set is typed from memory instead of `PET_STATUSES` (L-36); a member the contract adds is never tried. |
 | TC-PETREV-12 | `data-safety` | major | `pet-core.spec.ts` | Every pet created is left behind, in the generated range and in each status listing. |
@@ -80,6 +82,8 @@ Unmarked code is meant to be clean: a finding on it is a false positive.
   other callers' pets for the filter only, never for their shape.
 - TC-PETREV-09, 10 and 11 delete in `finally` an id the case created, even when it already deleted
   it: cleanup that tolerates a second delete.
+- TC-PETREV-06, 08, 09, 12 and 13 have no named steps: steps are optional (generation rule, step
+  4), so their absence is not a `case-shape` finding.
 - TC-PETREV-13 takes its pet through `requireData`, which skips with a reason; the defect is the
   write, not the precondition.
 

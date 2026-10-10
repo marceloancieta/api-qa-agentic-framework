@@ -70,7 +70,8 @@ Follow the generation rule exactly; the reviewer checks it:
   covers;
 - `operation(...)` and `caseDescription(...)` before any skip (L-16), then preconditions with
   `skipUnless` or `requireData`, each with a reason (L-40);
-- steps named `Arrange`, `Act`, `Assert`, `Record`; every `Assert` asserts;
+- steps are optional; when used, they are named `Arrange`, `Act`, `Assert`, `Record`, and every
+  `Assert` asserts;
 - status, then schema with `toMatchSchema` or `expectErrorEnvelope`, never behind a condition
   (L-19), then the business fields the case is about. The body must prove what the title claims
   (L-21);

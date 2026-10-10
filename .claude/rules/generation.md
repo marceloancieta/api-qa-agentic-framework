@@ -32,8 +32,9 @@ ADR 0007; `services/petstore/` is the worked example.
 3. **Preconditions next.** Use `skipUnless` or `requireData` for missing data or a read-only
    environment. A skip carries its reason, and data in the wrong state fails instead of skipping
    (L-40).
-4. **Steps** named for what they do: `Arrange`, `Act`, `Assert`, and `Record` for a step that keeps
-   evidence without judging it. A step called `Assert` must assert.
+4. **Steps** are optional; a short case reads fine without them. When used, they are named for what
+   they do: `Arrange`, `Act`, `Assert`, and `Record` for a step that keeps evidence without judging
+   it. A step called `Assert` must assert.
 5. **Assertions:**
    - the status;
    - the body against the schema with `toMatchSchema`, or the error envelope with

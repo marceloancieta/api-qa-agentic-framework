@@ -52,13 +52,17 @@ function markers() {
   return found;
 }
 
-/** The expected-findings rows of the README: case, check, severity and file. */
+/**
+ * The expected-findings rows of the README: case, check, accepted severities and file. A borderline
+ * finding accepts two grades (`major or blocker`): runs of the agent differ on it, and the README
+ * says so instead of pinning one of them.
+ */
 function readmeRows(readme) {
-  const pattern = /^\| (TC-[A-Z0-9]+-\d+) \| `([a-z-]+)` \| (\w+) \| `([^`]+)` \|/gm;
+  const pattern = /^\| (TC-[A-Z0-9]+-\d+) \| `([a-z-]+)` \| (\w+(?: or \w+)?) \| `([^`]+)` \|/gm;
   return [...readme.matchAll(pattern)].map(([, caseId, check, severity, file]) => ({
     caseId,
     check,
-    severity,
+    severities: severity.split(' or '),
     file,
   }));
 }
@@ -102,11 +106,25 @@ test('the README expects exactly the seeded findings, and its verdicts follow fr
   const key = (r) => `${r.file} ${r.caseId} ${r.check}`;
   const rows = readmeRows(readme);
   assert.deepEqual(rows.map(key).sort(), markers().map(key).sort());
-  for (const row of rows) assert.ok(RANK[row.severity], `${key(row)}: severity ${row.severity}`);
+  for (const row of rows) {
+    for (const severity of row.severities) {
+      assert.ok(RANK[severity], `${key(row)}: severity ${severity}`);
+    }
+  }
 
+  // The verdict must follow from the severities whichever grade a borderline finding gets.
+  const verdictOf = (worst) =>
+    worst === RANK.blocker ? 'block' : worst === RANK.major ? 'changes' : 'approve';
   for (const file of specFiles) {
-    const worst = Math.max(0, ...rows.filter((r) => r.file === file).map((r) => RANK[r.severity]));
-    const verdict = worst === RANK.blocker ? 'block' : worst === RANK.major ? 'changes' : 'approve';
+    const own = rows.filter((r) => r.file === file);
+    const low = Math.max(0, ...own.map((r) => Math.min(...r.severities.map((s) => RANK[s]))));
+    const high = Math.max(0, ...own.map((r) => Math.max(...r.severities.map((s) => RANK[s]))));
+    assert.equal(
+      verdictOf(low),
+      verdictOf(high),
+      `${file}: the verdict depends on a borderline grade`,
+    );
+    const verdict = verdictOf(high);
     assert.match(readme, new RegExp(`^- \`${file.replace(/\./g, '\\.')}\`: \`${verdict}\`$`, 'm'));
   }
 });

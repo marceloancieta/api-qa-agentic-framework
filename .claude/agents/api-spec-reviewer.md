@@ -85,8 +85,9 @@ details. Every finding uses one of these ids:
 - `layering` (ADR 0007, the table of the generation rule): a URL, a header or hand-built contract
   JSON in a spec, `Math.random` or `Date.now()`, a value set typed from memory instead of the
   generated enums, raw attachments, clients, flows or builders bypassed.
-- `case-shape`: metadata before any skip, preconditions with reasons, named steps (an `Assert`
-  step must assert), own records only (L-25), known-gap arming and `@known-gap` (L-13, L-14), a
+- `case-shape`: metadata before any skip, preconditions with reasons, steps when used named for
+  what they do (an `Assert` step must assert; a test without steps is not a finding), own records
+  only (L-25), known-gap arming and `@known-gap` (L-13, L-14), a
   `@destructive` case isolated with its recovery (L-59).
 - `data-safety`: real identifiers or personal data, writes to data the case did not create without
   a resource guard, missing cleanup of created data.
@@ -99,10 +100,16 @@ tag on a case without its read-back, goes into the fix of the root finding.
 
 ## Severity and verdict
 
-- `blocker`: the case can pass while the behaviour it claims is broken, or it can damage shared
-  state.
-- `major`: the case proves less than its title or registry case says, or breaks a layer rule.
-- `minor`: shape or clarity.
+Grade by what would slip through, not by how wrong the code looks:
+
+- `blocker`: the defect the case exists to catch would pass. Its main claim (the behaviour in the
+  title, the expected result of the registry case) goes unchecked whatever the data, is checked
+  on something that cannot differ (the request instead of the response), or is replaced by a
+  different claim. Also any write that can damage records the case does not own.
+- `major`: the main claim is checked, but a secondary oracle the rules require is missing or weak
+  (the schema, a read-back, the state after a refused write, cleanup of created records), the
+  result depends on data it does not control, or a layer rule is broken.
+- `minor`: shape or clarity; nothing would slip through.
 
 Verdict per spec file: `approve` (no blocker or major), `changes` (a major, no blocker), `block`
 (any blocker).
