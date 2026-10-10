@@ -1,0 +1,25 @@
+# GET /pet/findByTags: `tags` is a required array of strings (spec). Designed for TC-PET-60
+# (registry/pet-search.md). Measured on the local image on 2026-10-10 (pet contract, M-11 to M-15):
+# a tag some pet carries answers 200 with its pets, a tag no pet carries answers 200 with an empty
+# list, an empty value and no parameter at all answer 400. The spec maps `known` to the tag of a pet
+# the case created (never a seed tag, L-25) and `unknown` to a tag unique to the case that no pet
+# carries. Several tags in one request are TC-PET-61, not this table.
+title: Finding pets by tags
+operation: GET /pet/findByTags
+conditions:
+  tags_sent: [sent, omitted]
+  tags_value: [known, unknown, empty]
+actions: [status]
+rules:
+  - id: R1
+    when: { tags_sent: sent, tags_value: known }
+    then: { status: 200 }
+  - id: R2
+    when: { tags_sent: sent, tags_value: unknown }
+    then: { status: 200 }
+  - id: R3
+    when: { tags_sent: sent, tags_value: empty }
+    then: { status: 400 }
+  - id: R4
+    when: { tags_sent: omitted }
+    then: { status: 400 }

@@ -1,0 +1,34 @@
+# GET /user/login: the contract declares 200 with a session for valid credentials and 400 "Invalid
+# username/password supplied" otherwise (registry case TC-USER-62). `owner` is the username or the
+# <PASSWORD> of a user the case created; `other` is a different <PASSWORD> the builder makes; `unknown`
+# is a well-formed <UNKNOWN_USERNAME> that was never created. Measured on the local image on
+# 2026-10-10: every combination answers 200 (PN-12, tracked as LOCAL-4), so the spec runs this table
+# as a known gap until LOCAL-4 ships.
+title: Logging in by credentials
+operation: GET /user/login
+conditions:
+  username: [owner, unknown, empty, omitted]
+  password: [owner, other, empty, omitted]
+actions: [status]
+rules:
+  - id: R1
+    when: { username: owner, password: owner }
+    then: { status: 200 }
+  - id: R2
+    when: { username: owner, password: other }
+    then: { status: 400 }
+  - id: R3
+    when: { username: owner, password: empty }
+    then: { status: 400 }
+  - id: R4
+    when: { username: owner, password: omitted }
+    then: { status: 400 }
+  - id: R5
+    when: { username: unknown }
+    then: { status: 400 }
+  - id: R6
+    when: { username: empty }
+    then: { status: 400 }
+  - id: R7
+    when: { username: omitted }
+    then: { status: 400 }

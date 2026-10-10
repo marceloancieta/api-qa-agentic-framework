@@ -54,4 +54,132 @@ export const decisionTables = {
       },
     ],
   },
+  'pet-find-by-tags': {
+    title: 'Finding pets by tags',
+    operation: 'GET /pet/findByTags',
+    conditions: {
+      tags_sent: ['sent', 'omitted'],
+      tags_value: ['known', 'unknown', 'empty'],
+    },
+    actions: ['status'],
+    rules: [
+      {
+        id: 'R1',
+        when: {
+          tags_sent: 'sent',
+          tags_value: 'known',
+        },
+        then: {
+          status: 200,
+        },
+      },
+      {
+        id: 'R2',
+        when: {
+          tags_sent: 'sent',
+          tags_value: 'unknown',
+        },
+        then: {
+          status: 200,
+        },
+      },
+      {
+        id: 'R3',
+        when: {
+          tags_sent: 'sent',
+          tags_value: 'empty',
+        },
+        then: {
+          status: 400,
+        },
+      },
+      {
+        id: 'R4',
+        when: {
+          tags_sent: 'omitted',
+        },
+        then: {
+          status: 400,
+        },
+      },
+    ],
+  },
+  'user-login': {
+    title: 'Logging in by credentials',
+    operation: 'GET /user/login',
+    conditions: {
+      username: ['owner', 'unknown', 'empty', 'omitted'],
+      password: ['owner', 'other', 'empty', 'omitted'],
+    },
+    actions: ['status'],
+    rules: [
+      {
+        id: 'R1',
+        when: {
+          username: 'owner',
+          password: 'owner',
+        },
+        then: {
+          status: 200,
+        },
+      },
+      {
+        id: 'R2',
+        when: {
+          username: 'owner',
+          password: 'other',
+        },
+        then: {
+          status: 400,
+        },
+      },
+      {
+        id: 'R3',
+        when: {
+          username: 'owner',
+          password: 'empty',
+        },
+        then: {
+          status: 400,
+        },
+      },
+      {
+        id: 'R4',
+        when: {
+          username: 'owner',
+          password: 'omitted',
+        },
+        then: {
+          status: 400,
+        },
+      },
+      {
+        id: 'R5',
+        when: {
+          username: 'unknown',
+        },
+        then: {
+          status: 400,
+        },
+      },
+      {
+        id: 'R6',
+        when: {
+          username: 'empty',
+        },
+        then: {
+          status: 400,
+        },
+      },
+      {
+        id: 'R7',
+        when: {
+          username: 'omitted',
+        },
+        then: {
+          status: 400,
+        },
+      },
+    ],
+  },
 } as const satisfies Record<string, DecisionTable>;

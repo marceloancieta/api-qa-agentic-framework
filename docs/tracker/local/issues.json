@@ -37,7 +37,8 @@
       "status": "open",
       "category": "open",
       "comments": [
-        "Supporting detail: `services/petstore/docs/features/user.md` (Measurements, contract note PN-13). The value was masked in every record kept.\n"
+        "Supporting detail: `services/petstore/docs/features/user.md` (Measurements, contract note PN-13). The value was masked in every record kept.\n",
+        "Re-scoped to [OpGroup] /user: the same serialization returns the stored `password` in write answers too, measured on 2026-10-10 with users the run created.\n\n| Operation | Answer |\n|---|---|\n| `GET /user/{username}` | `User` with `password` |\n| `POST /user` | the created `User` echoed, `password` included (W-01) |\n| `PUT /user/{username}` | the updated `User` echoed, `password` included (W-19) |\n\nCases citing this key: TC-USER-21, TC-USER-39, TC-USER-56.\n"
       ]
     },
     "LOCAL-4": {

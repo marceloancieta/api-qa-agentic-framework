@@ -22,7 +22,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `state-models.ts` | Field buckets (identity, business, provenance, volatile) for comparing pets and orders. | present |
 | `guards.ts` | Resource guards for shared seed data (`seedPet(pets, id)`). | present |
 | `rules/` | Decision tables as YAML, generated into `generated/decision-tables.ts` (`npm run contract:decision-tables`). | present |
-| `registry/` | Designed test cases and their status. | E5/E6 |
+| `registry/` | Designed test cases and their status, one or more files per feature code (see Feature contracts below). | present |
 | `docs/` | `contract-notes.md`: observed departures from the contract and their status. `features/`: the feature contracts written at intake, one per registry code. | present |
 
 ## Writing a spec
@@ -82,8 +82,8 @@ Where this API departs from its contract is recorded in [`docs/contract-notes.md
 
 ## Feature contracts
 
-| Code | Feature | Contract |
-|---|---|---|
-| `PET` | Pets | [`docs/features/pet.md`](docs/features/pet.md) |
-| `STOR` | Store orders and inventory | [`docs/features/store.md`](docs/features/store.md) |
-| `USER` | Users and sessions | [`docs/features/user.md`](docs/features/user.md) |
+| Code | Feature | Contract | Registry |
+|---|---|---|---|
+| `PET` | Pets | [`docs/features/pet.md`](docs/features/pet.md) | [`registry/pet.md`](registry/pet.md), [`pet-update.md`](registry/pet-update.md), [`pet-search.md`](registry/pet-search.md) |
+| `STOR` | Store orders and inventory | [`docs/features/store.md`](docs/features/store.md) | [`registry/store.md`](registry/store.md) |
+| `USER` | Users and sessions | [`docs/features/user.md`](docs/features/user.md) | [`registry/user.md`](registry/user.md), [`user-record.md`](registry/user-record.md), [`user-session.md`](registry/user-session.md) |
