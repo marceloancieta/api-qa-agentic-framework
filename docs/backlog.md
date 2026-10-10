@@ -42,7 +42,7 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| PET-01 | Petstore phases 0-1 through the pipeline: contract docs, registries PET / STOR / USER, review gate. | roadmap | todo |
+| PET-01 | Petstore phases 0-1 through the pipeline: contract docs, registries PET / STOR / USER, review gate. | roadmap | in-progress |
 | AGT-01 | `spec-author` and `api-spec-reviewer` agents; the reviewer checks title claim against assertion, vacuous assertions and layering. | roadmap, L-20, L-21 | todo |
 | AGT-02 | Optional `contract-investigator` agent. | roadmap | todo |
 | PET-02 | Petstore phases 2-4: specs authored and reviewed, published and run with the `local` adapter; authorization matrix with two actors. | roadmap, CORE-04 | todo |

@@ -23,7 +23,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `guards.ts` | Resource guards for shared seed data (`seedPet(pets, id)`). | present |
 | `rules/` | Decision tables as YAML, generated into `generated/decision-tables.ts` (`npm run contract:decision-tables`). | present |
 | `registry/` | Designed test cases and their status. | E5/E6 |
-| `docs/` | `contract-notes.md`: observed departures from the contract and their status. API map in E6. | present |
+| `docs/` | `contract-notes.md`: observed departures from the contract and their status. `features/`: the feature contracts written at intake, one per registry code. | present |
 
 ## Writing a spec
 
@@ -79,3 +79,11 @@ See `specs/purchase.spec.ts` for all three together.
   `tracker.key_pattern` and `tracker.issue_url` in qa-config.
 
 Where this API departs from its contract is recorded in [`docs/contract-notes.md`](docs/contract-notes.md).
+
+## Feature contracts
+
+| Code | Feature | Contract |
+|---|---|---|
+| `PET` | Pets | [`docs/features/pet.md`](docs/features/pet.md) |
+| `STOR` | Store orders and inventory | [`docs/features/store.md`](docs/features/store.md) |
+| `USER` | Users and sessions | [`docs/features/user.md`](docs/features/user.md) |
