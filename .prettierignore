@@ -8,3 +8,5 @@ tools/
 *.md
 .claude/worktrees/
 reports/
+# Written by the local tracker adapter on every write
+docs/tracker/

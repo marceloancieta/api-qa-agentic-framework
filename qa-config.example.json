@@ -28,10 +28,11 @@
     "provider": "allure-report"
   },
   "tracker": {
-    "provider": "none",
-    "key_pattern": null,
+    "provider": "local",
+    "options": { "dir": "docs/tracker/local" },
+    "key_pattern": "LOCAL-\\d+",
     "base_url": null,
-    "issue_url": null
+    "issue_url": "docs/tracker/local/issues.json#{key}"
   },
   "policies": {
     "commit": {

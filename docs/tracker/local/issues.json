@@ -1,0 +1,57 @@
+{
+  "next": 5,
+  "issues": {
+    "LOCAL-1": {
+      "title": "Petstore v3 /user [OpGroup]: after a user is created without a username, every lookup of an unknown username answers 500",
+      "body": "## Error\n\nOnce a user without a username exists, every read of a username that does not exist answers `500`\ninstead of `404`, for every caller, and no API call can remove that record.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `POST /user` with `{}` | no nameless user | `200`, stored with id `0` | `200`, `default` |\n| `GET /user/<UNKNOWN_USERNAME>` | after the request above | `500` | `200`, `400`, `404` |\n| `GET /user/<UNKNOWN_USERNAME>` | after a service restart | `404` | `200`, `400`, `404` |\n\nOperations covered:\n\n- `POST /user`\n- `GET /user/{username}`\n\n## Expected\n\n`POST /user` without a `username` is refused with `400` and stores nothing; a read of an unknown\nusername answers `404` whatever else is stored. The `500` is ruled out because the request is valid\nand the declared answer for a missing user is `404`.\n\n## Suggested fix\n\nValidate `username` as required on create, and make the lookup skip records whose username is\nnull.\n\n## Reproduce\n\n1. `POST /user` with body `{}`.\n2. `GET /user/<UNKNOWN_USERNAME>`: `500`.\n3. Only restarting the service brings back `404`.\n\n## Environment\n\nLocal environment, Petstore v3 image `swaggerapi/petstore3:1.0.28`, 2026-10-10. Measured by an\nexecution-mode run on data it created (contract note PN-19). Class `broken`: a read the contract\ncalls valid fails. Severity `S2`: data left unrepairable through the API, affecting every caller.\nCause measured, not read in code.\n",
+      "labels": [
+        "class:broken",
+        "severity:S2"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Supporting detail: the full measurements are in `services/petstore/docs/features/user.md` (Write measurements, contract note PN-19). The record was created by the run itself; recovery needed a service restart.\n"
+      ]
+    },
+    "LOCAL-2": {
+      "title": "Petstore v3 /store [OpGroup]: the inventory answers 500 while any order has no status",
+      "body": "## Error\n\nWhile any order without a `status` exists, `GET /store/inventory` answers `500` to every caller.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `POST /store/order` with `{\"id\": <ORDER_ID>}` | no such order | `200`, stored without `status` | `200`, `400`, `422`, `default` |\n| `GET /store/inventory` | after the request above | `500` | `200`, `default` |\n| `DELETE /store/order/<ORDER_ID>`, then `GET /store/inventory` | | `200` | `200`, `default` |\n\nA body of `{}` creates such an order with id `0`.\n\nOperations covered:\n\n- `POST /store/order`\n- `GET /store/inventory`\n\n## Expected\n\nEither the order is refused because `status` is missing (`400`), or the inventory ignores orders\nwithout a status. A read of the inventory never fails because of one stored order.\n\n## Suggested fix\n\nGive `status` a default or refuse orders without one, and skip null statuses when the inventory\ngroups orders.\n\n## Reproduce\n\n1. `POST /store/order` with `{\"id\": <ORDER_ID>}`.\n2. `GET /store/inventory`: `500`.\n3. `DELETE /store/order/<ORDER_ID>` restores it.\n\n## Environment\n\nLocal environment, Petstore v3 image `swaggerapi/petstore3:1.0.28`, 2026-10-10. Measured by an\nexecution-mode run on data it created (contract note PN-17); a sibling with the same shape exists on\n`GET /pet/findByTags` (PN-18), with its own code path. Class `broken`: a documented read cannot\nsucceed. Severity `S2`: one write any caller can send takes a documented operation down for\neveryone. Cause measured, not read in code.\n",
+      "labels": [
+        "class:broken",
+        "severity:S2"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Supporting detail: `services/petstore/docs/features/store.md` (Write measurements, contract note PN-17). The sibling on `GET /pet/findByTags` is PN-18 in `services/petstore/docs/features/pet.md`.\n"
+      ]
+    },
+    "LOCAL-3": {
+      "title": "Petstore v3 GET /user/{username} [Endpoint]: any caller reads the stored password",
+      "body": "## Error\n\nReading a user returns its stored `password` to any caller, with no credential.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `GET /user/<SEED_USERNAME>` without credentials | seed user | `200`, body with eight fields, `password` included | `200`, `400`, `404` |\n\nRedacted body keys: `id`, `username`, `firstName`, `lastName`, `email`, `password` (value masked),\n`phone`, `userStatus`.\n\n## Expected\n\nA read never returns a stored credential: `password` is write-only. The schema lists the field,\nso this conforms to the document, which is why the document should mark it write-only too.\n\n## Suggested fix\n\nLeave `password` out of every user response and mark it `writeOnly` in the schema.\n\n## Reproduce\n\n1. `GET /user/<SEED_USERNAME>` with no `api_key` header.\n\n## Environment\n\nLocal environment, Petstore v3 image `swaggerapi/petstore3:1.0.28`, 2026-10-10. Reproduced read-only\n(contract note PN-13). Class `exposure`. Severity `S1`: every user's stored credential is readable\nby an anonymous caller. Cause measured, not read in code.\n",
+      "labels": [
+        "class:exposure",
+        "severity:S1"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Supporting detail: `services/petstore/docs/features/user.md` (Measurements, contract note PN-13). The value was masked in every record kept.\n"
+      ]
+    },
+    "LOCAL-4": {
+      "title": "Petstore v3 GET /user/login [Endpoint]: login opens a session for any username and password, or none",
+      "body": "## Error\n\n`GET /user/login` opens a session for any input: no parameters, an unknown user, or a wrong\npassword. The declared `400` is never produced.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `GET /user/login` | none | `200`, `Logged in user session: <SESSION>` | `200`, `400` |\n| `GET /user/login?username=<UNKNOWN_USERNAME>&password=<PASSWORD>` | user does not exist | `200`, a new session | `200`, `400` |\n| `GET /user/login` with a user's right, wrong or no password | user created by the run | identical `200` answers | `200`, `400` |\n\n## Expected\n\n`400` \"Invalid username/password supplied\" for a missing parameter, an unknown user or a wrong\npassword; a session only for matching credentials.\n\n## Suggested fix\n\nCheck the username and password against the stored user before issuing a session.\n\n## Reproduce\n\n1. `GET /user/login` with no parameters.\n\n## Environment\n\nLocal environment, Petstore v3 image `swaggerapi/petstore3:1.0.28`, 2026-10-10. Reproduced read-only\nand by the execution-mode run (contract note PN-12). Class `access`. Severity `S3`: no operation of\nthis service checks the session (contract note PN-05), so the bypass grants nothing today; on a\nservice that honoured sessions it would be `S1`. Cause measured, not read in code.\n",
+      "labels": [
+        "class:access",
+        "severity:S3"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Supporting detail: `services/petstore/docs/features/user.md` (Measurements and Write measurements, contract note PN-12). The X-Expires-After header is also Java date text, not date-time.\n"
+      ]
+    }
+  }
+}

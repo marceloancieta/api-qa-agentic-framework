@@ -28,7 +28,8 @@ Complete: CON-01 to CON-09 are in **Done**.
 
 ## E3 - Linters and gates
 
-Complete: GATE-01 to GATE-11 are in **Done** (GATE-07 closed in E4, once the tracker existed).
+The stage is complete; its items are in **Done** (GATE-07 closed in E4, once the tracker existed).
+GATE-12 came out of the E6 intake and is listed under E6 / E7 / E8.
 
 ## E4 - Test management
 
@@ -45,6 +46,7 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 | PET-01 | Petstore phases 0-1 through the pipeline: contract docs, registries PET / STOR / USER, review gate. | roadmap | in-progress |
 | AGT-01 | `spec-author` and `api-spec-reviewer` agents; the reviewer checks title claim against assertion, vacuous assertions and layering. | roadmap, L-20, L-21 | todo |
 | AGT-02 | Optional `contract-investigator` agent. | roadmap | todo |
+| GATE-12 | `@destructive` lane: shared and gate lanes run with `--grep-invert @destructive`; a dedicated lane runs those cases alone, last, then the environment's recovery command from qa-config (for Petstore, a container restart), and verifies the service answers again. Lint: a destructive case names its recovery in the registry. | L-59 | todo |
 | PET-02 | Petstore phases 2-4: specs authored and reviewed, published and run with the `local` adapter; authorization matrix with two actors. | roadmap, CORE-04 | todo |
 | CI-01 | GitHub Actions: gates → Petstore e2e with service container → daily drift (live digest, known-gap lane, published-case lane), re-running affected cases when the digest moves. | roadmap, L-28, L-31 | todo |
 | CI-02 | Supply chain: Dependabot, CodeQL, gitleaks in Actions. | plan | todo |

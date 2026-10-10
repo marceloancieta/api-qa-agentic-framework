@@ -101,6 +101,11 @@ configured in `tracker.options`.
 | `jira` | `base_url`, `options.project`, `options.issue_type` | `JIRA_USER` and `JIRA_TOKEN`, or `options.user_env` / `options.token_env` |
 | `local` | `options.dir`; keys `LOCAL-n` | none |
 
+The example configuration uses `local` with `options.dir` set to `docs/tracker/local`, a tracked
+directory, so the issues the Petstore example cites travel with the repository: a fresh clone
+resolves every key its registries and contract notes name, and `cited:status` works without
+setup. A project with a real tracker sets its own provider in `qa-config.json`.
+
 `npm run tracker -- get <key>`, `create --title <t> --body-file <f>`, `comment <key> --body-file <f>`
 and `move <key> <status>` go through a verified wrapper:
 
