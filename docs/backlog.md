@@ -47,12 +47,11 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 | TM-07 | `npm run tracker -- search <text>` in the tracker interface and every adapter (local, GitHub, Jira), with contract tests: intake, bug reporting and the `contract-investigator` agent must search for existing issues, and today the CLI only offers `get`, `create`, `comment` and `move`. | exp | todo |
 | GATE-13 | `secret-guard` reads a JavaScript member access such as `x.key` as a key file name and refuses the command; match only path-like words for the key-file patterns, with fixtures for both shapes. | exp | todo |
 | GATE-12 | `@destructive` lane: shared and gate lanes run with `--grep-invert @destructive`; a dedicated lane runs those cases alone, last, then the environment's recovery command from qa-config (for Petstore, a container restart), and verifies the service answers again. Lint: a destructive case names its recovery in the registry. | L-59 | todo |
-| PET-02 | Petstore phases 2-4: specs authored and reviewed, published and run with the `local` adapter; authorization matrix with two actors. | roadmap, CORE-04 | todo |
+| PET-02 | Petstore phases 2-4 on a representative sample of the approved cases: every technique, layer and category tag, error-envelope kind and decision table at least once, plus the authorization matrix with two actors; specs authored and reviewed, published and run with the `local` adapter. The other approved cases stay `approved` as design examples. | roadmap, CORE-04 | todo |
 | CI-01 | GitHub Actions: gates → Petstore e2e with service container → daily drift (live digest, known-gap lane, published-case lane), re-running affected cases when the digest moves. | roadmap, L-28, L-31 | todo |
 | CI-02 | Supply chain: Dependabot, CodeQL, gitleaks in Actions. | plan | todo |
 | CI-04 | Every wrapper propagates the test runner exit code; CI fails on any gate or spec failure. | L-49 | todo |
 | CI-05 | AI pull-request review workflow with a project rubric that lists what the gates already cover, so the review spends itself on what no gate checks. | exp | todo |
-| CI-03 | Jenkinsfile and Jenkinsfile.drift as placeholder examples. | roadmap | todo |
 | CI-06 | Run the GitHub Actions workflows locally with `act` (Docker) before the first push, so CI-01, CI-02 and CI-05 are exercised while the repository is still local; document the command and the jobs `act` cannot reproduce (e.g. CodeQL, hosted secrets). | plan | todo |
 
 ## E9 - Docs and release
@@ -75,6 +74,7 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 | FUT-04 | More auth strategies (`basic`, `oauth2-client-credentials`). | practice | todo |
 | FUT-06 | Differential testing against a reference implementation, e.g. two versions of an API serving the same requests, using the field-bucket model. | exp | todo |
 | FUT-05 | Template repository / `npx create-api-qa` scaffolder. | plan | todo |
+| CI-03 | Jenkinsfile and Jenkinsfile.drift as placeholder examples. | roadmap | todo |
 | FUT-08 | Mutation testing of the framework's own libraries with Stryker (`npm run mutation`, command runner over node:test), taken out of v0.1.0 because it is slow and outside the gates; the quality gate already reads its JSON report. | plan | todo |
 | FUT-07 | Second service pack: VAmPI (single container, OpenAPI 3, JWT, users owning books) run in both its secure and vulnerable modes, so the same actor-based authorization matrix (OWASP API1 BOLA) passes on one and detects the flaw on the other. Needs a `login` auth strategy (credentials from variables, token minted and refreshed) and the container bound to localhost only. Verify image, tag and spec path before adopting. | plan | todo |
 
