@@ -46,5 +46,5 @@ Thumbs.db
 # Git worktrees created for parallel agent work
 .claude/worktrees/
 
-# Mutation testing (Stryker) and quality gate output
+# Quality gate and mutation report output
 /reports/

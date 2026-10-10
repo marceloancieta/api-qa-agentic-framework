@@ -75,6 +75,7 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 | FUT-04 | More auth strategies (`basic`, `oauth2-client-credentials`). | practice | todo |
 | FUT-06 | Differential testing against a reference implementation, e.g. two versions of an API serving the same requests, using the field-bucket model. | exp | todo |
 | FUT-05 | Template repository / `npx create-api-qa` scaffolder. | plan | todo |
+| FUT-08 | Mutation testing of the framework's own libraries with Stryker (`npm run mutation`, command runner over node:test), taken out of v0.1.0 because it is slow and outside the gates; the quality gate already reads its JSON report. | plan | todo |
 | FUT-07 | Second service pack: VAmPI (single container, OpenAPI 3, JWT, users owning books) run in both its secure and vulnerable modes, so the same actor-based authorization matrix (OWASP API1 BOLA) passes on one and detects the flaw on the other. Needs a `login` auth strategy (credentials from variables, token minted and refreshed) and the container bound to localhost only. Verify image, tag and spec path before adopting. | plan | todo |
 
 ---
@@ -120,7 +121,7 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 | GATE-06 | `known-gap-lane` (one process per armed case; a passing gap is investigated) and `published-lane` (published cases, optionally only those touching changed operations). Lanes run from worktrees and share helpers in `scripts/lib/playwright-lane.mjs`. | `80c478f`, `53b1926`, `57c7a42` |
 | GATE-08 | `quality-gate`: optional `qa-config.quality_gate` checks (pass rate, p95, DAST, mutation score), one strategy each, PASS / REVIEW / FAIL with SKIPPED for missing sources, validated input, JSON artifact and Markdown summary. | `55f7187` |
 | GATE-09 | `flake-lane`: `--repeat-each` detection with zero retries, `@quarantine` convention and release candidates; every lane refuses a non-zero `QA_RETRIES`. | `53b1926` |
-| GATE-10 | Stryker (`stryker.config.mjs`, command runner over node:test) on `scripts/lib` and `.claude/hooks/lib`, on demand via `npm run mutation`; feeds the quality gate. | `55f7187` |
+| GATE-10 | Stryker on `scripts/lib` and `.claude/hooks/lib`, on demand, feeding the quality gate; later taken out of v0.1.0 and moved to FUT-08. | `55f7187` |
 | GATE-11 | `npm run gates`: lint, format, types, config, hook and script tests, contract check, `lint:qa` (three linters and their self-tests), coverage status, unit tests, denylist self-test. `docs/quality-gates.md`. | `2d7df05` |
 | TM-01 | `scripts/tm/manifest.mjs`: cases from registries joined with specs, latest results of the packs keyed by identity, unattributed results excluded with reasons, unit-test results counted apart; shared `scripts/lib/results.mjs`. | `def84ad` |
 | TM-02 | Adapter interface and contract tests (`scripts/tm/contract.mjs`, with a negative control); `local` adapter as reference and template; `tm:publish` / `tm:report`. | `dc5883d` |

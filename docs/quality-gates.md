@@ -65,12 +65,10 @@ optional, and each one is a separate strategy:
 - `pass_rate`, from the Playwright JSON report or Allure results;
 - `p95_latency`, from the duration of API cases;
 - `dast`, from a ZAP JSON report;
-- `mutation_score`, from Stryker's report.
+- `mutation_score`, from a Stryker JSON report, for packs or libraries that run Stryker.
 
 Each check is PASS, REVIEW or FAIL. A missing source is SKIPPED with its reason, or FAIL when the
 check is `required`; malformed input is a FAIL with the reason. The worst check decides the verdict.
 REVIEW writes the artifact (`reports/quality-gate.json`) and a Markdown summary without failing the
 build; `--fail-on-review` makes it fail.
 
-`npm run mutation` runs Stryker over `scripts/lib` and `.claude/hooks/lib` with the node:test
-suites. It is slow, so it runs on demand and not in `gates`.

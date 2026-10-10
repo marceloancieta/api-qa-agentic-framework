@@ -26,7 +26,7 @@ const escapedRoot = __dirname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\
 const worktreesOfThisCheckout = new RegExp(
   `^${escapedRoot}[\\\\/]\\.claude[\\\\/]worktrees[\\\\/]`,
 );
-// Generated output, including the sandbox copy a mutation run leaves behind if it is interrupted.
+// Generated output (quality gate and mutation reports).
 const reportsOfThisCheckout = new RegExp(`^${escapedRoot}[\\\\/]reports[\\\\/]`);
 
 // Retries hide flakiness, so they are off unless a lane opts in. Gate lanes never set QA_RETRIES.

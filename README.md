@@ -46,8 +46,8 @@ versus observed response codes. See [`docs/contract-tooling.md`](docs/contract-t
 ## Quality gates
 
 `npm run gates` runs the linters (harness, test data, docs) with their self-tests, the contract and
-coverage checks and the unit tests. Lanes for known gaps, published cases and flakiness, the quality
-gate and mutation testing run on demand. See [`docs/quality-gates.md`](docs/quality-gates.md).
+coverage checks and the unit tests. Lanes for known gaps, published cases and flakiness, and the quality
+gate run on demand. See [`docs/quality-gates.md`](docs/quality-gates.md).
 
 ## Test management and trackers
 
