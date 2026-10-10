@@ -114,10 +114,21 @@ test('cli --write generates docs/traceability/<pack>.md with its header', () => 
   }
 });
 
-test('cli prints Markdown or JSON, and the repository without registries passes cleanly', () => {
+test('cli prints Markdown or JSON', () => {
   assert.equal(run('--root', ROOT).stdout, expected());
   assert.equal(JSON.parse(run('--root', ROOT, '--json').stdout)['packs'][0]['pack'], 'shop');
+});
+
+test('a tree without registries passes cleanly, and so does the repository', () => {
+  const empty = mkdtempSync(join(tmpdir(), 'traceability-'));
+  try {
+    const bare = run('--root', empty);
+    assert.equal(bare.status, 0, bare.stderr);
+    assert.match(bare.stdout, /No registries under services\/\*\/registry\/ yet/);
+  } finally {
+    rmSync(empty, { recursive: true, force: true });
+  }
   const repo = run('--root', REPO_ROOT);
   assert.equal(repo.status, 0, repo.stderr);
-  assert.match(repo.stdout, /No registries under services\/\*\/registry\/ yet/);
+  assert.doesNotMatch(repo.stdout, /No registries/);
 });

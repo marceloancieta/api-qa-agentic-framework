@@ -75,7 +75,7 @@ test('published rows map to the tests carrying their ids, narrowed by changed op
   assert.equal(selectPublished(registries, corpusByPack, miss).length, 0);
 });
 
-test('a repository without registries selects nothing', () => {
+test('a repository with no published case selects nothing', () => {
   const { registries, corpusByPack } = loadInputs(REPO_ROOT);
   assert.deepEqual(selectPublished(registries, corpusByPack), []);
 });

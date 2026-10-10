@@ -3,6 +3,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { coverageStatus, inspectTest, RULES } from '../coverage-status.mjs';
 import { parseSpecSource } from '../lib/corpus.mjs';
@@ -149,9 +151,21 @@ test('cli: exit 1 on findings, 0 with --report-only, JSON on demand', () => {
   assert.equal(run('--root', ROOT, '--spec', 'x.json').status, 2);
 });
 
-test('the repository without registries reports that cleanly and passes', () => {
+test('a tree without registries reports that cleanly and passes', () => {
+  const empty = mkdtempSync(join(tmpdir(), 'coverage-status-'));
+  try {
+    mkdirSync(join(empty, 'services'));
+    const result = run('--root', empty, '--results', join(ROOT, 'no-such-results'));
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /No registries under services\/\*\/registry\/ yet/);
+    assert.match(result.stdout, /No findings\./);
+  } finally {
+    rmSync(empty, { recursive: true, force: true });
+  }
+});
+
+test('the repository registries have no findings', () => {
   const result = run('--root', REPO_ROOT, '--results', join(ROOT, 'no-such-results'));
   assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.match(result.stdout, /No registries under services\/\*\/registry\/ yet/);
   assert.match(result.stdout, /No findings\./);
 });
