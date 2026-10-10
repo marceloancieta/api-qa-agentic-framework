@@ -16,9 +16,14 @@ export class PetClient extends BaseClient {
     return this.get(this.route('pet/{petId}', { petId: id }));
   }
 
-  /** Any string is accepted so negative cases can send values outside the enum. */
-  findByStatus(status: PetStatus | (string & {})): Promise<APIResponse> {
-    return this.get('pet/findByStatus', { params: { status } });
+  /**
+   * Any string is accepted so negative cases can send values outside the enum; `undefined` leaves
+   * the parameter out.
+   */
+  findByStatus(status: PetStatus | (string & {}) | undefined): Promise<APIResponse> {
+    return status === undefined
+      ? this.get('pet/findByStatus')
+      : this.get('pet/findByStatus', { params: { status } });
   }
 
   remove(id: number | string): Promise<APIResponse> {

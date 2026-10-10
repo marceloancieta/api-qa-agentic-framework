@@ -1,0 +1,22 @@
+# GET /pet/findByStatus: `status` is required and limited to a value set (generated/enums.ts).
+# Measured on the local image on 2026-10-10: a value in the set answers 200; a value outside it, an
+# empty value or no parameter at all answer 400. The spec maps each class to a concrete value.
+title: Finding pets by status
+operation: GET /pet/findByStatus
+conditions:
+  status_sent: [sent, omitted]
+  status_value: [in-set, outside-set, empty]
+actions: [status]
+rules:
+  - id: R1
+    when: { status_sent: sent, status_value: in-set }
+    then: { status: 200 }
+  - id: R2
+    when: { status_sent: sent, status_value: outside-set }
+    then: { status: 400 }
+  - id: R3
+    when: { status_sent: sent, status_value: empty }
+    then: { status: 400 }
+  - id: R4
+    when: { status_sent: omitted }
+    then: { status: 400 }

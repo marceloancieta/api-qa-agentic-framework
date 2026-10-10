@@ -18,6 +18,7 @@ ADR 0007; `services/petstore/` is the worked example.
 | Request data | `builders/` and the Object Mother, with the `faker`, `rng` and `clock` fixtures | never uses `Math.random` or `Date.now()` (L-27) |
 | Literal values of the contract | `generated/enums.ts` (`npm run contract:value-sets`) | never types a value set from memory (L-36) |
 | Error formats | `error-envelopes.json` | asserts with `expectErrorEnvelope` |
+| Combinations of conditions | `rules/<id>.yaml`, generated into `generated/decision-tables.ts` | iterates the table in one test, one step per rule |
 | State comparison | `state-models.ts` | uses `expectSameState` and `expectOnlyChanged` (L-53) |
 | Shared records | `guards.ts` with `withResourceGuard` | wraps every write to data it did not create (L-39) |
 

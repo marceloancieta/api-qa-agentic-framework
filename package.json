@@ -35,6 +35,7 @@
     "contract:value-sets:check": "node scripts/derive-value-sets.mjs --check",
     "contract:floor": "node scripts/derive-floor.mjs",
     "contract:codes": "node scripts/declared-codes.mjs",
+    "contract:decision-tables": "node scripts/derive-decision-tables.mjs --write",
     "contract:check": "node scripts/contract-check.mjs",
     "scaffold:service": "node scripts/scaffold-service.mjs",
     "lint:harness": "node scripts/lint-harness.mjs",

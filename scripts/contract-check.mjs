@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * The contract check of `npm run gates`, for every service pack: the tracked digest, the generated
- * value sets and the probe matrix must match each pack's contract. The tools default to the only
- * pack when there is one; with several, each check runs once per pack, so adding a pack cannot turn
- * the gate into an error about a missing --service flag.
+ * value sets, the probe matrix and the decision tables must match each pack's sources. The tools
+ * default to the only pack when there is one; with several, each check runs once per pack, so
+ * adding a pack cannot turn the gate into an error about a missing --service flag.
  *
  *   node scripts/contract-check.mjs [--service <pack>]
  */
@@ -13,7 +13,12 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { REPO_ROOT, servicePacks } from './lib/cli.mjs';
 
-const CHECKS = ['swagger-digest.mjs', 'derive-probe-matrix.mjs', 'derive-value-sets.mjs'];
+const CHECKS = [
+  'swagger-digest.mjs',
+  'derive-probe-matrix.mjs',
+  'derive-value-sets.mjs',
+  'derive-decision-tables.mjs',
+];
 
 const { values } = parseArgs({ options: { service: { type: 'string' } } });
 const packs = values.service ? [values.service] : servicePacks(REPO_ROOT);

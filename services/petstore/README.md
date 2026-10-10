@@ -21,7 +21,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `builders/` | Test Data Builders (`aPet`, `anOrder`) and the Object Mother (`PetMother`). | present |
 | `state-models.ts` | Field buckets (identity, business, provenance, volatile) for comparing pets and orders. | present |
 | `guards.ts` | Resource guards for shared seed data (`seedPet(pets, id)`). | present |
-| `rules/` | Business rules and decision tables as YAML. | E5 |
+| `rules/` | Decision tables as YAML, generated into `generated/decision-tables.ts` (`npm run contract:decision-tables`). | present |
 | `registry/` | Designed test cases and their status. | E5/E6 |
 | `docs/` | `contract-notes.md`: observed departures from the contract and their status. API map in E6. | present |
 

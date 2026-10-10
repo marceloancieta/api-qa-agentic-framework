@@ -23,6 +23,7 @@ Every tool takes the same source flags:
 | `npm run contract:value-sets` | Which closed value sets (enums, literal patterns) does the contract define? | `generated/value-sets.json` and `generated/enums.ts` |
 | `npm run contract:floor` | How many cases does each operation need at least? Every term of the formula is printed. | table; `--json` |
 | `npm run contract:codes` | Which declared response codes were never reached, and which answers were not declared? Reads the latest run's evidence in `allure-results/`. `--strict` fails on undeclared answers. | table; `--json` |
+| `npm run contract:decision-tables` | Are the pack's decision tables complete and consistent? Writes the module specs read them from. | `generated/decision-tables.ts` |
 | `npm run contract:check` | Are the tracked digest, probe matrix and value sets of every pack current? Runs in `npm run gates`. | exit code |
 
 ## Probes
@@ -38,6 +39,19 @@ Probes come in three classes:
 Each probe has a stable id (`p-` and ten hex digits). A spec covers a probe by containing
 `probe:<id>`, usually at the end of the test title. After adding or removing such references, run
 `npm run contract:probes:write` so the tracked matrix records the new coverage.
+
+## Decision tables
+
+A result that depends on a combination of conditions is written as a table in
+`services/<pack>/rules/<id>.yaml`: the conditions and their classes of values, the actions every
+rule states, and the rules. A condition a rule leaves out matches any class. The generator refuses a
+table where some combination has no rule, or where two rules give different outcomes for the same
+combination. It then writes `generated/decision-tables.ts`, because specs must not read files
+while they are being collected (L-24).
+
+A spec iterates one table in one test, so the case keeps a single identity. Each rule becomes a
+step with soft assertions, and the spec maps each class to concrete inputs, taking values from
+`generated/enums.ts`. `services/petstore/specs/decision-tables.spec.ts` is the worked example.
 
 ## Floor
 
