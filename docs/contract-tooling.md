@@ -23,7 +23,7 @@ Every tool takes the same source flags:
 | `npm run contract:value-sets` | Which closed value sets (enums, literal patterns) does the contract define? | `generated/value-sets.json` and `generated/enums.ts` |
 | `npm run contract:floor` | How many cases does each operation need at least? Every term of the formula is printed. | table; `--json` |
 | `npm run contract:codes` | Which declared response codes were never reached, and which answers were not declared? Reads the latest run's evidence in `allure-results/`. `--strict` fails on undeclared answers. | table; `--json` |
-| `npm run contract:check` | Are the tracked digest, probe matrix and value sets current? Runs in `npm run gates`. | exit code |
+| `npm run contract:check` | Are the tracked digest, probe matrix and value sets of every pack current? Runs in `npm run gates`. | exit code |
 
 ## Probes
 

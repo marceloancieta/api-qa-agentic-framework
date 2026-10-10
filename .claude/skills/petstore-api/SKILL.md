@@ -1,0 +1,63 @@
+---
+name: petstore-api
+description: >-
+  What an agent must know about the Swagger Petstore (OpenAPI 3.0) API, the example service pack in
+  services/petstore/: where its contract lives, how it authenticates, its resources and clients, its
+  error formats and where it departs from its contract. Use when designing, automating or running
+  tests for Petstore, or when a phase skill needs facts about it that the OpenAPI document does not
+  state.
+---
+
+# Swagger Petstore (petstore v3)
+
+Created with `npm run scaffold:service -- --skill-only` and completed by hand from the pack. Facts
+the pack already owns are linked, not copied (`.claude/rules/documentation.md`).
+
+## Contract
+
+- Tracked copy: `services/petstore/openapi.json` (OpenAPI 3.0, 19 operations). Its digest is
+  `docs/discovery/petstore-digest.json`; `npm run contract:digest:live -- --service petstore`
+  compares it with the running service.
+- Departures from the contract, with their status: `services/petstore/docs/contract-notes.md`.
+  Read it before designing; several entries change what a case may expect.
+
+## Environments and writes
+
+qa-config `api.environments` holds `local` (the Docker image started with `npm run petstore:up`, the
+system under test for every write) and the public demo, which is read-only for this suite. The
+seed pets 1 to 10 are shared data: a case that changes one runs inside `withResourceGuard` with
+`seedPet(pets, id)` (`services/petstore/guards.ts`).
+
+## Authentication and actors
+
+The contract declares `petstore_auth` (OAuth2) and `api_key` (header `api_key`). The service accepts
+any `api_key` value and does not require it for the operations the suite uses, so Petstore cannot
+demonstrate an authorization matrix. Authorization cases belong to an API that enforces access
+(backlog FUT-07).
+
+## Resources
+
+| Resource | Client | Fixture | Operations | Suggested code |
+|---|---|---|---|---|
+| `pet` | `PetClient` (`clients/pet-client.ts`) | `pets` | 8 | `PET` |
+| `store` | `StoreClient` (`clients/store-client.ts`) | `store` | 4 | `STORE` |
+| `user` | none yet | none yet | 7 | `USER` |
+
+Codes are confirmed at the first design gate and are permanent once a case is published
+(`.claude/rules/registry.md`).
+
+## Data
+
+- Identity fields pseudonymized in evidence: `service.json` `identity_fields` (the user fields).
+- Builders: `aPet`, `anOrder` and the `PetMother` in `services/petstore/builders/`.
+- Value sets (pet and order status): `services/petstore/generated/enums.ts`.
+
+## Errors
+
+`services/petstore/error-envelopes.json` catalogues the input-error, server-error and not-found
+formats. Input errors name the field only inside the message, so cases assert the error kind.
+
+## Verification
+
+A write is confirmed by reading the resource back and comparing it with the field models in
+`services/petstore/state-models.ts` (`expectSameState`, `expectOnlyChanged`).

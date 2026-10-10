@@ -66,6 +66,13 @@ between them. The references the phases apply:
   cases to issues.
 - [Defect rubric](docs/references/defect-rubric.md): defect classes and severity.
 
+## A new API
+
+`npm run scaffold:service -- --name <pack> --spec <file|url>` reads the contract and prints the
+plan: resources, clients, suggested feature codes and authentication. Add `--write` to create the
+pack in `services/<pack>/` with one client per tag, fixtures, a smoke spec, its generated contract
+files and an agent skill. Then add its environment to qa-config and start with the intake phase.
+
 ## Example service pack
 
 [`services/petstore/`](services/petstore/README.md) runs the framework against Swagger Petstore v3

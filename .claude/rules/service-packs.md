@@ -40,6 +40,8 @@ agent must know about this API that the contract does not say.
 
 ## A new pack
 
-`npm run scaffold:service` creates one from a contract: it reports what it found and writes nothing
-until it is run again with `--write`. Never copy another pack by hand. Facts specific to that API
+`npm run scaffold:service -- --name <pack> --spec <file|url>` creates one from a contract. It
+reports what it found and writes nothing until it is run again with `--write`: the pack, its
+generated contract files and its skill, from
+[the service skill template](../../docs/templates/service-skill.md). Never copy another pack by hand. Facts specific to that API
 would come along and be wrong.
