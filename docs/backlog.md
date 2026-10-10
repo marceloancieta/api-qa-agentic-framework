@@ -36,9 +36,7 @@ Complete: TM-01 to TM-06 are in **Done**.
 
 ## E5 - Agentic process
 
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| PROC-07 | `CLAUDE.md` + `AGENTS.md`; the "skill vs agent" rule. | roadmap | todo |
+Complete: PROC-01 to PROC-14 are in **Done**.
 
 ## E6 / E7 / E8 - Petstore, agents, CI
 
@@ -134,6 +132,7 @@ Complete: TM-01 to TM-06 are in **Done**.
 | PROC-04 | `qa-design` and `qa-report-bug` ask who else writes a field, arrange non-default values, assert own records and check state after an error on a write. | `9f7bb26` |
 | PROC-05 | Every phase skill says what to do when it stops halfway; `qa-publish` lists orphaned cases; `qa-intake` and `qa-run` stop on a feature or selection that does not exist or selects nothing. | `9f7bb26` |
 | PROC-06 | `npm run scaffold:service` (plan, then `--write`; `--skill-only` for an existing pack), `docs/templates/service-skill.md`, the Petstore skill; `contract:check` covers every pack. | `7196565` |
+| PROC-07 | `AGENTS.md` (tool-neutral guide) and `CLAUDE.md` (imports it; roles, rules, skills, the skill-or-agent rule, hooks); a test keeps the rule and skill lists complete. | `03bfc08` |
 | PROC-08 | Decision tables in `services/<pack>/rules/*.yaml`, checked for completeness and consistency and generated into `generated/decision-tables.ts`; Petstore example and data-driven spec. | `034e7c3` |
 | PROC-09 | `docs/references/bug-reporting.md`: scope levels by fix location, title format, consolidating and re-scoping, mapping cases to one issue. | `9f7bb26` |
 | PROC-10 | `docs/references/defect-rubric.md`: classes and severity as independent axes, classify by effect, worst criterion, tracker labels. | `9f7bb26` |
