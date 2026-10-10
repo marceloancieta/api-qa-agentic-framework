@@ -46,7 +46,7 @@ import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseCli, readService, REPO_ROOT, servicePacks } from './lib/cli.mjs';
 import { classifyCall, literalText, loadCorpus, parseSpecFile, ts } from './lib/corpus.mjs';
-import { loadRegistries, STATUSES } from './lib/registry.mjs';
+import { floorAxisCases, loadRegistries, STATUSES } from './lib/registry.mjs';
 import { loadModel } from './lib/openapi.mjs';
 import { operationFloor } from './derive-floor.mjs';
 import { groupRuns } from './lib/results.mjs';
@@ -271,6 +271,8 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
       }
       const automated = byStatus.automated + byStatus.published;
       const cases = registry.cases.length;
+      // The floor measures the contract axis only; cases listed in beyond_floor count apart (L-55).
+      const onFloorAxis = floorAxisCases(registry).length;
       packReport.registries.push({
         file: registry.file,
         feature: registry.meta.feature ?? null,
@@ -281,16 +283,18 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
         automatedPercent: percent(automated, cases),
         floor: floor.total,
         floorByEndpoint: floor.endpoints,
-        gap: Math.max(0, floor.total - cases),
+        floorAxisCases: onFloorAxis,
+        beyondFloor: cases - onFloorAxis,
+        gap: Math.max(0, floor.total - onFloorAxis),
       });
-      if (cases < floor.total) {
+      if (onFloorAxis < floor.total) {
         add(
           'below-floor',
           name,
           registry.file,
           1,
           null,
-          `${cases} case(s) designed, the floor of its ${floor.endpoints.length} endpoint(s) is ${floor.total} (gap ${floor.total - cases})`,
+          `${onFloorAxis} case(s) on the contract axis, the floor of its ${floor.endpoints.length} endpoint(s) is ${floor.total} (gap ${floor.total - onFloorAxis})${cases > onFloorAxis ? `; ${cases - onFloorAxis} more listed in beyond_floor do not count` : ''}`,
         );
       }
 
@@ -466,7 +470,7 @@ export function renderReport(status) {
         .join(', ');
       lines.push(
         `  ${registry.file} (${registry.feature ?? '?'}): ${registry.cases} cases [${counts}]`,
-        `    automated ${registry.automated}/${registry.cases} (${registry.automatedPercent}%), floor ${registry.floor}, gap ${registry.gap}`,
+        `    automated ${registry.automated}/${registry.cases} (${registry.automatedPercent}%), floor ${registry.floor}, gap ${registry.gap}${registry.beyondFloor ? `, ${registry.beyondFloor} beyond the floor` : ''}`,
       );
     }
   }

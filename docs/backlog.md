@@ -38,7 +38,7 @@ Complete: TM-01 to TM-06 are in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| PROC-01 | Rules rewritten generic: reporting protocol, generation, registry grain, service registry, tagging, doc-coherence (with fact-ownership and propagation tables), reachability. | roadmap, L-07, L-10 | todo |
+| PROC-01 | Rules rewritten generic: reporting protocol, generation, registry grain, service registry, tagging, documentation (with fact-ownership and propagation tables), reachability. | roadmap, L-07, L-10 | todo |
 | PROC-02 | Phase skills rewritten generic: intake, design, automate, publish, run, report-bug. Design names a technique per case (EP, BVA, decision table, pairwise). | roadmap, practice | todo |
 | PROC-03 | Intake completes the contract before design and records open questions. | L-38 | todo |
 | PROC-04 | Design and report-bug ask "who else writes this field?" before filing or closing; arrange non-default values for preserve-on-omit cases; assert own rows, not shared counters; verify state after an error on a write. | L-20, L-25, L-35, L-37 | todo |

@@ -61,7 +61,7 @@ the agent, and an unlinked reference is never read. *Guarded by:* `lint-docs` or
 
 **L-10 - Changing a policy includes changing everything that applies it.** Updating the instruction while
 the executing skill keeps the old behaviour produces two truths. Each policy lists its implementers so
-they change in the same commit. *Guarded by:* the propagation table in the doc-coherence rule (E5).
+they change in the same commit. *Guarded by:* the propagation table in `.claude/rules/documentation.md` (E5).
 
 **L-11 - Statements about other systems go stale.** "Waiting for ticket X" stays in the text long after
 X is resolved. Such statements sit next to their key in a form a scheduled check can re-read and flag

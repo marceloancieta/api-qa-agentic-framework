@@ -8,8 +8,8 @@ requirements:
   - { id: REQ-ITEM-01, text: An item can be created with only its name }
   - { id: REQ-ITEM-02, text: A stored item can be read back by id }
   - { id: REQ-ITEM-03, text: Item names longer than the limit are refused }
+beyond_floor: [TC-ITEM-13, TC-ITEM-14]
 ---
-
 Fixture registry: one row per lifecycle situation the coverage report must recognize.
 
 ## Cases

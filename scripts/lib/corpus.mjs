@@ -80,7 +80,8 @@ export function classifyCall(call) {
   return { kind: 'other', modifier: null };
 }
 
-function tagsOf(call, title) {
+/** The tags a test or describe call declares, in its title or in `{ tag }` details. */
+export function tagsOf(call, title) {
   const tags = new Set([...(title ?? '').matchAll(TITLE_TAG)].map((match) => match[1]));
   for (const argument of call.arguments) {
     if (!ts.isObjectLiteralExpression(argument)) continue;

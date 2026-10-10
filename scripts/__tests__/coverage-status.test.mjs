@@ -52,7 +52,7 @@ test('messages carry the evidence: both floor numbers, the other file, the key',
   );
   assert.equal(
     byRule['below-floor'],
-    '1 case(s) designed, the floor of its 1 endpoint(s) is 3 (gap 2)',
+    '1 case(s) on the contract axis, the floor of its 1 endpoint(s) is 3 (gap 2)',
   );
   assert.match(byRule['test-missing'], /declared in services\/shop\/specs\/other\.spec\.ts:5/);
   assert.match(byRule['test-duplicate'], /items\.spec\.ts:10, .*items\.spec\.ts:12/);
@@ -80,6 +80,7 @@ test('coverage numbers per registry are computed, with the floor from derive-flo
   ]);
   assert.equal(items['floor'], 8);
   assert.equal(items['gap'], 0);
+  assert.deepEqual([items['floorAxisCases'], items['beyondFloor']], [13, 2]);
   assert.equal(stock['floor'], 3);
   assert.equal(stock['gap'], 2);
 });

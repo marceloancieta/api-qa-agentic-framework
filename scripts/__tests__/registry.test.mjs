@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { COLUMNS, loadRegistries, parseRegistry } from '../lib/registry.mjs';
@@ -97,4 +97,86 @@ test('loadRegistries reads every pack registry with repository-relative paths', 
   assert.equal(loaded.pack, 'shop');
   assert.equal(loaded.file, 'services/shop/registry/PET.md');
   assert.deepEqual(loaded.problems, []);
+});
+
+test('the header contract: known keys only, actors, placeholders, beyond-floor ids', () => {
+  const head = (extra) => front.replace('\n---', '').replace(/---$/, '') + `\n${extra}\n---`;
+  const parse = (extra, rows = []) =>
+    parseRegistry(`${head(extra)}\n\n## Cases\n\n${header}\n${rows.join('\n')}\n`).problems.map(
+      (p) => p.message,
+    );
+  const row = '| TC-PET-01 | a |  | pairwise | low | draft |  |  |';
+
+  assert.deepEqual(
+    parse(
+      [
+        'contract: docs/features/pets.md',
+        'auth: [default, anonymous]',
+        'test_data:',
+        '  <PET_ID>: a pet the case creates',
+        'beyond_floor: [TC-PET-01]',
+      ].join('\n'),
+      [row],
+    ),
+    [],
+  );
+  assert.deepEqual(
+    parse(
+      [
+        'floor: 12',
+        'contract: pets.txt',
+        'auth: [Default]',
+        'test_data:',
+        '  PET_ID: a pet',
+        '  <OWNER>: ""',
+        'beyond_floor: [TC-PET-09]',
+      ].join('\n'),
+      [row],
+    ),
+    [
+      'front matter key `floor` is not one of feature, title, endpoints, requirements, contract, auth, test_data, beyond_floor',
+      'front matter `contract` must be the path of a Markdown file, relative to the pack',
+      'front matter `auth` must list actor names, e.g. [default, anonymous]',
+      'test_data placeholder "PET_ID" must look like <UPPER_SNAKE>',
+      'test_data placeholder <OWNER> needs a description',
+      'beyond_floor names TC-PET-09, which is not a case of this registry',
+    ],
+  );
+});
+
+test('a contract doc named by a registry must exist in its pack', () => {
+  const root = mkdtempSync(join(tmpdir(), 'reg-contract-'));
+  const dir = join(root, 'services', 'shop', 'registry');
+  mkdirSync(dir, { recursive: true });
+  const text = registry([]).replace(
+    'requirements:',
+    'contract: docs/features/pets.md\nrequirements:',
+  );
+  writeFileSync(join(dir, 'PET.md'), text);
+  assert.deepEqual(
+    loadRegistries(root)[0].problems.map((p) => p.message),
+    ['contract docs/features/pets.md does not exist in services/shop/'],
+  );
+  mkdirSync(join(root, 'services', 'shop', 'docs', 'features'), { recursive: true });
+  writeFileSync(join(root, 'services', 'shop', 'docs', 'features', 'pets.md'), '# Pets\n');
+  assert.deepEqual(loadRegistries(root)[0].problems, []);
+});
+
+test('the registry template parses once its placeholders are filled in', () => {
+  const template = readFileSync(
+    join(import.meta.dirname, '..', '..', 'docs', 'templates', 'registry.md'),
+    'utf8',
+  );
+  const filled = template
+    .replaceAll('<FEATURE>', 'PET')
+    .replaceAll('<Feature title>', 'Pets')
+    .replaceAll('<METHOD /path>', 'GET /pet/{petId}')
+    .replaceAll('<PLACEHOLDER>', '<PET_ID>')
+    .replace(/<[a-z][^<>\n]*>/g, 'text');
+  const parsed = parseRegistry(filled, 'docs/templates/registry.md');
+  assert.deepEqual(parsed.problems, []);
+  assert.deepEqual(
+    parsed.cases.map((c) => c.id),
+    ['TC-PET-01'],
+  );
 });

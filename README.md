@@ -55,6 +55,17 @@ Results and case definitions reach the test-management tool through adapters (`a
 default, `local`, and others behind the same contract); issues are read and filed through a tracker
 interface (GitHub, Jira). See [`docs/test-management.md`](docs/test-management.md).
 
+## Agentic process
+
+Work on an API moves through phases (intake, design, automate, publish, run) with a review gate
+between them. The references the phases apply:
+
+- [Contract analysis](docs/references/contract-analysis.md): completing the contract, value sets,
+  techniques, security and integrity cases.
+- [Bug reporting](docs/references/bug-reporting.md): scope by fix location, title format, mapping
+  cases to issues.
+- [Defect rubric](docs/references/defect-rubric.md): defect classes and severity.
+
 ## Example service pack
 
 [`services/petstore/`](services/petstore/README.md) runs the framework against Swagger Petstore v3

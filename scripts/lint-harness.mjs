@@ -58,6 +58,11 @@
 //     other side is not null/undefined. Raw strings of the same instant differ (`Z` vs `+00:00`);
 //     compare through `normalize.instant` or `expectSameState`. Whole-object comparisons are not
 //     inspected: the field models cover them.
+//   tag-taxonomy
+//     Tags come from one list (scripts/lib/tags.mjs; .claude/rules/tagging.md says when each
+//     applies). A tag outside it is reported where it is written, on a test or a describe. A
+//     designed case (a title starting with its TC id) carries exactly one layer tag, on itself or
+//     on a describe around it, so every lane selects it exactly once.
 //
 // Findings about a whole test are reported on the line of its title.
 //
@@ -69,7 +74,15 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { classifyCall, literalText, loadCorpus, parseSpecSource, ts } from './lib/corpus.mjs';
+import {
+  classifyCall,
+  literalText,
+  loadCorpus,
+  parseSpecSource,
+  tagsOf,
+  ts,
+} from './lib/corpus.mjs';
+import { KNOWN_GAP_TAG, LAYER_TAGS, TAGS } from './lib/tags.mjs';
 import { parseCli, REPO_ROOT } from './lib/cli.mjs';
 import { finding, report, selfTest } from './lib/lint.mjs';
 
@@ -83,9 +96,9 @@ export const RULES = [
   'shared-fixture-mutation',
   'module-scope-io',
   'unnormalized-comparison',
+  'tag-taxonomy',
 ];
 
-const KNOWN_GAP_TAG = '@known-gap';
 const RESPONSE_READERS = new Set(['json', 'text', 'body', 'headers', 'status', 'statusText', 'ok']);
 const SKIP_HELPERS = new Set(['skipUnless', 'requireData']);
 const METADATA_HELPERS = new Set(['operation', 'caseDescription']);
@@ -624,6 +637,36 @@ function isNullish(node) {
 // ---------------------------------------------------------------------------------------------
 // Driver
 
+function tagTaxonomy(spec, add) {
+  descendants(spec.sourceFile, (node) => {
+    if (!ts.isCallExpression(node)) return;
+    const { kind } = classifyCall(node);
+    if (kind !== 'describe' && kind !== 'test') return;
+    for (const tag of tagsOf(node, literalText(node.arguments[0]))) {
+      if (!TAGS.includes(tag)) {
+        add(
+          'tag-taxonomy',
+          node.arguments[0] ?? node,
+          `${tag} is not a tag of the taxonomy (${TAGS.join(' ')})`,
+        );
+      }
+    }
+  });
+  for (const test of spec.tests) {
+    if (!test.caseId) continue;
+    const layers = test.tags.filter((tag) => LAYER_TAGS.includes(tag));
+    if (layers.length !== 1) {
+      add(
+        'tag-taxonomy',
+        test.node.arguments[0],
+        layers.length === 0
+          ? `${test.caseId} has no layer tag; give it one of ${LAYER_TAGS.join(', ')}`
+          : `${test.caseId} has ${layers.length} layer tags (${layers.join(', ')}); keep one`,
+      );
+    }
+  }
+}
+
 const RULE_FUNCTIONS = [
   xfailAndKnownGap,
   metadataAfterSkip,
@@ -631,6 +674,7 @@ const RULE_FUNCTIONS = [
   sharedFixtureMutation,
   moduleScopeIo,
   unnormalizedComparison,
+  tagTaxonomy,
 ];
 
 /** Findings for one parsed spec (`parseSpecSource` output), deduplicated by line and rule. */

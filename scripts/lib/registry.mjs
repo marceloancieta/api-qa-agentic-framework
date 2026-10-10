@@ -9,6 +9,11 @@
 //     - GET /pet/{petId}
 //   requirements:                        optional; what the cases trace back to
 //     - { id: REQ-PET-01, text: A pet can be created with only the required fields }
+//   contract: docs/features/pets.md      optional; the feature contract doc, relative to the pack
+//   auth: [default, anonymous]           optional; the actors the cases call as
+//   test_data:                           optional; each placeholder the cases use, and its meaning
+//     <PET_ID>: a pet the case creates with the builder
+//   beyond_floor: [TC-PET-09]            optional; cases counted outside the contract floor (L-55)
 //   ---
 //   ...free text...
 //   ## Cases
@@ -49,6 +54,18 @@ export const TECHNIQUES = [
 export const PRIORITIES = ['high', 'medium', 'low'];
 
 const FEATURE = /^[A-Z][A-Z0-9]{1,9}$/;
+export const HEADER_KEYS = [
+  'feature',
+  'title',
+  'endpoints',
+  'requirements',
+  'contract',
+  'auth',
+  'test_data',
+  'beyond_floor',
+];
+const ACTOR = /^[a-z][a-z0-9-]*$/;
+const PLACEHOLDER = /^<[A-Z][A-Z0-9_]*>$/;
 const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 
 function splitRow(line) {
@@ -78,6 +95,35 @@ export function parseRegistry(text, file = 'registry.md') {
   if (!meta.title) problem(1, 'front matter `title` is required');
   if (!Array.isArray(meta.endpoints) || meta.endpoints.length === 0) {
     problem(1, 'front matter `endpoints` must list at least one "METHOD /path"');
+  }
+  for (const key of Object.keys(meta)) {
+    if (!HEADER_KEYS.includes(key)) {
+      problem(1, `front matter key \`${key}\` is not one of ${HEADER_KEYS.join(', ')}`);
+    }
+  }
+  if (meta.contract !== undefined && !/^[\w./-]+\.md$/.test(String(meta.contract))) {
+    problem(1, 'front matter `contract` must be the path of a Markdown file, relative to the pack');
+  }
+  if (
+    meta.auth !== undefined &&
+    !(Array.isArray(meta.auth) && meta.auth.length > 0 && meta.auth.every((a) => ACTOR.test(a)))
+  ) {
+    problem(1, 'front matter `auth` must list actor names, e.g. [default, anonymous]');
+  }
+  if (meta.test_data !== undefined) {
+    const entries =
+      meta.test_data && typeof meta.test_data === 'object' && !Array.isArray(meta.test_data)
+        ? Object.entries(meta.test_data)
+        : null;
+    if (!entries) problem(1, 'front matter `test_data` must map each <PLACEHOLDER> to its meaning');
+    for (const [name, meaning] of entries ?? []) {
+      if (!PLACEHOLDER.test(name)) {
+        problem(1, `test_data placeholder "${name}" must look like <UPPER_SNAKE>`);
+      }
+      if (typeof meaning !== 'string' || !meaning.trim()) {
+        problem(1, `test_data placeholder ${name} needs a description`);
+      }
+    }
   }
   const requirements = Array.isArray(meta.requirements) ? meta.requirements : [];
   const requirementIds = new Set(requirements.map((r) => r?.id));
@@ -139,7 +185,25 @@ export function parseRegistry(text, file = 'registry.md') {
     }
     cases.push(entry);
   }
+  if (meta.beyond_floor !== undefined) {
+    if (!Array.isArray(meta.beyond_floor)) {
+      problem(1, 'front matter `beyond_floor` must list case ids');
+    } else {
+      for (const id of meta.beyond_floor) {
+        if (!seen.has(id))
+          problem(1, `beyond_floor names ${id}, which is not a case of this registry`);
+      }
+    }
+  }
   return { file, meta, requirements, cases, problems };
+}
+
+/** Cases counted against the contract floor: every case except those listed in beyond_floor. */
+export function floorAxisCases(registry) {
+  const beyond = new Set(
+    Array.isArray(registry.meta.beyond_floor) ? registry.meta.beyond_floor : [],
+  );
+  return registry.cases.filter((row) => !beyond.has(row.id));
 }
 
 /** Every registry of every pack (or of one pack), parsed. */
@@ -159,9 +223,21 @@ export function loadRegistries(root, pack = null) {
       .filter((f) => f.endsWith('.md'))
       .sort()) {
       const file = join(dir, fileName);
+      const parsed = parseRegistry(
+        readFileSync(file, 'utf8'),
+        relative(root, file).replace(/\\/g, '/'),
+      );
+      const contract = parsed.meta.contract;
+      if (typeof contract === 'string' && !existsSync(join(services, name, contract))) {
+        parsed.problems.push({
+          file: parsed.file,
+          line: 1,
+          message: `contract ${contract} does not exist in services/${name}/`,
+        });
+      }
       registries.push({
         pack: name,
-        ...parseRegistry(readFileSync(file, 'utf8'), relative(root, file).replace(/\\/g, '/')),
+        ...parsed,
       });
     }
   }

@@ -80,7 +80,7 @@ export function runLane(root, args, env = {}) {
 // ---------------------------------------------------------------------------------------------
 // Shared by the gate lanes (known-gap, published, flake)
 
-export const QUARANTINE_TAG = '@quarantine';
+export { QUARANTINE_TAG } from './tags.mjs';
 
 /**
  * Gate lanes run without retries. The Playwright configuration takes its retry count from

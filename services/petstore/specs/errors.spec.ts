@@ -6,7 +6,7 @@ import { test, expect } from '../fixtures';
 import { expectErrorEnvelope } from '../../../helpers/error-envelope';
 import { GENERATED_ID_MAX } from '../builders/pet-builder';
 
-test.describe('Petstore error envelopes', { tag: '@negative' }, () => {
+test.describe('Petstore error envelopes', { tag: '@regression' }, () => {
   test('a non-numeric pet id is rejected as an input error probe:p-658044b361', async ({
     pets,
     envelopes,

@@ -44,8 +44,10 @@ import {
   retriedRecords,
   runLane,
 } from './lib/playwright-lane.mjs';
+import { KNOWN_GAP_TAG } from './lib/tags.mjs';
 
-export const KNOWN_GAP_TAG = '@known-gap';
+export { KNOWN_GAP_TAG };
+
 const HELPER = 'knownGap';
 export const PROBLEM_VERDICTS = new Set(['passing', 'unarmed', 'errored', 'not-run']);
 
