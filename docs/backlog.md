@@ -44,8 +44,6 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| AGT-01 | `spec-author` and `api-spec-reviewer` agents; the reviewer checks title claim against assertion, vacuous assertions and layering. | roadmap, L-20, L-21 | todo |
-| AGT-02 | Optional `contract-investigator` agent. | roadmap | todo |
 | TM-07 | `npm run tracker -- search <text>` in the tracker interface and every adapter (local, GitHub, Jira), with contract tests: intake, bug reporting and the `contract-investigator` agent must search for existing issues, and today the CLI only offers `get`, `create`, `comment` and `move`. | exp | todo |
 | GATE-13 | `secret-guard` reads a JavaScript member access such as `x.key` as a key file name and refuses the command; match only path-like words for the key-file patterns, with fixtures for both shapes. | exp | todo |
 | GATE-12 | `@destructive` lane: shared and gate lanes run with `--grep-invert @destructive`; a dedicated lane runs those cases alone, last, then the environment's recovery command from qa-config (for Petstore, a container restart), and verifies the service answers again. Lint: a destructive case names its recovery in the registry. | L-59 | todo |
@@ -146,3 +144,5 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 | PROC-14 | `docs/templates/registry.md` and the registry header contract (`contract`, `auth`, `test_data`, `beyond_floor`, unknown keys refused); `coverage-status` counts the floor on the contract axis. | `9f7bb26` |
 | GATE-07 | `cited-status`: waiting claims, workarounds and `knownGap` arms checked against the tracker; stale, unknown-key and workaround-without-exit findings; opt-in, exact fixture. | `1ca6689` |
 | PET-01 | Petstore phases 0-1: feature contracts for PET, STOR and USER from read-only intake plus an execution-mode write run, contract notes PN-07 to PN-25, the first tracked defects LOCAL-1 to LOCAL-4, and 166 approved cases in seven registry files. | `8a16368`, `3d67c3a`, `53bde92` |
+| AGT-01 | `spec-author` and `api-spec-reviewer` agents: one author per spec file with its own data range, a read-only reviewer with eight checks (title claim, registry fidelity, oracles, vacuous and coincidental assertions, layering, case shape, data safety) and a verdict per spec; `qa-automate` moves rows to automated only after an `approve`; evaluation fixtures with seeded defects kept in sync by a test. | `e7dd70f` |
+| AGT-02 | `contract-investigator` agent: one discrepancy per launch, read-only measurement, a classification (contract drift, defect candidate, test error, undetermined); used by `qa-intake` and `qa-report-bug`. | `b0e6235` |
