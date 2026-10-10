@@ -119,7 +119,8 @@ endpoints; the first use against a real instance should confirm that the live AP
 - a workaround citing `<KEY>`;
 - a `knownGap('<KEY>')` arm.
 
-It asks the tracker for each key. A done issue makes the statement stale (L-11, L-26). A workaround
-that cites no issue and does not say it is permanent is also reported. The check is opt-in: it
-needs `tracker.provider` and `tracker.key_pattern`. Run it on a schedule, not in `gates`, because it
+It asks the tracker for each key. A done issue makes the statement stale (L-11, L-26). A code
+comment that starts with "Workaround" and neither cites an issue nor says it is permanent is also
+reported; prose about workarounds is not a declaration. The check needs `tracker.provider` and
+`tracker.key_pattern`; without them it says so and exits cleanly. Run it on a schedule, not in `gates`, because it
 calls the tracker.

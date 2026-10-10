@@ -9,7 +9,8 @@
  * Rules:
  *   stale-claim          the cited issue is done: re-check, then remove the claim or the workaround
  *   unknown-key          the cited key does not exist in the tracker
- *   workaround-no-exit   a workaround cites no issue and does not say it is permanent (L-26)
+ *   workaround-no-exit   a code comment starting with "Workaround" cites no issue and does not say
+ *                        it is permanent (L-26); prose about workarounds is not a declaration
  *
  * Opt-in: with tracker.provider "none" or no tracker.key_pattern it reports that and exits 0.
  *
@@ -32,6 +33,10 @@ const EXTENSIONS = new Set(['.md', '.ts', '.mjs', '.js', '.json', '.yaml', '.yml
 
 const WAITING = /\b(until|waiting (?:on|for)|blocked (?:by|on)|depends on|pending)\b/i;
 const WORKAROUND = /\bwork-?around\b/i;
+// A workaround is declared by a code comment that starts with the word; prose that talks about
+// workarounds, in docs or mid-comment, declares nothing and needs no exit.
+const DECLARED_WORKAROUND = /^\s*(?:\/\/+|\/\*+|\*)\s*work-?around(?![\w-])/i;
+const CODE = new Set(['.ts', '.mjs', '.js']);
 const KNOWN_GAP = /\bknownGap\(\s*['"`]([^'"`]+)['"`]/;
 const PERMANENT = /\bpermanent(ly)?\b|\bwon'?t fix\b|\bby design\b/i;
 
@@ -59,6 +64,7 @@ export function findClaims(root, keyPattern) {
   const orphans = [];
   for (const path of SCANNED.flatMap((entry) => filesUnder(root, entry))) {
     const file = relative(root, path).replace(/\\/g, '/');
+    const code = CODE.has(extname(path));
     readFileSync(path, 'utf8')
       .split(/\r?\n/)
       .forEach((text, index) => {
@@ -74,7 +80,8 @@ export function findClaims(root, keyPattern) {
           .filter((k) => !gap || k !== gap[1]);
         for (const cited of new Set(keys))
           claims.push({ file, line, key: cited, kind, text: text.trim() });
-        if (kind === 'workaround' && keys.length === 0 && !gap && !PERMANENT.test(text)) {
+        const declared = code && DECLARED_WORKAROUND.test(text);
+        if (declared && keys.length === 0 && !gap && !PERMANENT.test(text)) {
           orphans.push({ file, line, text: text.trim() });
         }
       });
