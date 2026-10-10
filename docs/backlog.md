@@ -33,7 +33,8 @@ GATE-12 came out of the E6 intake and is listed under E6 / E7 / E8.
 
 ## E4 - Test management
 
-Complete: TM-01 to TM-06 are in **Done**.
+The items of this stage are in **Done**. TM-07 (tracker search), found in E7, is open in the
+E6 / E7 / E8 table.
 
 ## E5 - Agentic process
 
@@ -45,6 +46,8 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 |---|---|---|---|
 | AGT-01 | `spec-author` and `api-spec-reviewer` agents; the reviewer checks title claim against assertion, vacuous assertions and layering. | roadmap, L-20, L-21 | todo |
 | AGT-02 | Optional `contract-investigator` agent. | roadmap | todo |
+| TM-07 | `npm run tracker -- search <text>` in the tracker interface and every adapter (local, GitHub, Jira), with contract tests: intake, bug reporting and the `contract-investigator` agent must search for existing issues, and today the CLI only offers `get`, `create`, `comment` and `move`. | exp | todo |
+| GATE-13 | `secret-guard` reads a JavaScript member access such as `x.key` as a key file name and refuses the command; match only path-like words for the key-file patterns, with fixtures for both shapes. | exp | todo |
 | GATE-12 | `@destructive` lane: shared and gate lanes run with `--grep-invert @destructive`; a dedicated lane runs those cases alone, last, then the environment's recovery command from qa-config (for Petstore, a container restart), and verifies the service answers again. Lint: a destructive case names its recovery in the registry. | L-59 | todo |
 | PET-02 | Petstore phases 2-4: specs authored and reviewed, published and run with the `local` adapter; authorization matrix with two actors. | roadmap, CORE-04 | todo |
 | CI-01 | GitHub Actions: gates → Petstore e2e with service container → daily drift (live digest, known-gap lane, published-case lane), re-running affected cases when the digest moves. | roadmap, L-28, L-31 | todo |

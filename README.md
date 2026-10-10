@@ -61,9 +61,10 @@ Work on an API moves through phases (intake, design, automate, publish, run) wit
 between them, each one a Claude Code skill in `.claude/skills/`. [`AGENTS.md`](AGENTS.md) describes
 the process for any coding agent, and [`CLAUDE.md`](CLAUDE.md) adds the rules, skills, subagents and
 hooks of Claude Code. The subagents in `.claude/agents/` take self-contained work off the
-conversation: one writes the specs of an assigned set of cases, and one reviews each spec against
-its designed case with a fresh context. They return reports; the gates stay in the conversation.
-The references the phases apply:
+conversation: one writes the specs of an assigned set of cases, one reviews each spec against its
+designed case with a fresh context, and one investigates a single disagreement between a contract
+and the API. They return reports; the gates stay in the conversation. The references the phases
+apply:
 
 - [Contract analysis](docs/references/contract-analysis.md): completing the contract, value sets,
   techniques, security and integrity cases.

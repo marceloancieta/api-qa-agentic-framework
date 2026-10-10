@@ -63,6 +63,7 @@ no tool that edits files (`scripts/__tests__/agent-guide.test.mjs`):
 |---|---|---|
 | `spec-author` | write the specs of an assigned set of approved cases, run them and report | the spec files it is assigned |
 | `api-spec-reviewer` | review a spec against its registry cases: title claim, oracles, coincidence, layering | nothing |
+| `contract-investigator` | investigate one disagreement between a contract and the API with read-only calls | throwaway probe scripts in the scratchpad |
 
 ## Hooks
 

@@ -44,6 +44,11 @@ Write requests are not.
    of the spec, and the doc says where they differ. Behaviour of writes is left marked
    **unmeasured**. If it matters before design, propose an execution-mode run against data that
    run creates (`qa-run`), and write its result back here.
+
+   A discrepancy that needs more than a quick look (inputs to vary, sources to compare, records to
+   search) goes to a `contract-investigator` agent, one per discrepancy, launched in parallel when
+   there are several. It measures read-only and returns a report; you write its conclusion into the
+   doc with its measurements, and decide nothing on its behalf.
 6. **Search the tracker for every gap as you write it down**, and record the key or "searched, none".
    Even a probable defect is only recorded as a gap here; `qa-report-bug` decides about filing.
 7. **Write** `services/<pack>/docs/features/<feature>.md` from

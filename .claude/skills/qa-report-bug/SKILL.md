@@ -32,6 +32,10 @@ the issue.
    (`npm run tracker -- get <KEY>` for candidates). A finding inside an open issue's scope becomes a
    comment on that issue.
 
+For questions 1 and 2, a `contract-investigator` agent can confirm or refute a finding with
+read-only evidence (one finding per agent). Its report is evidence for the triage, not a verdict, and
+a finding that needs a write to reproduce goes to an execution-mode run (`qa-run`).
+
 Propose the outcome before writing anything: the level, the number of issues, titles, class and
 severity. Wait for approval.
 
