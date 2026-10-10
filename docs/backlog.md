@@ -38,20 +38,7 @@ Complete: TM-01 to TM-06 are in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| PROC-01 | Rules rewritten generic: reporting protocol, generation, registry grain, service registry, tagging, documentation (with fact-ownership and propagation tables), reachability. | roadmap, L-07, L-10 | todo |
-| PROC-02 | Phase skills rewritten generic: intake, design, automate, publish, run, report-bug. Design names a technique per case (EP, BVA, decision table, pairwise). | roadmap, practice | todo |
-| PROC-03 | Intake completes the contract before design and records open questions. | L-38 | todo |
-| PROC-04 | Design and report-bug ask "who else writes this field?" before filing or closing; arrange non-default values for preserve-on-omit cases; assert own rows, not shared counters; verify state after an error on a write. | L-20, L-25, L-35, L-37 | todo |
-| PROC-05 | Skill gaps: rollback when a phase fails midway, orphaned-case cleanup, a requested feature that does not exist or selects no cases. | exp | todo |
-| PROC-06 | Service-skill template + scaffolder that creates a service pack. | roadmap, ADR 0007 | todo |
 | PROC-07 | `CLAUDE.md` + `AGENTS.md`; the "skill vs agent" rule. | roadmap | todo |
-| PROC-09 | Bug-reporting reference: scope levels by fix location, title format, operation list, consolidate and re-scope before filing. | L-51 | todo |
-| PROC-10 | Defect class and severity rubric reference (independent axes, classify by effect, worst-criterion severity), used by report-bug and mapped to tracker labels. | L-52 | todo |
-| PROC-11 | Intake template and feature contract doc template (metadata, endpoint contract, business rules, acceptance criteria, auth and IDOR expectations, edge and negative cases, test data, state transitions, out of scope, assumptions, gaps). | exp | todo |
-| PROC-12 | Contract-analysis reference: contract completion protocol and source order, drift candidates, required/optional, value sets vs formats, floor formula (the script owns the number), technique catalogue, API security and resilience (authn, BOLA, injection, schema drift, mass assignment declared-vs-honored), priority and evidence standards. | exp, L-54..L-56 | todo |
-| PROC-13 | Mode rule: design and execution never mix; design never writes to the system under test; runs never edit definitions. | exp, L-58 | todo |
-| PROC-14 | Registry template with header contract (feature code, endpoints, derived floor with provenance, coverage and gap, axis note, report path, auth, test-data placeholders) and the status lifecycle (`blocked` only with a key and only when the case cannot run). | exp, L-55, L-57 | todo |
-| PROC-08 | Decision tables as YAML in the service pack, driving data-driven specs. | practice | todo |
 
 ## E6 / E7 / E8 - Petstore, agents, CI
 
@@ -141,4 +128,17 @@ Complete: TM-01 to TM-06 are in **Done**.
 | TM-04 | Adapter base: HTTP retries for 429/5xx/network with Retry-After or backoff (`scripts/lib/http.mjs`), idempotent close, scoped operations, read-back after every write. | `dc5883d`, `e239e96` |
 | TM-05 | Tracker interface (`scripts/tracker/`): local, GitHub and Jira adapters behind a verified wrapper (read-back, rendered placeholders kept), credentials from the environment only, contract tests over fakes; `npm run tracker`. | `e239e96` |
 | TM-06 | Run id and timestamps on tool output (`scripts/lib/log.mjs`); the run id is set by the test run, carried as a result label and reused by `tm:report`. | `3616cd8`, `49c462c` |
+| PROC-01 | Rules in `.claude/rules/`: modes, reachability, service packs, registry, generation, tagging, reporting and documentation (fact owners and propagation table). | `9f7bb26` |
+| PROC-02 | Phase skills `qa-intake`, `qa-design`, `qa-automate`, `qa-publish`, `qa-run`, `qa-report-bug`; design names one technique per case. | `9f7bb26` |
+| PROC-03 | `qa-intake` completes the contract in source order, measures read-only, records gaps with their tracker search and open questions before design. | `9f7bb26` |
+| PROC-04 | `qa-design` and `qa-report-bug` ask who else writes a field, arrange non-default values, assert own records and check state after an error on a write. | `9f7bb26` |
+| PROC-05 | Every phase skill says what to do when it stops halfway; `qa-publish` lists orphaned cases; `qa-intake` and `qa-run` stop on a feature or selection that does not exist or selects nothing. | `9f7bb26` |
+| PROC-06 | `npm run scaffold:service` (plan, then `--write`; `--skill-only` for an existing pack), `docs/templates/service-skill.md`, the Petstore skill; `contract:check` covers every pack. | `7196565` |
+| PROC-08 | Decision tables in `services/<pack>/rules/*.yaml`, checked for completeness and consistency and generated into `generated/decision-tables.ts`; Petstore example and data-driven spec. | `034e7c3` |
+| PROC-09 | `docs/references/bug-reporting.md`: scope levels by fix location, title format, consolidating and re-scoping, mapping cases to one issue. | `9f7bb26` |
+| PROC-10 | `docs/references/defect-rubric.md`: classes and severity as independent axes, classify by effect, worst criterion, tracker labels. | `9f7bb26` |
+| PROC-11 | `docs/templates/intake.md` and `docs/templates/feature-contract.md`. | `9f7bb26` |
+| PROC-12 | `docs/references/contract-analysis.md`: completion order, drift candidates, value sets versus formats, floor, techniques, security, integrity, priority, evidence. | `9f7bb26` |
+| PROC-13 | `.claude/rules/modes.md`: design never writes to the system under test, execution never edits definitions, mixed requests are split. | `9f7bb26` |
+| PROC-14 | `docs/templates/registry.md` and the registry header contract (`contract`, `auth`, `test_data`, `beyond_floor`, unknown keys refused); `coverage-status` counts the floor on the contract axis. | `9f7bb26` |
 | GATE-07 | `cited-status`: waiting claims, workarounds and `knownGap` arms checked against the tracker; stale, unknown-key and workaround-without-exit findings; opt-in, exact fixture. | `1ca6689` |

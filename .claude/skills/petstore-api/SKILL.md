@@ -40,7 +40,7 @@ demonstrate an authorization matrix. Authorization cases belong to an API that e
 | Resource | Client | Fixture | Operations | Suggested code |
 |---|---|---|---|---|
 | `pet` | `PetClient` (`clients/pet-client.ts`) | `pets` | 8 | `PET` |
-| `store` | `StoreClient` (`clients/store-client.ts`) | `store` | 4 | `STORE` |
+| `store` | `StoreClient` (`clients/store-client.ts`) | `store` | 4 | `STOR` |
 | `user` | none yet | none yet | 7 | `USER` |
 
 Codes are confirmed at the first design gate and are permanent once a case is published

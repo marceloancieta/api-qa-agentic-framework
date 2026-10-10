@@ -58,7 +58,9 @@ interface (GitHub, Jira). See [`docs/test-management.md`](docs/test-management.m
 ## Agentic process
 
 Work on an API moves through phases (intake, design, automate, publish, run) with a review gate
-between them. The references the phases apply:
+between them, each one a Claude Code skill in `.claude/skills/`. [`AGENTS.md`](AGENTS.md) describes
+the process for any coding agent, and [`CLAUDE.md`](CLAUDE.md) adds the rules, skills and hooks of
+Claude Code. The references the phases apply:
 
 - [Contract analysis](docs/references/contract-analysis.md): completing the contract, value sets,
   techniques, security and integrity cases.
