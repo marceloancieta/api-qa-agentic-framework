@@ -21,6 +21,7 @@ import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { REPO_ROOT } from '../lib/cli.mjs';
+import { loadLocalEnv } from '../lib/env.mjs';
 import { createLogger, RUN_ID_VARIABLE } from '../lib/log.mjs';
 import { loadAdapter } from './adapters/index.mjs';
 import { buildManifest } from './manifest.mjs';
@@ -87,9 +88,9 @@ export async function report({ adapter, manifest, log, name }) {
     log.info('report skipped: the tool records no runs', { provider: adapter.name });
     return { skipped: true };
   }
-  // A definitions-first tool can only record attributed cases; a results-first tool (a report)
-  // still shows the whole run.
-  if (manifest.results.length === 0 && adapter.capabilities.definitions) {
+  // Most tools can only record attributed results; a report of the whole results directory
+  // (capability wholeRun) still has something to show without them.
+  if (manifest.results.length === 0 && !adapter.capabilities.wholeRun) {
     log.warn('no results to report: run the API suite first', {
       excluded: manifest.excluded.length,
     });
@@ -139,6 +140,7 @@ async function main() {
   const log = createLogger(`tm-${phase}`);
   manifest.runId = log.runId;
   const { provider, options } = testManagementConfig();
+  loadLocalEnv();
   const adapter = await loadAdapter(provider, options, { root: REPO_ROOT, log });
   const outcome =
     phase === 'publish'

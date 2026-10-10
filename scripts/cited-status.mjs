@@ -21,6 +21,7 @@ import { extname, join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { REPO_ROOT } from './lib/cli.mjs';
+import { loadLocalEnv } from './lib/env.mjs';
 import { finding, report } from './lib/lint.mjs';
 import { createLogger } from './lib/log.mjs';
 import { loadTracker, trackerConfig } from './tracker/index.mjs';
@@ -143,6 +144,7 @@ async function main() {
   });
   const root = values.root ?? REPO_ROOT;
   const log = createLogger('cited-status');
+  loadLocalEnv();
   const config = trackerConfig(root);
   const tracker = await loadTracker(config, { log, root });
   const outcome = await citedStatus({ root, config, tracker, log });

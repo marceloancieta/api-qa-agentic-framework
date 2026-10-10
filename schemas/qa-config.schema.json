@@ -67,7 +67,34 @@
         "options": {
           "type": "object"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "required": ["provider"],
+            "properties": { "provider": { "const": "allure-testops" } }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "options": {
+                "type": "object",
+                "description": "Every option falls back to an environment variable: ALLURE_ENDPOINT, ALLURE_PROJECT_ID, and the token in ALLURE_TOKEN.",
+                "additionalProperties": false,
+                "properties": {
+                  "endpoint": { "type": "string", "format": "uri" },
+                  "project_id": { "type": "integer", "minimum": 1 },
+                  "token_env": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+                  "resultsDir": { "type": "string" },
+                  "wait_seconds": { "type": "integer", "minimum": 0 },
+                  "poll_ms": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "tracker": {
       "type": "object",

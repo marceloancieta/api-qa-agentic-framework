@@ -5,6 +5,8 @@
 //   capabilities               { definitions: boolean, runs: boolean }
 //                              definitions: the tool holds case definitions before any run
 //                              runs: the tool records runs and their results
+//                              wholeRun (optional): the tool reports the whole results directory,
+//                              so a run without attributed results is still worth reporting
 //   publishDefinitions(cases)  create or update the given cases only; returns
 //                              { published: [{ identity, tmId, url }], unchanged: [identity] }
 //   startRun({ name, runId })  returns a run handle { id, url }

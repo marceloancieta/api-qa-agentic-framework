@@ -30,12 +30,7 @@ export function trackerProblems(adapter) {
   return problems;
 }
 
-/** The value of an environment variable a tracker needs, or an error naming it (never its value). */
-export function credential(env, name, why) {
-  const value = env[name]?.trim();
-  if (!value) throw new Error(`${why} needs the environment variable ${name}, which is not set.`);
-  return value;
-}
+export { credential } from '../lib/env.mjs';
 
 function sameText(what, sent, readBack) {
   if (normalizeText(sent) !== normalizeText(readBack)) {

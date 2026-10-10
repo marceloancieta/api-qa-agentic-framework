@@ -46,7 +46,7 @@ export function createAdapter(options = {}, { root = process.cwd() } = {}) {
 
   return {
     name: 'allure-report',
-    capabilities: { definitions: false, runs: true },
+    capabilities: { definitions: false, runs: true, wholeRun: true },
 
     async publishDefinitions() {
       return { published: [], unchanged: [] };

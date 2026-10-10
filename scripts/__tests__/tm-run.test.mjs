@@ -122,6 +122,15 @@ test('no results means no run is started', async () => {
   const adapter = await localAdapter();
   const outcome = await report({ adapter, manifest: manifestWith([]), log: quietLog(), name: 'x' });
   assert.deepEqual(outcome, { skipped: true, reason: 'no results' });
+  // A results-first tool such as TestOps would otherwise get an empty launch.
+  const resultsFirst = { ...adapter, capabilities: { definitions: false, runs: true } };
+  const empty = await report({
+    adapter: resultsFirst,
+    manifest: manifestWith([]),
+    log: quietLog(),
+    name: 'x',
+  });
+  assert.deepEqual(empty, { skipped: true, reason: 'no results' });
 });
 
 test('providers: unknown and documented-only ones fail with a pointer; config defaults', async () => {

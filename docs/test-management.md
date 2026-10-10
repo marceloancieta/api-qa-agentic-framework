@@ -30,7 +30,7 @@ The provider is set in `qa-config` `test_management.provider` and configured in 
 |---|---|---|
 | `allure-report` (default) | results only: an HTML report generated with Allure 3 (`npm run tm:open` serves it) | implemented |
 | `local` | definitions-first, JSON files under `reports/tm/local`; the reference implementation and template | implemented |
-| `allure-testops` | results-first: cases are created from results by identity | pending: to be built and validated against a real instance |
+| `allure-testops` | results-first: a launch per run; TestOps creates a case the first time an identity arrives | implemented, checked against TestOps 26.3 |
 | `testrail` | definitions-first | documented only (below) |
 
 Every adapter must pass the **adapter contract** (`scripts/tm/contract.mjs`). The contract checks:
@@ -44,7 +44,40 @@ A negative control proves that the contract fails a broken adapter.
 
 Every write is read back and compared (L-04). HTTP calls retry `429`, `5xx` and network errors with
 `Retry-After` or exponential backoff, and they never log headers (L-46). Credentials come from
-environment variables; there is never a token flag (L-43).
+environment variables; there is never a token flag (L-43). The commands that call a service
+(`tm:*`, `tracker`, `cited:status`) also read the local `.env` file (template: `.env.example`).
+A variable set in the real environment wins over the file.
+
+### Allure TestOps
+
+```json
+"test_management": { "provider": "allure-testops", "options": { "project_id": 1 } }
+```
+
+| Option | Environment fallback | Meaning |
+|---|---|---|
+| `endpoint` | `ALLURE_ENDPOINT` | the instance URL, such as `https://<name>.testops.cloud` |
+| `project_id` | `ALLURE_PROJECT_ID` | the number in the project's URL |
+| `token_env` | `ALLURE_TOKEN` (default name) | the variable holding an API token (profile, API tokens) |
+| `resultsDir` | | results to upload from (default `allure-results`) |
+| `wait_seconds` | | how long to wait for TestOps to process an upload (default 120) |
+
+`tm:report` creates a launch tagged `run-<run id>` and uploads, for each attributed result:
+
+- the result file of its last attempt, and the evidence attachments it references;
+- with `fullName` and `testCaseId` set to the identity, so the TestOps test case follows the
+  identity even when the test moves to another file;
+- without the `host` and `thread` labels, which name the machine.
+
+Results without an identity are not uploaded and are listed with a reason (L-17). TestOps imports an
+upload in the background, so the adapter polls the launch until every identity shows the status it
+was sent with, then closes the launch and reads it back. `publish` is skipped: TestOps creates the
+test cases from the results.
+
+`npm run tm:contract:live` runs the adapter contract against the configured instance. It deletes the
+launches it creates and the test cases TestOps made from them. The offline contract
+(`npm run test:scripts`) runs against a fake built from the instance's OpenAPI (`/api-docs/`) and from
+what the instance did when it was used.
 
 ### Writing an adapter (TestRail and others)
 

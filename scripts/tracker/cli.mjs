@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
+import { loadLocalEnv } from '../lib/env.mjs';
 import { createLogger } from '../lib/log.mjs';
 import { loadTracker, trackerConfig } from './index.mjs';
 
@@ -60,6 +61,7 @@ export async function runCommand(argv, { tracker, log }) {
 }
 
 async function main() {
+  loadLocalEnv();
   const log = createLogger('tracker');
   const tracker = await loadTracker(trackerConfig(), { log });
   if (!tracker) {

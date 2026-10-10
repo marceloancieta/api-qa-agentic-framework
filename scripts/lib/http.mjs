@@ -31,6 +31,8 @@ export function httpClient({
   const root = baseUrl.replace(/\/+$/, '');
   return async function request(method, path, body) {
     const url = `${root}/${path.replace(/^\/+/, '')}`;
+    // A FormData body is sent as multipart: fetch sets the content type with its boundary.
+    const multipart = body instanceof FormData;
     for (let attempt = 1; ; attempt += 1) {
       let response;
       try {
@@ -38,10 +40,10 @@ export function httpClient({
           method,
           headers: {
             accept: 'application/json',
-            ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+            ...(body === undefined || multipart ? {} : { 'content-type': 'application/json' }),
             ...headers,
           },
-          body: body === undefined ? undefined : JSON.stringify(body),
+          body: body === undefined ? undefined : multipart ? body : JSON.stringify(body),
         });
       } catch (error) {
         if (attempt > retries)
