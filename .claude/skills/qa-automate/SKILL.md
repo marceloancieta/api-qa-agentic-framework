@@ -30,6 +30,8 @@ go to data they create, or to shared data under a resource guard, in an environm
 3. **Known defects**: a case the registry maps to an open issue arms
    `test.fail(true, await knownGap('<KEY>', why))` right before the action and carries `@known-gap`.
    Finding a new defect while automating goes through `qa-report-bug`; the case keeps its status.
+   A `@destructive` case goes in its own spec file, ends with the recovery its details name, and is
+   run alone, never in the same run as other specs (L-59).
 4. **Check offline**:
    ```sh
    npm run types:check

@@ -34,6 +34,8 @@ description: >-
    - *Does the case prove preserve-on-omit?* Then it first sets a value other than the default.
    - *What does the case assert on?* Records it created, never shared counters or listings.
    - *What if the write answers with an error?* The case then checks the state.
+   - *Can the record it leaves break a read for other callers?* Then the case is `@destructive` and
+     its details name the recovery: the delete that removes the record, or a restart (L-59).
 3. **Write each case**: preconditions with placeholders, request, expected result (status, schema or
    error envelope, the business fields), verification, tags (`.claude/rules/tagging.md`), priority.
 4. **Fill the registry** from [the template](../../../docs/templates/registry.md): the header

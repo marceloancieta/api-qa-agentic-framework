@@ -13,9 +13,11 @@ export const CATEGORY_TAGS = [
   '@contract-drift',
   '@known-gap',
   '@quarantine',
+  '@destructive',
 ];
 
 export const TAGS = [...LAYER_TAGS, ...CATEGORY_TAGS];
 
 export const KNOWN_GAP_TAG = '@known-gap';
 export const QUARANTINE_TAG = '@quarantine';
+export const DESTRUCTIVE_TAG = '@destructive';

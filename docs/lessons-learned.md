@@ -279,3 +279,10 @@ possible data. Overusing it hides real coverage. *Guarded by:* registry lifecycl
 **L-58 - Keep design and execution separate.** Design measures read-only and produces reviewed
 artifacts; execution runs suites and posts results. A request mixing both is split and handled in
 order. *Guarded by:* the mode rule in `CLAUDE.md` (E5).
+
+**L-59 - Some records break a read for everyone.** A single malformed record, created by any caller,
+can make a shared read fail for every other caller until it is removed, and sometimes no API call
+can remove it. A case that reproduces such a defect is not just mutating, it is destructive: it
+cannot share a run with other cases, and the run must end by restoring the service. Find these at
+intake, with writes measured against data the run creates, before any suite depends on the broken
+read. *Guarded by:* the `@destructive` tag (E6) and its isolated lane (GATE-12).

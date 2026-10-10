@@ -26,6 +26,7 @@ add a tag, change that file and this table in the same commit; a test keeps them
 | `@contract-drift` | category | the case documents a difference between the contract and the service |
 | `@known-gap` | category | the case is armed with `knownGap(key, why)` because an open issue keeps it red |
 | `@quarantine` | category | the flake lane confirmed the case is flaky; gate lanes leave it out until the linked fix lands |
+| `@destructive` | category | the case leaves the service in a state no API call can undo, or breaks a read for every other caller while its record exists; it never runs next to other cases (L-59) |
 
 Rules of thumb:
 
@@ -35,6 +36,10 @@ Rules of thumb:
   state back is not `@data-integrity`.
 - **`@known-gap` and the arm go together.** The tag without `knownGap()` in the body, or the arm
   without the tag, is a lint finding (L-14). Arm right before the action (L-13).
+- **`@destructive` names its recovery.** The case details say how the service gets back to a usable
+  state: the delete that removes the record, or a restart when nothing else can. Shared runs leave
+  these cases out (`--grep-invert @destructive`); they run alone, last, followed by that recovery
+  (backlog GATE-12).
 - **A workaround names its exit.** Code that compensates for someone else's defect says which issue
   it waits on and what has to become true to remove it, in a form `npm run cited:status` can read:
   "until `<KEY>` ships". If the issue closes as won't fix, rewrite the comment, either to point at
