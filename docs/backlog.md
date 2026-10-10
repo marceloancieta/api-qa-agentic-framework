@@ -43,7 +43,6 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| PET-01 | Petstore phases 0-1 through the pipeline: contract docs, registries PET / STOR / USER, review gate. | roadmap | in-progress |
 | AGT-01 | `spec-author` and `api-spec-reviewer` agents; the reviewer checks title claim against assertion, vacuous assertions and layering. | roadmap, L-20, L-21 | todo |
 | AGT-02 | Optional `contract-investigator` agent. | roadmap | todo |
 | GATE-12 | `@destructive` lane: shared and gate lanes run with `--grep-invert @destructive`; a dedicated lane runs those cases alone, last, then the environment's recovery command from qa-config (for Petstore, a container restart), and verifies the service answers again. Lint: a destructive case names its recovery in the registry. | L-59 | todo |
@@ -143,3 +142,4 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 | PROC-13 | `.claude/rules/modes.md`: design never writes to the system under test, execution never edits definitions, mixed requests are split. | `9f7bb26` |
 | PROC-14 | `docs/templates/registry.md` and the registry header contract (`contract`, `auth`, `test_data`, `beyond_floor`, unknown keys refused); `coverage-status` counts the floor on the contract axis. | `9f7bb26` |
 | GATE-07 | `cited-status`: waiting claims, workarounds and `knownGap` arms checked against the tracker; stale, unknown-key and workaround-without-exit findings; opt-in, exact fixture. | `1ca6689` |
+| PET-01 | Petstore phases 0-1: feature contracts for PET, STOR and USER from read-only intake plus an execution-mode write run, contract notes PN-07 to PN-25, the first tracked defects LOCAL-1 to LOCAL-4, and 166 approved cases in seven registry files. | `8a16368`, `3d67c3a`, `53bde92` |
