@@ -20,7 +20,8 @@
 //                  or (NNN) NNN-NNNN / NNN-NNN-NNNN  line 0100-0199 (e.g. +1 202 555 0143)
 //   uuid           8-4-4-4-12 hex                    nil and max UUID (all 0 / all f)
 //   numeric-id     a run of 9 or more digits that    never
-//                  is not part of a word or decimal
+//                  is not part of a word or decimal,
+//                  nor the hex of a probe id p-<10 hex>
 // Reserved domains: example.com/.org/.net and their subdomains (RFC 2606), and names under the
 // .example, .test, .invalid and .localhost top-level names (RFC 2606, RFC 6761).
 //
@@ -123,6 +124,13 @@ const DETECTORS = [
     rule: 'uuid',
     pattern: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
     accept: (match) => RESERVED_UUID.test(match[0]),
+  },
+  {
+    // A contract probe id (`p-<10 hex>`, from derive-probe-matrix) is a generated name, and its
+    // hex digits are sometimes all decimal. It names no record, so it is consumed here.
+    rule: 'numeric-id',
+    pattern: /(?<![\w-])p-[0-9a-f]{10}(?![\w-])/g,
+    accept: () => true,
   },
   {
     rule: 'numeric-id',

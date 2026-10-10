@@ -11,6 +11,8 @@
 - Session: `eyJhIjoxfQ.eyJzIjoxfQ.c2lnbmF0dXJl`  <!-- expect-finding: jwt -->
 - Account: 3f2c9a1e-7b4d-4c2a-9e8f-1a2b3c4d5e6f  <!-- expect-finding: uuid -->
 - Billing reference 204857193746  <!-- expect-finding: numeric-id -->
+- Probes covered: `p-8007238027`, `p-4699623064` (generated probe names, all-decimal hex)
+- Not a probe id, so still an identifier: ref-8007238027  <!-- expect-finding: numeric-id -->
 - Credentials in a URL: https://svc:pw@build.internal.io/x  <!-- expect-finding: email-address -->
 - Internal API at http://172.16.4.12:8080/v3  <!-- expect-finding: ip-address -->
 
