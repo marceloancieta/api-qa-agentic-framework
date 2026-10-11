@@ -193,7 +193,9 @@ None of these is needed for a green run. Turn on what your project uses.
 - **CI workflows.** `.github/workflows/` runs the gates, the end-to-end suite and a daily drift check
   ([continuous integration](docs/ci.md)), plus CodeQL, a secret scan, Dependabot and an optional AI
   pull-request review ([CI security and review](docs/ci-security.md)). Keep the ones you want; each
-  page says how to turn a workflow on or off.
+  page says how to turn a workflow on or off. On Jenkins, `Jenkinsfile` and `Jenkinsfile.drift` run
+  the same gates, suite and drift check on Linux or Windows agents
+  ([Jenkins](docs/ci.md#jenkins)).
 - **Git hooks.** `npm run hooks:install` turns on the secret scan before each commit and the gates
   before each push ([CONTRIBUTING](CONTRIBUTING.md#git-hooks)).
 - **Local denylist scan.** `npm run scan:denylist` looks for terms from a private list in

@@ -4,7 +4,8 @@ Two GitHub Actions workflows run the framework's checks against the example pack
 pull request and every push to `main`, and `drift.yml` once a day. Both start the Swagger Petstore
 in Docker on the runner, the same way a contributor does (`npm run petstore:up`). The commands they
 call are described in [quality gates](quality-gates.md), [contract tooling](contract-tooling.md) and
-[test management](test-management.md); this page covers the order and the reasons.
+[test management](test-management.md); this page covers the order and the reasons. The same runs
+exist as Jenkins pipelines ([Jenkins](#jenkins)).
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
@@ -189,3 +190,35 @@ What `act` does not reproduce:
 
 Results under `act` can differ from a hosted runner in timing. Before treating a failure seen only
 under `act` as a defect, repeat the suite with `npm run lanes:flake`.
+
+## Jenkins
+
+`Jenkinsfile` and `Jenkinsfile.drift` at the repository root run the same steps as `ci.yml` and
+`drift.yml`, in the same order and for the same reasons, as declarative pipelines.
+
+| File | Trigger | Stages |
+|---|---|---|
+| `Jenkinsfile` | the job's own triggers (a webhook or SCM polling) | Node, Install, Gates, `e2e (petstore)` |
+| `Jenkinsfile.drift` | `cron('H 5 * * *')` | Node, Install, `Drift (petstore)` |
+
+**Agent.** Any agent with git, Node at the major version in `.nvmrc` on the `PATH` (the Node stage
+checks it) and Docker with the compose plugin. Steps run with `sh` on Linux agents and `bat` on
+Windows agents, so the same files serve both. Plugins: Pipeline, Git, Credentials Binding, JUnit and
+Timestamper; Allure is optional (`PUBLISH_ALLURE`).
+
+**Job.** A Pipeline (or Multibranch Pipeline) job with "Pipeline script from SCM" and script path
+`Jenkinsfile` or `Jenkinsfile.drift`. Parameters appear after the first build has read the file;
+until then every parameter takes its default.
+
+| Parameter | Use |
+|---|---|
+| `AGENT_LABEL` | the agent label to run on; empty means any agent |
+| `API_KEY_CREDENTIALS_ID` | a secret-text credential with the API key; empty generates one per build, which the Petstore accepts |
+| `PETSTORE_PORT` | host port for the Petstore container when 8080 is taken, for example by Jenkins itself on the same machine; the API URLs follow it |
+| `API_BASE_URL`, `API_SPEC_URL` | explicit URLs, for an agent that runs in a container and reaches the Petstore through `host.docker.internal` |
+| `CONTRACT_ENV` | drift only: the qa-config environment whose contract is compared |
+| `PUBLISH_ALLURE` | CI only: publish `allure-results` with the Allure plugin |
+
+The build publishes the JUnit report (`reports/junit.xml`), prints the quality gate summary and
+archives `reports/`, `playwright-report/` and `allure-results/`. It stops the Petstore in every
+case, and on failure archives its log.
