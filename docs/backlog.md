@@ -42,7 +42,7 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 ## E6 / E7 / E8 - Petstore, agents, CI
 
 Complete: PET-01, PET-02, AGT-01, AGT-02, GATE-12, GATE-13, TM-07 and CI-01, CI-02, CI-04 to
-CI-06 are in **Done**; CI-03 moved to Later.
+CI-06 and CI-03 are in **Done**.
 
 ## E9 - Docs and release
 
@@ -62,7 +62,6 @@ CI-06 are in **Done**; CI-03 moved to Later.
 | FUT-04 | More auth strategies (`basic`, `oauth2-client-credentials`). | practice | todo |
 | FUT-06 | Differential testing against a reference implementation, e.g. two versions of an API serving the same requests, using the field-bucket model. | exp | todo |
 | FUT-05 | Template repository / `npx create-api-qa` scaffolder. | plan | todo |
-| CI-03 | Jenkinsfile and Jenkinsfile.drift as placeholder examples. | roadmap | todo |
 | FUT-07 | Second service pack: VAmPI (single container, OpenAPI 3, JWT, users owning books) run in both its secure and vulnerable modes, so the same actor-based authorization matrix (OWASP API1 BOLA) passes on one and detects the flaw on the other. Needs a `login` auth strategy (credentials from variables, token minted and refreshed) and the container bound to localhost only. Verify image, tag and spec path before adopting. | plan | todo |
 | FUT-09 | Several packs on different hosts: qa-config holds one `api.auth`, one set of `api.actors` and one `base_url` per environment, and the `api` project and the lanes collect every pack's specs. Move auth, actors and base URL per pack (or per environment and pack) and scope the lanes by pack; until then run one pack folder at a time. | exp | todo |
 | GATE-14 | `coverage:status` judges every `published` row against the latest run only, so after running one spec or one pack the rows outside it are `not-in-results` and `npm run gates` fails until a full run. Keep the latest result per pack (or per case) instead. | exp | todo |
@@ -148,3 +147,4 @@ CI-06 are in **Done**; CI-03 moved to Later.
 | DOC-01 | README (first ten minutes, adoption levels, spec-version compatibility, optional pieces), `docs/onboarding.md`, `CONTRIBUTING.md`, `docs/references/README.md`, and `docs/architecture.md` with Mermaid diagrams of the building blocks, layers, phases and a run, plus the patterns in use; unused files and project-internal wording removed. | `714c39b`, `f96ca81` |
 | DOC-02 | Guides: add a test case (with the phase skills or by hand) and add a service pack. | `f96ca81` |
 | FUT-08 | Mutation testing back in v0.1.0: `npm run mutation` (Stryker over the shared libraries, on demand), with `qs` pinned by an override. | `b2f77cb` |
+| CI-03 | `Jenkinsfile` and `Jenkinsfile.drift`: the CI and drift runs as declarative pipelines for Linux (`sh`) and Windows (`bat`) agents, with `PETSTORE_PORT` for a Jenkins that holds 8080; both ran green on a Jenkins with a Windows agent, checked out through SCM. | `dd69c2e`, `b33f513`, `63a521a` |
