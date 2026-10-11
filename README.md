@@ -88,6 +88,7 @@ Next: the [onboarding tour](docs/onboarding.md), then the guides to
 | `npm test` | Every Playwright project: `unit`, `preflight`, `api`. |
 | `npm run test:unit` | Core and pack unit tests only. No network; part of `npm run gates`. |
 | `npm run test:smoke` | Cases tagged `@smoke`, after the preflight. |
+| `npm run report:html` | The Allure report of the last run, as one `reports/allure-report/index.html` that opens from disk. |
 
 The `preflight` project checks the variables named by `api.auth` and that the API host answers,
 then the `api` project runs. When it fails, no API case runs. Add `--no-deps` to skip it.

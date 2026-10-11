@@ -28,7 +28,7 @@ The provider is set in `qa-config` `test_management.provider` and configured in 
 
 | Provider | Model | Status |
 |---|---|---|
-| `allure-report` (default) | results only: an HTML report generated with Allure 3 (`npm run tm:open` serves it) | implemented |
+| `allure-report` (default) | results only: an HTML report generated with Allure 3 as one `index.html` that opens from disk (`allurerc.mjs`; `npm run tm:open` serves it) | implemented |
 | `local` | definitions-first, JSON files under `reports/tm/local`; the reference implementation and template, and the provider of the example configuration | implemented |
 | `allure-testops` | results-first: a launch per run; TestOps creates a case the first time an identity arrives | implemented, checked against TestOps 26.3 |
 | `testrail` | definitions-first | documented only (below) |

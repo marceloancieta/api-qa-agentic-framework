@@ -117,6 +117,11 @@ jobs:
           mkdir -p reports/drift
           npm run --silent lanes:published 2>&1 | tee reports/drift/published.txt
 
+      # One index.html of the lanes above that opens from disk (allurerc.mjs), in the artifact.
+      - name: Allure report
+        if: ${{ !cancelled() && steps.petstore.outcome == 'success' }}
+        run: npm run report:html
+
       - name: Job summary
         if: ${{ always() }}
         run: |

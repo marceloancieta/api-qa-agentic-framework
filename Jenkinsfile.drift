@@ -125,6 +125,11 @@ pipeline {
 
   post {
     always {
+      script {
+        if (fileExists('allure-results')) {
+          shell(returnStatus: true, 'npm run report:html')
+        }
+      }
       archiveArtifacts(artifacts: 'reports/**, allure-results/**, playwright-report/**', allowEmptyArchive: true)
     }
     failure {

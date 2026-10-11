@@ -132,6 +132,11 @@ jobs:
         if: ${{ !cancelled() && hashFiles('reports/quality-gate.md') != '' }}
         run: cat reports/quality-gate.md >> "$GITHUB_STEP_SUMMARY"
 
+      # One index.html that opens from disk (allurerc.mjs); it travels in the reports artifact.
+      - name: Allure report
+        if: ${{ !cancelled() && steps.suite.outcome != 'skipped' }}
+        run: npm run report:html
+
       - name: Petstore logs
         if: ${{ failure() }}
         run: |

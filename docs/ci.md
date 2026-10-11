@@ -134,8 +134,8 @@ Each run uploads one artifact, even when a step failed, and keeps it for 14 days
 
 | Artifact | Holds |
 |---|---|
-| `e2e-reports-<attempt>` | `allure-results/` (the run, with redacted evidence), `playwright-report/`, `reports/` (the quality gate's JSON and Markdown, `reports/tm/`, and the Petstore log after a failure) |
-| `drift-reports-<attempt>` | `reports/drift/` (digest report and lane tables), the Allure and Playwright output of the last lane run, and the Petstore log after a failure |
+| `e2e-reports-<attempt>` | `reports/allure-report/index.html` (the Allure report of the run, one file that opens from disk), `allure-results/` (the run, with redacted evidence), `playwright-report/`, `reports/` (the quality gate's JSON and Markdown, `reports/tm/`, and the Petstore log after a failure) |
+| `drift-reports-<attempt>` | `reports/drift/` (digest report and lane tables), `reports/allure-report/index.html`, the Allure and Playwright output of the last lane run, and the Petstore log after a failure |
 
 ## Adapting to a new pack or environment
 
@@ -220,5 +220,7 @@ until then every parameter takes its default.
 | `PUBLISH_ALLURE` | CI only: publish `allure-results` with the Allure plugin |
 
 The build publishes the JUnit report (`reports/junit.xml`), prints the quality gate summary and
-archives `reports/`, `playwright-report/` and `allure-results/`. It stops the Petstore in every
+archives `reports/` (with the single-file Allure report, `reports/allure-report/index.html`),
+`playwright-report/` and `allure-results/`. With `PUBLISH_ALLURE`, the Allure plugin also shows the
+report in the build page; it needs an Allure Commandline tool configured in Jenkins. It stops the Petstore in every
 case, and on failure archives its log.

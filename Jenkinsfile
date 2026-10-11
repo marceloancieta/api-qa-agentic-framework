@@ -125,6 +125,9 @@ pipeline {
     always {
       script {
         if (suiteRan) {
+          // One index.html that opens from disk (allurerc.mjs), archived with the reports, so the
+          // report needs no Allure plugin; PUBLISH_ALLURE adds the plugin's view on top.
+          shell(returnStatus: true, 'npm run report:html')
           junit(testResults: 'reports/junit.xml', allowEmptyResults: true)
           if (fileExists('reports/quality-gate.md')) {
             echo readFile('reports/quality-gate.md')
