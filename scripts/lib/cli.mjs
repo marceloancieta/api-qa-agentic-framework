@@ -2,7 +2,8 @@
 //   --service <name>   a service pack; its service.json names the API description (default when the
 //                      repository has exactly one pack)
 //   --spec <file|url>  an explicit API description instead
-//   --live             the active qa-config environment's spec_url (QA_ENV selects the environment)
+//   --live             the active qa-config environment's spec_url (QA_ENV selects the environment;
+//                      API_SPEC_URL overrides it)
 // Every tool resolves its input through `resolveSpecSource`, so the flags mean the same everywhere.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -60,8 +61,9 @@ export function activeEnvironment(root = REPO_ROOT, env = process.env) {
   return { source, name, config };
 }
 
-/** The spec_url of the active qa-config environment. */
+/** The spec_url of the active qa-config environment; API_SPEC_URL overrides it for one run. */
 export function liveSpecUrl(root = REPO_ROOT, env = process.env) {
+  if (env.API_SPEC_URL) return env.API_SPEC_URL;
   const { source, name, config } = activeEnvironment(root, env);
   if (!config.spec_url) throw new Error(`${source}: environment "${name}" has no spec_url.`);
   return config.spec_url;

@@ -110,7 +110,9 @@ the comments in step.
 
 ## What `act` can and cannot reproduce
 
-Notes for backlog CI-06, which runs the workflows locally with `act` before the first push.
+The commands and the shared settings (`.actrc`) are in
+[running the workflows locally](ci.md#running-the-workflows-locally); this table adds what each
+security workflow needs.
 
 | Workflow | With `act` | Without GitHub |
 |---|---|---|
@@ -120,4 +122,4 @@ Notes for backlog CI-06, which runs the workflows locally with `act` before the 
 | `dependabot.yml` | Not a workflow; nothing to run. Its syntax is checked by GitHub when the file reaches the default branch. | update pull requests, cooldown, grouping |
 
 The pinned `actions/checkout` and `actions/setup-node` releases run on the `node24` runtime, so
-`act` needs a version that supports it.
+`act` needs a version that supports it (0.2.89 does).

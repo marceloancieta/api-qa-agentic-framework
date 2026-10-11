@@ -1,0 +1,4 @@
+-P ubuntu-24.04=catthehacker/ubuntu:act-24.04
+-P ubuntu-latest=catthehacker/ubuntu:act-24.04
+--env API_BASE_URL=http://host.docker.internal:8080/api/v3
+--env API_SPEC_URL=http://host.docker.internal:8080/api/v3/openapi.json

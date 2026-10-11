@@ -56,6 +56,16 @@ test('--spec wins; --live reads the active environment; both together fail', () 
   assert.throws(() => resolveSpecSource({ spec: 'x', live: true }, root), /only one of/);
 });
 
+test('API_SPEC_URL overrides the environment spec_url for --live, as API_BASE_URL does for runs', () => {
+  const root = repoWith({ shop: { name: 'shop' } }, config);
+  const env = { QA_ENV: 'shared', API_SPEC_URL: 'http://host.test:8080/openapi.json' };
+  assert.equal(resolveSpecSource({ live: true }, root, env).source, env.API_SPEC_URL);
+  assert.equal(
+    resolveSpecSource({}, root, env).source,
+    join(root, 'services', 'shop', 'openapi.json'),
+  );
+});
+
 test('unknown flags fail', () => {
   assert.throws(() => parseCli({}, ['--nope']), /Unknown option/);
   assert.deepEqual(parseCli({ out: { type: 'string' } }, ['--out', 'f.json', '--live']), {

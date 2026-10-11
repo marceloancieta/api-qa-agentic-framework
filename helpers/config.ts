@@ -72,7 +72,10 @@ function readConfigFile(root: string): { file: QaConfigFile; source: string } {
   );
 }
 
-/** QA_ENV picks the environment and API_BASE_URL overrides its base URL for a one-off run. */
+/**
+ * QA_ENV picks the environment; API_BASE_URL and API_SPEC_URL override its base and contract URLs for
+ * a one-off run.
+ */
 export function loadRuntime(env: NodeJS.ProcessEnv = process.env, root = REPO_ROOT): QaRuntime {
   const { file, source } = readConfigFile(root);
   const api = file.api ?? {};
@@ -86,7 +89,7 @@ export function loadRuntime(env: NodeJS.ProcessEnv = process.env, root = REPO_RO
     source,
     environment,
     baseUrl: (env.API_BASE_URL || selected.base_url).replace(/\/+$/, ''),
-    specUrl: selected.spec_url ?? null,
+    specUrl: env.API_SPEC_URL || selected.spec_url || null,
     allowWrites: selected.allow_writes ?? false,
     auth: api.auth ?? { type: 'none' },
     actors: api.actors ?? {},

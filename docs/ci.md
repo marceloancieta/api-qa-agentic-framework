@@ -122,9 +122,10 @@ the generated key. That works for the Petstore, and against a real API it fails 
 answers rather than passing.
 
 Before a real secret is used, keep in mind that Playwright traces are not redacted. Allure evidence
-is (L-42). The configuration keeps a trace of each failed test (`trace: 'retain-on-failure'`), and
-the HTML report in the artifact embeds it, request headers included. Turn traces off in CI, or leave
-`playwright-report/` out of the upload, before setting `API_KEY`.
+is (L-42). The configuration keeps a trace of each failed test (`QA_TRACE`, default
+`retain-on-failure`), and the HTML report in the artifact embeds it, request headers included. Set
+`QA_TRACE: off` on the job, or leave `playwright-report/` out of the upload, before setting
+`API_KEY`.
 
 ## Artifacts
 
@@ -157,6 +158,33 @@ The actions are pinned by full commit SHA, with the release in a trailing commen
 
 ## Running the workflows locally
 
-Reproducing these workflows with `act` before the first push is backlog item CI-06. It covers the
-command and what `act` cannot reproduce. Among those, `localhost:8080` must reach a container that
-compose started on the host's Docker.
+`act` (the `nektos/act` project) runs the jobs in Docker on your machine, so a workflow change
+can be tried before it is pushed. `.actrc` at the repository root holds the settings every command
+below needs: the runner image for `ubuntu-24.04` and `ubuntu-latest`, and `API_BASE_URL` and
+`API_SPEC_URL` pointing at `host.docker.internal`. A job runs in its own container, while the
+Petstore that `docker compose` starts runs on the host's Docker, so `localhost:8080` inside the job
+would not reach it.
+
+Stop your own Petstore first (`npm run petstore:down`): the job's container takes port 8080.
+
+```sh
+act push -j gates                  # the gates on Linux
+act push -j e2e                    # gates, then the suite, the destructive lane, report, quality gate
+act workflow_dispatch -j drift     # the daily drift run, on demand
+act push -j gitleaks               # the secret scan over the full history
+act pull_request -j key            # the PR review's key check: skips the review without a key
+```
+
+What `act` does not reproduce:
+
+| Job or step | Why |
+|---|---|
+| Upload reports | `act`'s artifact server lacks the `upload-artifact` v7 protocol; the step is skipped when `ACT` is set. The reports stay in the job container. |
+| `codeql.yml` | needs GitHub code scanning to receive the results |
+| `pr-review.yml` `review` | needs `ANTHROPIC_API_KEY` and a pull request on GitHub to read and comment on |
+| `schedule` triggers | run the scheduled job with `workflow_dispatch` instead |
+| `dependabot.yml` | Dependabot is a GitHub service, not a workflow |
+
+Results under `act` can differ from a hosted runner in timing. One `act` run of `e2e` saw a
+`DELETE /pet/{petId}` answer `500` once; it did not recur in the next `act` run or in 560 local
+executions of the suite through `npm run lanes:flake`.
