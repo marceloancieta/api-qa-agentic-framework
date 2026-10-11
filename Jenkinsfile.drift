@@ -12,6 +12,15 @@ def shell(Map options = [:], String command) {
   return bat(options + [script: "@${command}"])
 }
 
+/**
+ * A parameter, or, when it is empty, the Jenkins environment variable of the same name (global, or
+ * set on the agent). A scheduled build takes every parameter's default, so this is how it still
+ * gets the machine's setup: the port, the API URLs, the TestOps project (docs/ci.md#jenkins).
+ */
+def setting(String name) {
+  return (params[name] ?: env."${name}" ?: '').toString().trim()
+}
+
 /** A relative path with the separators of the agent's shell (cmd reads `/x` as a switch). */
 def nativePath(String path) {
   return isUnix() ? path : path.replace('/', '\\')
@@ -83,7 +92,8 @@ pipeline {
               shell 'npm run petstore:up'
             }
 
-            List<String> contractEnv = params.CONTRACT_ENV ? ["QA_ENV=${params.CONTRACT_ENV}"] : []
+            String contract = setting('CONTRACT_ENV')
+            List<String> contractEnv = contract ? ["QA_ENV=${contract}"] : []
             int digest = 0
             withEnv(contractEnv) {
               digest = captured('digest', 'contract:digest:live')
@@ -150,12 +160,12 @@ pipeline {
 // a random value per build; plus the optional port and URL overrides.
 def withApiEnvironment(Closure body) {
   List<String> overrides = []
-  String port = params.PETSTORE_PORT ?: ''
+  String port = setting('PETSTORE_PORT')
   if (port) {
     overrides << "PETSTORE_PORT=${port}"
   }
-  String baseUrl = params.API_BASE_URL ?: (port ? "http://localhost:${port}/api/v3" : '')
-  String specUrl = params.API_SPEC_URL ?: (port ? "http://localhost:${port}/api/v3/openapi.json" : '')
+  String baseUrl = setting('API_BASE_URL') ?: (port ? "http://localhost:${port}/api/v3" : '')
+  String specUrl = setting('API_SPEC_URL') ?: (port ? "http://localhost:${port}/api/v3/openapi.json" : '')
   if (baseUrl) {
     overrides << "API_BASE_URL=${baseUrl}"
   }
@@ -163,8 +173,9 @@ def withApiEnvironment(Closure body) {
     overrides << "API_SPEC_URL=${specUrl}"
   }
   withEnv(overrides) {
-    if (params.API_KEY_CREDENTIALS_ID) {
-      withCredentials([string(credentialsId: params.API_KEY_CREDENTIALS_ID, variable: 'API_KEY')]) {
+    String keyCredential = setting('API_KEY_CREDENTIALS_ID')
+    if (keyCredential) {
+      withCredentials([string(credentialsId: keyCredential, variable: 'API_KEY')]) {
         body()
       }
     } else {

@@ -13,6 +13,15 @@ def shell(Map options = [:], String command) {
   return bat(options + [script: "@${command}"])
 }
 
+/**
+ * A parameter, or, when it is empty, the Jenkins environment variable of the same name (global, or
+ * set on the agent). A scheduled build takes every parameter's default, so this is how it still
+ * gets the machine's setup: the port, the API URLs, the TestOps project (docs/ci.md#jenkins).
+ */
+def setting(String name) {
+  return (params[name] ?: env."${name}" ?: '').toString().trim()
+}
+
 /** A relative path with the separators of the agent's shell (cmd reads `/x` as a switch). */
 def nativePath(String path) {
   return isUnix() ? path : path.replace('/', '\\')
@@ -41,7 +50,7 @@ pipeline {
     string(name: 'ALLURE_TOKEN_CREDENTIALS_ID', defaultValue: '', description: 'Secret-text credential with an Allure TestOps API token. Set: the run is reported to TestOps instead of the tool in qa-config.')
     string(name: 'ALLURE_ENDPOINT', defaultValue: '', description: 'Allure TestOps instance URL, with ALLURE_TOKEN_CREDENTIALS_ID.')
     string(name: 'ALLURE_PROJECT_ID', defaultValue: '', description: 'Allure TestOps project id, with ALLURE_TOKEN_CREDENTIALS_ID.')
-    booleanParam(name: 'PUBLISH_ALLURE', defaultValue: false, description: 'Publish allure-results with the Allure plugin (needs an Allure Commandline tool).')
+    booleanParam(name: 'PUBLISH_ALLURE', defaultValue: true, description: 'Publish allure-results with the Allure plugin, which needs an Allure Commandline tool. On a Jenkins without the plugin, set it to false or the build fails.')
   }
 
   environment {
@@ -105,7 +114,7 @@ pipeline {
             // fresh workspace starts empty: rebuild them from the registries before reporting.
             String provider = shell(returnStdout: true,
               'node -p "require(\'./qa-config.example.json\').test_management.provider"').trim()
-            if (!params.ALLURE_TOKEN_CREDENTIALS_ID && !fileExists('qa-config.json') && provider == 'local') {
+            if (!setting('ALLURE_TOKEN_CREDENTIALS_ID') && !fileExists('qa-config.json') && provider == 'local') {
               shell 'npm run tm:publish -- --service petstore'
             }
 
@@ -162,12 +171,12 @@ pipeline {
 // a random value per build; plus the optional port and URL overrides.
 def withApiEnvironment(Closure body) {
   List<String> overrides = []
-  String port = params.PETSTORE_PORT ?: ''
+  String port = setting('PETSTORE_PORT')
   if (port) {
     overrides << "PETSTORE_PORT=${port}"
   }
-  String baseUrl = params.API_BASE_URL ?: (port ? "http://localhost:${port}/api/v3" : '')
-  String specUrl = params.API_SPEC_URL ?: (port ? "http://localhost:${port}/api/v3/openapi.json" : '')
+  String baseUrl = setting('API_BASE_URL') ?: (port ? "http://localhost:${port}/api/v3" : '')
+  String specUrl = setting('API_SPEC_URL') ?: (port ? "http://localhost:${port}/api/v3/openapi.json" : '')
   if (baseUrl) {
     overrides << "API_BASE_URL=${baseUrl}"
   }
@@ -175,8 +184,9 @@ def withApiEnvironment(Closure body) {
     overrides << "API_SPEC_URL=${specUrl}"
   }
   withEnv(overrides) {
-    if (params.API_KEY_CREDENTIALS_ID) {
-      withCredentials([string(credentialsId: params.API_KEY_CREDENTIALS_ID, variable: 'API_KEY')]) {
+    String keyCredential = setting('API_KEY_CREDENTIALS_ID')
+    if (keyCredential) {
+      withCredentials([string(credentialsId: keyCredential, variable: 'API_KEY')]) {
         body()
       }
     } else {
@@ -192,16 +202,17 @@ def withApiEnvironment(Closure body) {
 // Allure TestOps receives the run when its token credential is configured (docs/ci.md#reporting-to-
 // allure-testops); the token reaches only the report step. Otherwise the tool in qa-config does.
 def withTestManagement(Closure body) {
-  if (!params.ALLURE_TOKEN_CREDENTIALS_ID) {
+  String tokenCredential = setting('ALLURE_TOKEN_CREDENTIALS_ID')
+  if (!tokenCredential) {
     body()
     return
   }
   withEnv([
     'QA_TM_PROVIDER=allure-testops',
-    "ALLURE_ENDPOINT=${params.ALLURE_ENDPOINT}",
-    "ALLURE_PROJECT_ID=${params.ALLURE_PROJECT_ID}",
+    "ALLURE_ENDPOINT=${setting('ALLURE_ENDPOINT')}",
+    "ALLURE_PROJECT_ID=${setting('ALLURE_PROJECT_ID')}",
   ]) {
-    withCredentials([string(credentialsId: params.ALLURE_TOKEN_CREDENTIALS_ID, variable: 'ALLURE_TOKEN')]) {
+    withCredentials([string(credentialsId: tokenCredential, variable: 'ALLURE_TOKEN')]) {
       body()
     }
   }

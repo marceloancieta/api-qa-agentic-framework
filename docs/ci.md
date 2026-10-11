@@ -224,17 +224,22 @@ under `act` as a defect, repeat the suite with `npm run lanes:flake`.
 
 | File | Trigger | Stages |
 |---|---|---|
-| `Jenkinsfile` | the job's own triggers (a webhook or SCM polling) | Node, Install, Gates, `e2e (petstore)` |
+| `Jenkinsfile` | the job's own triggers (a webhook, SCM polling or a schedule, [below](#scheduled-builds)) | Node, Install, Gates, `e2e (petstore)` |
 | `Jenkinsfile.drift` | `cron('H 5 * * *')` | Node, Install, `Drift (petstore)` |
 
 **Agent.** Any agent with git, Node at the major version in `.nvmrc` on the `PATH` (the Node stage
 checks it) and Docker with the compose plugin. Steps run with `sh` on Linux agents and `bat` on
 Windows agents, so the same files serve both. Plugins: Pipeline, Git, Credentials Binding, JUnit and
-Timestamper; Allure is optional (`PUBLISH_ALLURE`).
+Timestamper; Allure is optional, but `PUBLISH_ALLURE` is on by default (see the table below).
 
 **Job.** A Pipeline (or Multibranch Pipeline) job with "Pipeline script from SCM" and script path
 `Jenkinsfile` or `Jenkinsfile.drift`. Parameters appear after the first build has read the file;
 until then every parameter takes its default.
+
+Every text parameter left empty falls back to the Jenkins environment variable of the same name,
+set globally (Manage Jenkins, System, Global properties) or on the agent (its node's Environment
+variables). Set the values that describe a machine there, once, and leave the parameters for a
+one-off change.
 
 | Parameter | Use |
 |---|---|
@@ -243,11 +248,29 @@ until then every parameter takes its default.
 | `PETSTORE_PORT` | host port for the Petstore container when 8080 is taken, for example by Jenkins itself on the same machine; the API URLs follow it |
 | `API_BASE_URL`, `API_SPEC_URL` | explicit URLs, for an agent that runs in a container and reaches the Petstore through `host.docker.internal` |
 | `CONTRACT_ENV` | drift only: the qa-config environment whose contract is compared |
-| `PUBLISH_ALLURE` | CI only: publish `allure-results` with the Allure plugin |
+| `PUBLISH_ALLURE` | CI only, on by default: publish `allure-results` with the Allure plugin. **On a Jenkins without the plugin, set it to `false`**, or the build fails at that step; the single-file report is archived either way |
 | `ALLURE_TOKEN_CREDENTIALS_ID`, `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID` | CI only: report the run to Allure TestOps ([reporting to Allure TestOps](#reporting-to-allure-testops)) |
 
 The build publishes the JUnit report (`reports/junit.xml`), prints the quality gate summary and
 archives `reports/` (with the single-file Allure report, `reports/allure-report/index.html`),
 `playwright-report/` and `allure-results/`. With `PUBLISH_ALLURE`, the Allure plugin also shows the
-report in the build page; it needs an Allure Commandline tool configured in Jenkins. It stops the Petstore in every
-case, and on failure archives its log.
+report in the build page; it needs an Allure Commandline tool configured in Jenkins. It stops the
+Petstore in every case, and on failure archives its log.
+
+### Scheduled builds
+
+A scheduled build takes every parameter's default, which is why the empty defaults fall back to
+environment variables. To run the CI pipeline every night, open the job's configuration and set
+"Build periodically" with a schedule that names its time zone; the controller's clock is usually
+UTC:
+
+```text
+TZ=America/La_Paz
+0 23 * * *
+```
+
+Jenkins keeps a trigger set in the job's configuration, because the pipeline declares none of its
+own; `Jenkinsfile.drift` declares its daily `cron`, so its schedule is changed in the file. For the
+example's machine, where Jenkins itself listens on 8080, the agent's environment holds
+`PETSTORE_PORT` and, to report to TestOps, `ALLURE_TOKEN_CREDENTIALS_ID`, `ALLURE_ENDPOINT` and
+`ALLURE_PROJECT_ID`.
