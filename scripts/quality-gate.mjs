@@ -8,7 +8,7 @@
 //                   per test case, not per request: evidence attachments carry no timings yet, so
 //                   a case that sends three requests counts once with its whole duration.
 //   dast            alerts of a ZAP-style JSON report, counted per risk level
-//   mutation_score  a Stryker JSON report (mutation.json)
+//   mutation_score  Stryker's mutation.json (`npm run mutation`)
 //
 // Verdicts. A check is PASS, REVIEW (worth a human look; the build stays green and the artifact is
 // published) or FAIL. A configured check whose source does not exist is SKIPPED with the reason
@@ -310,7 +310,7 @@ export const STRATEGIES = {
   mutation_score: {
     check: 'mutation-score',
     source: (settings) => settings.source ?? DEFAULT_MUTATION_REPORT,
-    sourceHint: 'produce a Stryker JSON report first',
+    sourceHint: 'run `npm run mutation` first',
     threshold: (settings) => pick(settings, ['fail_below_pct', 'review_below_pct']),
     measure: (path) => mutationScore(readJson(path)),
     judge: (value, settings) =>

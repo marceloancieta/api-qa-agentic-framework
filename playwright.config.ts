@@ -26,7 +26,7 @@ const escapedRoot = __dirname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\
 const worktreesOfThisCheckout = new RegExp(
   `^${escapedRoot}[\\\\/]\\.claude[\\\\/]worktrees[\\\\/]`,
 );
-// Generated output (quality gate and mutation reports).
+// Generated output, including the sandbox copy a mutation run leaves behind if it is interrupted.
 const reportsOfThisCheckout = new RegExp(`^${escapedRoot}[\\\\/]reports[\\\\/]`);
 
 const DESTRUCTIVE = /@destructive/;
