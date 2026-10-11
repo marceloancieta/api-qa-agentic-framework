@@ -15,6 +15,25 @@ export function renderMarkdown(text) {
     .join('');
 }
 
+// Whole-word, case-insensitive matching, the way a search index tokenizes text.
+const tokens = (...texts) =>
+  new Set(
+    texts
+      .join(' ')
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}_]+/u),
+  );
+const matchesAll = (words, ...texts) => {
+  const have = tokens(...texts);
+  return words.every((word) =>
+    word
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}_]+/u)
+      .filter(Boolean)
+      .every((part) => have.has(part)),
+  );
+};
+
 const json = (status, body) =>
   // A 204 response must carry no body at all, not even an empty one.
   new Response(body === undefined ? null : JSON.stringify(body), {
@@ -32,8 +51,43 @@ export function fakeGitHub({
   let next = 1;
   let nextComment = 100;
   const calls = [];
+  const queries = [];
+  // GET /search/issues: quoted terms are text, unquoted `name:value` terms are qualifiers, and
+  // several `repo:` qualifiers widen the search to each of them.
+  const search = (q, perPage) => {
+    queries.push(q);
+    const words = [];
+    const repos = [];
+    const is = [];
+    for (const [, quoted, bare] of q.matchAll(/"([^"]*)"|(\S+)/g)) {
+      const qualifier = bare && /^(repo|is):(.+)$/.exec(bare);
+      if (!qualifier) words.push(quoted ?? bare);
+      else (qualifier[1] === 'repo' ? repos : is).push(qualifier[2]);
+    }
+    if (repos.length > 0 && !repos.includes(repo))
+      return json(200, { total_count: 0, incomplete_results: false, items: [] });
+    const items = [...issues.values()]
+      .filter((issue) => !is.includes('open') || issue.state === 'open')
+      .filter((issue) => !is.includes('closed') || issue.state === 'closed')
+      .filter((issue) =>
+        matchesAll(
+          words,
+          issue.title,
+          issue.body ?? '',
+          ...[...comments.values()]
+            .filter((comment) => comment.issue === issue.number)
+            .map((comment) => comment.body),
+        ),
+      )
+      .sort((a, b) => b.number - a.number);
+    return json(200, {
+      total_count: items.length,
+      incomplete_results: false,
+      items: items.slice(0, perPage),
+    });
+  };
   const fetchImpl = async (url, init) => {
-    const { pathname } = new URL(url);
+    const { pathname, searchParams } = new URL(url);
     const method = init.method;
     calls.push(`${method} ${pathname}`);
     if (init.headers.authorization !== `Bearer ${token}`)
@@ -42,6 +96,8 @@ export function fakeGitHub({
     const body = init.body ? JSON.parse(init.body) : null;
     const base = `/repos/${repo}/issues`;
     let match;
+    if (method === 'GET' && pathname === '/search/issues')
+      return search(searchParams.get('q') ?? '', Number(searchParams.get('per_page') ?? 30));
     if (method === 'POST' && pathname === base) {
       const issue = {
         number: next++,
@@ -62,7 +118,7 @@ export function fakeGitHub({
     }
     if ((match = new RegExp(`^${base}/(\\d+)/comments$`).exec(pathname)) && method === 'POST') {
       if (!issues.has(match[1])) return json(404, { message: 'Not Found' });
-      const comment = { id: nextComment++, body: body.body };
+      const comment = { id: nextComment++, body: body.body, issue: Number(match[1]) };
       comments.set(String(comment.id), comment);
       return json(201, comment);
     }
@@ -73,7 +129,7 @@ export function fakeGitHub({
     }
     return json(404, { message: `no route ${method} ${pathname}` });
   };
-  return { fetchImpl, calls, env: { GITHUB_TOKEN: token }, options: { repo } };
+  return { fetchImpl, calls, queries, env: { GITHUB_TOKEN: token }, options: { repo } };
 }
 
 const STATUSES = {
@@ -87,12 +143,48 @@ export function fakeJira({
   user = 'qa@example.com',
   token = 'jira-test-token',
   render = renderMarkdown,
+  // Data Center has only the classic /search; Cloud has only the enhanced /search/jql.
+  legacySearch = false,
 } = {}) {
   const issues = new Map();
   let next = 1;
   let nextComment = 500;
+  let clock = 0;
   const calls = [];
+  const queries = [];
   const expected = `Basic ${Buffer.from(`${user}:${token}`).toString('base64')}`;
+  // The JQL subset the fake understands; anything else is a JQL error, as Jira answers it.
+  const JQL =
+    /^project = "((?:[^"\\]|\\.)*)" AND text ~ "((?:[^"\\]|\\.)*)"( AND statusCategory != Done)? ORDER BY updated DESC$/;
+  const unescape = (value) => value.replace(/\\(.)/g, '$1');
+  const search = (jql, maxResults) => {
+    queries.push(jql);
+    const parsed = JQL.exec(jql);
+    if (!parsed) return json(400, { errorMessages: [`Error in the JQL Query: ${jql}`] });
+    const [, wantedProject, text, openOnly] = parsed;
+    if (unescape(wantedProject) !== project)
+      return json(400, { errorMessages: [`The value '${wantedProject}' does not exist.`] });
+    const reserved = /[+\-&|!(){}[\]^~*?:\\/]/.exec(unescape(text));
+    if (reserved)
+      return json(400, { errorMessages: [`'${reserved[0]}' is a reserved JQL character.`] });
+    const found = [...issues.values()]
+      .filter((issue) => !openOnly || issue.status.statusCategory.key !== 'done')
+      .filter((issue) =>
+        matchesAll(
+          unescape(text).split(/\s+/).filter(Boolean),
+          issue.summary,
+          issue.description ?? '',
+          ...issue.comments.map((comment) => comment.body),
+        ),
+      )
+      .sort((a, b) => b.updated - a.updated)
+      .slice(0, maxResults)
+      .map((issue) => ({
+        key: issue.key,
+        fields: { summary: issue.summary, status: issue.status },
+      }));
+    return json(200, { issues: found, isLast: true });
+  };
   const fetchImpl = async (url, init) => {
     const { pathname, searchParams } = new URL(url);
     const method = init.method;
@@ -101,6 +193,9 @@ export function fakeJira({
       return json(401, { errorMessages: ['unauthorized'] });
     const body = init.body ? JSON.parse(init.body) : null;
     let match;
+    const searchPath = legacySearch ? '/rest/api/2/search' : '/rest/api/2/search/jql';
+    if (method === 'GET' && pathname === searchPath)
+      return search(searchParams.get('jql') ?? '', Number(searchParams.get('maxResults') ?? 50));
     if (method === 'POST' && pathname === '/rest/api/2/issue') {
       if (body.fields.project.key !== project)
         return json(400, { errors: { project: 'unknown project' } });
@@ -111,6 +206,7 @@ export function fakeJira({
         description: body.fields.description,
         status: STATUSES['To Do'],
         comments: [],
+        updated: ++clock,
       });
       return json(201, { id: String(next), key });
     }
@@ -138,7 +234,7 @@ export function fakeJira({
       if (method === 'GET') return json(200, { transitions });
       const chosen = transitions.find((t) => t.id === body.transition.id);
       if (!chosen) return json(400, { errorMessages: ['invalid transition'] });
-      issue.status = chosen.to;
+      Object.assign(issue, { status: chosen.to, updated: ++clock });
       return json(204);
     }
     if ((match = /^\/rest\/api\/2\/issue\/([^/]+)\/comment$/.exec(pathname)) && method === 'POST') {
@@ -146,6 +242,7 @@ export function fakeJira({
       if (!issue) return json(404, { errorMessages: ['Issue does not exist'] });
       const comment = { id: String(nextComment++), body: body.body };
       issue.comments.push(comment);
+      issue.updated = ++clock;
       return json(201, comment);
     }
     if ((match = /^\/rest\/api\/2\/issue\/([^/]+)\/comment\/(\d+)$/.exec(pathname))) {
@@ -160,6 +257,7 @@ export function fakeJira({
   return {
     fetchImpl,
     calls,
+    queries,
     env: { JIRA_USER: user, JIRA_TOKEN: token },
     options: { project },
     baseUrl: 'https://jira.example',

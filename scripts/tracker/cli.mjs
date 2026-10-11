@@ -5,6 +5,7 @@
  * flag: credentials are read from the environment variables the configuration names (L-43).
  *
  *   node scripts/tracker/cli.mjs get <key>
+ *   node scripts/tracker/cli.mjs search <text>... [--open] [--limit <n>]
  *   node scripts/tracker/cli.mjs create --title <text> --body-file <file> [--label <name>]...
  *   node scripts/tracker/cli.mjs comment <key> --body-file <file>
  *   node scripts/tracker/cli.mjs move <key> <status or category>
@@ -18,7 +19,14 @@ import { createLogger } from '../lib/log.mjs';
 import { loadTracker, trackerConfig } from './index.mjs';
 
 const USAGE =
-  'Usage: tracker get <key> | create --title <t> --body-file <f> [--label <l>] | comment <key> --body-file <f> | move <key> <status>';
+  'Usage: tracker get <key> | search <text> [--open] [--limit <n>] | create --title <t> --body-file <f> [--label <l>] | comment <key> --body-file <f> | move <key> <status>';
+
+const issueLine = (issue) => ({
+  key: issue.key,
+  status: issue.status,
+  category: issue.category,
+  url: issue.url,
+});
 
 export async function runCommand(argv, { tracker, log }) {
   const { values, positionals } = parseArgs({
@@ -28,6 +36,8 @@ export async function runCommand(argv, { tracker, log }) {
       title: { type: 'string' },
       'body-file': { type: 'string' },
       label: { type: 'string', multiple: true },
+      open: { type: 'boolean' },
+      limit: { type: 'string' },
     },
   });
   const [command, key, target] = positionals;
@@ -39,13 +49,21 @@ export async function runCommand(argv, { tracker, log }) {
     case 'get': {
       const issue = await tracker.getIssue(key);
       if (!issue) throw new Error(`No issue ${key}.`);
-      log.info('issue', {
-        key: issue.key,
-        status: issue.status,
-        category: issue.category,
-        url: issue.url,
-      });
+      log.info('issue', issueLine(issue));
       return issue;
+    }
+    case 'search': {
+      const text = positionals.slice(1).join(' ');
+      if (!text.trim()) throw new Error('search needs the text to look for.');
+      if (values.limit !== undefined && !/^\d+$/.test(values.limit))
+        throw new Error('--limit must be a whole number.');
+      const found = await tracker.searchIssues(text, {
+        open: values.open === true,
+        ...(values.limit === undefined ? {} : { limit: Number(values.limit) }),
+      });
+      for (const issue of found) log.info('issue', { ...issueLine(issue), title: issue.title });
+      log.info('search', { text, open: values.open === true, found: found.length });
+      return found;
     }
     case 'create':
       if (!values.title) throw new Error('--title is required.');

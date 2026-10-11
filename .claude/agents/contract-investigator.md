@@ -65,9 +65,11 @@ each gets its own launch.
    report shows where the behaviour changes, not one sample. Vary `Accept` when the question is about
    a format. Use shared or seed records read-only; never create data.
 6. **Search for existing records**: contract notes (PN ids), the feature contract's gaps and
-   measurements, registry Defect columns, `knownGap(` arms in specs. Read candidate keys with
-   `npm run tracker -- get <KEY>`; the CLI has no search, so with the `local` provider also grep the
-   directory qa-config `tracker.options.dir` names. Report what you searched, or "searched, none".
+   measurements, registry Defect columns, `knownGap(` arms in specs, and the tracker with
+   `npm run tracker -- search <words>` (the operation path, the status seen, the field: a few
+   distinctive words, since every word must match). Read each candidate with
+   `npm run tracker -- get <KEY>`. Report the searches you ran and their keys, or "searched, none"
+   with the words used.
 7. **Classify** (below), propose the next step, delete your scripts, and return the report.
 
 ## Probe scripts

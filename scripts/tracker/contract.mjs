@@ -41,6 +41,58 @@ export function describeTrackerContract(name, make, { closes = 'done', reopens =
       if (reopens) assert.equal((await tracker.transition(key, 'open')).category, 'open');
     });
 
+    test('a search finds issues by every word of their title, description or comments', async () => {
+      const tracker = verifiedTracker(make());
+      const pet = await tracker.createIssue({ title: 'Unknown pet id answers 500', body: BODY });
+      const order = await tracker.createIssue({
+        title: 'Order quantity is not validated',
+        body: 'Negative quantities are stored.',
+      });
+      await tracker.comment(order.key, 'Also seen on the inventory endpoint.');
+      const keys = async (text) => (await tracker.searchIssues(text)).map((issue) => issue.key);
+      assert.deepEqual(await keys('UNKNOWN pet'), [pet.key], 'words of the title, any case');
+      assert.deepEqual(await keys('expected'), [pet.key], 'a word of the description');
+      assert.deepEqual(await keys('inventory'), [order.key], 'a word of a comment');
+      assert.deepEqual(await keys('pet quantity'), [], 'every word must appear');
+      assert.deepEqual(await keys('teapot'), []);
+      const issue = await tracker.getIssue(pet.key);
+      const shape = ['key', 'title', 'status', 'category', 'url'];
+      assert.deepEqual(
+        (await tracker.searchIssues('pet'))[0],
+        Object.fromEntries(shape.map((field) => [field, issue[field]])),
+        'the fields of getIssue without the body',
+      );
+    });
+
+    test('a search can leave out done issues and stops at its limit', async () => {
+      const tracker = verifiedTracker(make());
+      const closed = await tracker.createIssue({ title: 'Login rejects a valid token', body: 'x' });
+      const open = await tracker.createIssue({
+        title: 'Login accepts an expired token',
+        body: 'x',
+      });
+      await tracker.transition(closed.key, closes);
+      const keys = async (text, options) =>
+        (await tracker.searchIssues(text, options)).map((issue) => issue.key).sort();
+      assert.deepEqual(await keys('login token'), [closed.key, open.key].sort());
+      assert.deepEqual(await keys('login token', { open: true }), [open.key]);
+      assert.equal((await tracker.searchIssues('login', { limit: 1 })).length, 1);
+    });
+
+    test('search text that looks like query syntax is searched as text', async () => {
+      const tracker = verifiedTracker(make());
+      const quoted = await tracker.createIssue({
+        title: 'Status filter "sold" OR "pending" (any order) fails',
+        body: 'x',
+      });
+      await tracker.createIssue({ title: 'Pending pets are listed twice', body: 'x' });
+      const found = await tracker.searchIssues('"sold" OR (any order)');
+      assert.deepEqual(
+        found.map((issue) => issue.key),
+        [quoted.key],
+      );
+    });
+
     test('an unknown key reads as absent, not as an error', async () => {
       const adapter = make();
       const created = await adapter.createIssue({ title: 'one', body: '' });

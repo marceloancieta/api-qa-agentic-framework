@@ -113,8 +113,22 @@ and `move <key> <status>` go through a verified wrapper:
 - every write is read back;
 - where the tracker renders HTML, every `<placeholder>` must still be visible (L-47).
 
+`npm run tracker -- search <text> [--open] [--limit <n>]` looks for existing issues before one is
+filed or a gap is recorded. It prints one `issue` line per match (key, status, category, url, title)
+and a closing `search` line with the number found, so `found=0` is the evidence for "searched,
+none". Every word of the text must appear, ignoring case; `--open` leaves out done issues;
+`--limit` is 1 to 100 (default 20). Words are always searched as text, never as query syntax:
+
+| Provider | What a search runs |
+|---|---|
+| `github` | the issue search API, `repo:<owner/name> is:issue`, each word quoted; title, body and comments |
+| `jira` | JQL `project = <project> AND text ~ "<words>"`, newest update first; characters Jira reserves are dropped |
+| `local` | each word as a substring of the title, body or a comment; newest issue first |
+
 The GitHub and Jira adapters pass the tracker contract against in-memory fakes of their documented
-endpoints; the first use against a real instance should confirm that the live API agrees.
+endpoints; the first use against a real instance should confirm that the live API agrees. The Jira
+search calls the enhanced `search/jql` endpoint and falls back to the classic `search` where a
+server does not have it.
 
 ## Cited status
 

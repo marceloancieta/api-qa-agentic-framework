@@ -3,12 +3,17 @@
 // An adapter is a plain object:
 //   name
 //   getIssue(key)                    { key, title, body, status, category, url } or null when absent
+//   searchIssues(text, { open, limit })    [{ key, title, status, category, url }], at most `limit`
 //   createIssue({ title, body, labels })   { key, url }
 //   transition(key, target)          moves the issue; target is a status name or a category
 //   comment(key, body)               { id }
 //   readComment(key, id)             { body }
 //   renderedIssueBody(key), renderedComment(key, id)   optional: the HTML the tracker shows
 // `category` is the tracker-neutral state: open, in-progress or done.
+//
+// `searchIssues` finds the issues whose text contains every word of `text`, ignoring case, in the
+// tracker's own text search: title, description and comments. `open: true` leaves out done issues.
+// It is a read, so nothing is read back; the wrapper checks the arguments once for every adapter.
 //
 // `verifiedTracker(adapter)` wraps an adapter so that every write is read back (L-04): text is made
 // safe for Markdown before it is sent, compared after, and when the tracker can render, the
@@ -18,7 +23,28 @@
 import { codeSpanPlaceholders, htmlToText, lostPlaceholders, normalizeText } from '../lib/text.mjs';
 
 export const CATEGORIES = ['open', 'in-progress', 'done'];
-const REQUIRED = ['getIssue', 'createIssue', 'transition', 'comment', 'readComment'];
+export const SEARCH_LIMIT = { default: 20, max: 100 };
+const REQUIRED = [
+  'getIssue',
+  'searchIssues',
+  'createIssue',
+  'transition',
+  'comment',
+  'readComment',
+];
+
+/** The words of a search text, split on whitespace; an adapter quotes or escapes each one. */
+export const searchWords = (text) =>
+  String(text ?? '')
+    .split(/\s+/)
+    .filter(Boolean);
+
+function searchArguments(text, { open = false, limit = SEARCH_LIMIT.default } = {}) {
+  if (searchWords(text).length === 0) throw new Error('A search needs the text to look for.');
+  if (!Number.isInteger(limit) || limit < 1 || limit > SEARCH_LIMIT.max)
+    throw new Error(`The search limit must be a whole number from 1 to ${SEARCH_LIMIT.max}.`);
+  return { text: searchWords(text).join(' '), options: { open: open === true, limit } };
+}
 
 export function trackerProblems(adapter) {
   if (!adapter || typeof adapter !== 'object') return ['a tracker adapter must be an object'];
@@ -53,6 +79,12 @@ export function verifiedTracker(adapter, log = null) {
   return {
     name: adapter.name,
     getIssue: (key) => adapter.getIssue(key),
+
+    async searchIssues(text, options) {
+      const search = searchArguments(text, options);
+      const found = await adapter.searchIssues(search.text, search.options);
+      return found.slice(0, search.options.limit);
+    },
 
     async createIssue({ title, body = '', labels = [] }) {
       const safeBody = codeSpanPlaceholders(body);

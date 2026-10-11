@@ -29,8 +29,10 @@ the issue.
 4. **Siblings** (L-37): every operation that stores the same field or shares the code path. Test
    them; the result feeds the next question.
 5. **Scope level and issue count**, by fix location. Search the tracker at that level and above
-   (`npm run tracker -- get <KEY>` for candidates). A finding inside an open issue's scope becomes a
-   comment on that issue.
+   with `npm run tracker -- search <words> --open`, once per distinctive term (the path, the
+   field, the status seen), then read each candidate with `npm run tracker -- get <KEY>`. Repeat
+   without `--open` to find a done issue the finding reopens. A finding inside an open issue's scope
+   becomes a comment on that issue.
 
 For questions 1 and 2, a `contract-investigator` agent can confirm or refute a finding with
 read-only evidence (one finding per agent). Its report is evidence for the triage, not a verdict, and

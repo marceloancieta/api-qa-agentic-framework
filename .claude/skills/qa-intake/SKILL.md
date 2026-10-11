@@ -49,8 +49,10 @@ Write requests are not.
    search) goes to a `contract-investigator` agent, one per discrepancy, launched in parallel when
    there are several. It measures read-only and returns a report; you write its conclusion into the
    doc with its measurements, and decide nothing on its behalf.
-6. **Search the tracker for every gap as you write it down**, and record the key or "searched, none".
-   Even a probable defect is only recorded as a gap here; `qa-report-bug` decides about filing.
+6. **Search the tracker for every gap as you write it down**
+   (`npm run tracker -- search <words>`, a few distinctive words such as the path and the status
+   seen), and record the key or "searched, none". Even a probable defect is only recorded as a gap
+   here; `qa-report-bug` decides about filing.
 7. **Write** `services/<pack>/docs/features/<feature>.md` from
    [the feature contract template](../../../docs/templates/feature-contract.md). Agree the feature
    code with the user the first time (`.claude/rules/registry.md`). Link the new doc from the pack

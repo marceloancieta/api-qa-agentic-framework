@@ -62,9 +62,9 @@ and explain the deviation in the description.
 
 ## 4. Before filing
 
-1. **Search the tracker** for open issues at this level or any broader one. A finding inside the scope of an
-   open issue is evidence for that issue. Add it as a comment with the reproduction, not as a new
-   issue.
+1. **Search the tracker** for open issues at this level or any broader one
+   (`npm run tracker -- search <words> --open`). A finding inside the scope of an open issue is
+   evidence for that issue. Add it as a comment with the reproduction, not as a new issue.
 2. **Check siblings** (L-37). Find every operation that stores the same field or shares the code
    path, and test them. The result decides the level.
 3. **A wider scope found later re-scopes the existing issue.** Add the operations to its list and a

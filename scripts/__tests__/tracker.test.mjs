@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createTracker as createGitHub } from '../tracker/adapters/github.mjs';
-import { createTracker as createJira } from '../tracker/adapters/jira.mjs';
+import { createTracker as createGitHub, githubSearchQuery } from '../tracker/adapters/github.mjs';
+import { createTracker as createJira, jiraSearchJql } from '../tracker/adapters/jira.mjs';
 import { createTracker as createLocal } from '../tracker/adapters/local.mjs';
 import { describeTrackerContract } from '../tracker/contract.mjs';
 import { runCommand } from '../tracker/cli.mjs';
@@ -103,4 +103,81 @@ test('the CLI creates, comments, moves and reads through the verified tracker', 
     /--body-file is required/,
   );
   await assert.rejects(runCommand(['explode'], { tracker, log }), /Usage: tracker/);
+});
+
+test('a search needs text and a limit from 1 to 100, and never returns more than the limit', async () => {
+  const adapter = createLocal({}, { root: mkdtempSync(join(tmpdir(), 'trk-search-')) });
+  const tracker = verifiedTracker({
+    ...adapter,
+    searchIssues: async (text) => (await adapter.searchIssues(text, { limit: 100 })).concat([{}]),
+  });
+  await assert.rejects(tracker.searchIssues('  '), /needs the text/);
+  for (const limit of [0, 101, 2.5, '5'])
+    await assert.rejects(tracker.searchIssues('x', { limit }), /whole number from 1 to 100/);
+  await tracker.createIssue({ title: 'one', body: '' });
+  assert.equal((await tracker.searchIssues('one', { limit: 1 })).length, 1);
+});
+
+test('the GitHub search is scoped to the repository and quotes every word', async () => {
+  assert.equal(
+    githubSearchQuery('acme/api', 'say "hi" repo:other/x OR', { open: true }),
+    '"say" "hi" "repo:other/x" "OR" repo:acme/api is:issue is:open',
+  );
+  assert.throws(() => githubSearchQuery('acme/api', ' "" '), /Nothing to search for/);
+  const fake = fakeGitHub();
+  const tracker = verifiedTracker(github(fake));
+  await tracker.createIssue({ title: 'scoped', body: '' });
+  assert.equal((await tracker.searchIssues('scoped repo:other/x', { limit: 5 })).length, 0);
+  assert.deepEqual(fake.queries, ['"scoped" "repo:other/x" repo:acme/api is:issue']);
+});
+
+test('the Jira search escapes the text, scopes the project and falls back to the classic API', async () => {
+  assert.equal(
+    jiraSearchJql('Q"A', 'a "b" c-d (e) f\\g', { open: true }),
+    'project = "Q\\"A" AND text ~ "a b c d e f g" AND statusCategory != Done ORDER BY updated DESC',
+  );
+  assert.throws(() => jiraSearchJql('QA', '?? *'), /Nothing to search for/);
+  for (const legacySearch of [false, true]) {
+    const fake = fakeJira({ legacySearch });
+    const tracker = verifiedTracker(jira(fake));
+    const { key } = await tracker.createIssue({ title: 'Pet tags are dropped', body: '' });
+    const found = await tracker.searchIssues('pet: tags?');
+    assert.deepEqual(
+      found.map((issue) => issue.key),
+      [key],
+    );
+    assert.equal(fake.queries.length, 1);
+  }
+});
+
+test('the CLI searches through the verified tracker and validates its options', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'trk-cli-search-'));
+  const tracker = verifiedTracker(createLocal({}, { root }));
+  const lines = [];
+  const log = { info: (message, fields) => lines.push({ message, ...fields }) };
+  const { key: closed } = await tracker.createIssue({ title: 'Pet name is not trimmed', body: '' });
+  const { key: open } = await tracker.createIssue({ title: 'Pet tags are dropped', body: '' });
+  await tracker.transition(closed, 'done');
+  const found = await runCommand(['search', 'pet', '--limit', '5'], { tracker, log });
+  assert.deepEqual(
+    found.map((issue) => issue.key),
+    [open, closed],
+  );
+  assert.deepEqual(lines.at(-1), { message: 'search', text: 'pet', open: false, found: 2 });
+  assert.equal(lines[0].title, 'Pet tags are dropped');
+  const onlyOpen = await runCommand(['search', 'pet', 'tags', '--open'], { tracker, log });
+  assert.deepEqual(
+    onlyOpen.map((issue) => issue.key),
+    [open],
+  );
+  assert.deepEqual(await runCommand(['search', 'teapot'], { tracker, log }), []);
+  await assert.rejects(runCommand(['search'], { tracker, log }), /search needs the text/);
+  await assert.rejects(
+    runCommand(['search', 'pet', '--limit', 'ten'], { tracker, log }),
+    /--limit must be a whole number/,
+  );
+  await assert.rejects(
+    runCommand(['search', 'pet', '--limit', '500'], { tracker, log }),
+    /from 1 to 100/,
+  );
 });
