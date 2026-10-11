@@ -54,6 +54,10 @@ jobs:
       COMPOSE_PROJECT_NAME: qa-ci
       # One run id from execution to the test-management tool (L-48), traceable to this workflow run.
       QA_RUN_ID: gh-${{ github.run_id }}-${{ github.run_attempt }}
+      # Allure TestOps receives the run when the repository holds its secrets; otherwise the tool in
+      # qa-config does (docs/ci.md#reporting-to-allure-testops). Pull requests from forks get no
+      # secrets, so they fall back too.
+      QA_TM_PROVIDER: ${{ secrets.ALLURE_TOKEN != '' && 'allure-testops' || '' }}
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -108,14 +112,19 @@ jobs:
         if: ${{ !cancelled() && steps.suite.outcome != 'skipped' }}
         run: |
           provider=$(node -p "require('./qa-config.example.json').test_management.provider")
-          if [ ! -f qa-config.json ] && [ "$provider" = local ]; then
+          if [ -z "$QA_TM_PROVIDER" ] && [ ! -f qa-config.json ] && [ "$provider" = local ]; then
             npm run tm:publish -- --service petstore
           else
             echo "test_management.provider is not the example's local store; nothing to rebuild."
           fi
 
+      # The TestOps credentials reach this step only.
       - name: Report the run to test management
         if: ${{ !cancelled() && steps.suite.outcome != 'skipped' }}
+        env:
+          ALLURE_ENDPOINT: ${{ secrets.ALLURE_ENDPOINT }}
+          ALLURE_PROJECT_ID: ${{ secrets.ALLURE_PROJECT_ID }}
+          ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
         run: npm run tm:report -- --service petstore
 
       # The gates ran this without results; now it also checks every published case has a result

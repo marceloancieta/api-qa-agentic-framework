@@ -25,6 +25,9 @@ from execution to the tool. `QA_LOG_FORMAT=json` prints JSON lines.
 ## Test-management providers
 
 The provider is set in `qa-config` `test_management.provider` and configured in `test_management.options`.
+`QA_TM_PROVIDER` replaces the provider for one run, the way `QA_ENV` replaces the environment; CI
+uses it to report to a tool whose credentials only CI holds ([CI](ci.md#reporting-to-allure-testops)).
+The configured options apply only when the override names the configured provider.
 
 | Provider | Model | Status |
 |---|---|---|

@@ -135,5 +135,26 @@ test('no results means no run is started', async () => {
 test('providers: unknown and documented-only ones fail with a pointer; config defaults', async () => {
   await assert.rejects(loadAdapter('nope'), /Unknown test-management provider "nope"/);
   await assert.rejects(loadAdapter('testrail'), /not implemented.*docs\/test-management\.md/);
-  assert.deepEqual(testManagementConfig(ROOT), { provider: 'allure-report', options: {} });
+  assert.deepEqual(testManagementConfig(ROOT, {}), { provider: 'allure-report', options: {} });
+});
+
+test('QA_TM_PROVIDER replaces the configured provider; options follow only their own provider', () => {
+  const root = mkdtempSync(join(tmpdir(), 'tm-run-config-'));
+  writeFileSync(
+    join(root, 'qa-config.example.json'),
+    JSON.stringify({ test_management: { provider: 'local', options: { dir: 'reports/tm/x' } } }),
+  );
+  assert.deepEqual(testManagementConfig(root, {}), {
+    provider: 'local',
+    options: { dir: 'reports/tm/x' },
+  });
+  assert.deepEqual(testManagementConfig(root, { QA_TM_PROVIDER: 'allure-testops' }), {
+    provider: 'allure-testops',
+    options: {},
+  });
+  assert.deepEqual(testManagementConfig(root, { QA_TM_PROVIDER: 'local' }), {
+    provider: 'local',
+    options: { dir: 'reports/tm/x' },
+  });
+  assert.deepEqual(testManagementConfig(root, { QA_TM_PROVIDER: '  ' }).provider, 'local');
 });

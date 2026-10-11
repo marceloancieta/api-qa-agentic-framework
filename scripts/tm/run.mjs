@@ -33,13 +33,21 @@ import { buildManifest } from './manifest.mjs';
 
 export const PUBLISHABLE = ['automated', 'published'];
 
-export function testManagementConfig(root = REPO_ROOT) {
+/**
+ * The tool and its options. `QA_TM_PROVIDER` replaces the configured provider for one run, the way
+ * `QA_ENV` replaces the environment: CI reports to a tool whose credentials only it holds without a
+ * per-machine qa-config.json. The configured options belong to the configured provider, so they are
+ * kept only when the override names the same one; other adapters fall back to their defaults.
+ */
+export function testManagementConfig(root = REPO_ROOT, env = process.env) {
   const file = ['qa-config.json', 'qa-config.example.json'].find((name) =>
     existsSync(join(root, name)),
   );
   if (!file) throw new Error('No qa-config.json or qa-config.example.json found.');
   const section = JSON.parse(readFileSync(join(root, file), 'utf8')).test_management ?? {};
-  return { provider: section.provider ?? 'allure-report', options: section.options ?? {} };
+  const configured = section.provider ?? 'allure-report';
+  const provider = env.QA_TM_PROVIDER?.trim() || configured;
+  return { provider, options: provider === configured ? (section.options ?? {}) : {} };
 }
 
 /** The run id the results were recorded under, when they agree on one. */

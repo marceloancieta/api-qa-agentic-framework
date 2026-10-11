@@ -117,6 +117,7 @@ None are required for the Petstore.
 | `API_KEY` | secret, optional | `e2e`, `drift` | The API key of a real API. Without it, each run generates a random value (`openssl rand -hex 12`) and masks it. The Petstore accepts any non-empty value. A literal value is never written in a workflow. |
 | `QA_DRIFT_CONTRACT_ENV` | variable, optional | `drift` | The qa-config environment whose contract the digest step compares. Empty: the default environment. |
 | `contract_env` | `workflow_dispatch` input | `drift` | The same, for one manual run. It takes precedence over the variable. |
+| `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID`, `ALLURE_TOKEN` | secrets, optional | `e2e` | Report the run to Allure TestOps ([below](#reporting-to-allure-testops)). |
 
 Secrets are not passed to workflows triggered by pull requests from forks. Those runs fall back to
 the generated key. That works for the Petstore, and against a real API it fails loudly with `401`
@@ -127,6 +128,27 @@ is (L-42). The configuration keeps a trace of each failed test (`QA_TRACE`, defa
 `retain-on-failure`), and the HTML report in the artifact embeds it, request headers included. Set
 `QA_TRACE: off` on the job, or leave `playwright-report/` out of the upload, before setting
 `API_KEY`.
+
+### Reporting to Allure TestOps
+
+By default `e2e` reports the run to the tool in qa-config (the example's `local` store). To send it
+to Allure TestOps instead, add three repository secrets:
+
+| Secret | Value |
+|---|---|
+| `ALLURE_ENDPOINT` | the instance URL, for example `https://<instance>.testops.cloud` |
+| `ALLURE_PROJECT_ID` | the numeric project id |
+| `ALLURE_TOKEN` | an API token from your TestOps profile |
+
+When `ALLURE_TOKEN` is set, the job sets `QA_TM_PROVIDER=allure-testops`, which replaces the
+configured provider for that run ([test management](test-management.md#test-management-providers)),
+and the three values reach only the report step. The run becomes a TestOps launch named after the
+run id (`gh-<run>-<attempt>`), every result is uploaded under its case identity and read back.
+Remove the secrets (for example when a trial instance expires) and the job reports to qa-config's
+tool again; nothing else changes.
+
+On Jenkins the same comes from three parameters: `ALLURE_TOKEN_CREDENTIALS_ID` (a secret-text
+credential holding the token), `ALLURE_ENDPOINT` and `ALLURE_PROJECT_ID` ([Jenkins](#jenkins)).
 
 ## Artifacts
 
@@ -218,6 +240,7 @@ until then every parameter takes its default.
 | `API_BASE_URL`, `API_SPEC_URL` | explicit URLs, for an agent that runs in a container and reaches the Petstore through `host.docker.internal` |
 | `CONTRACT_ENV` | drift only: the qa-config environment whose contract is compared |
 | `PUBLISH_ALLURE` | CI only: publish `allure-results` with the Allure plugin |
+| `ALLURE_TOKEN_CREDENTIALS_ID`, `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID` | CI only: report the run to Allure TestOps ([reporting to Allure TestOps](#reporting-to-allure-testops)) |
 
 The build publishes the JUnit report (`reports/junit.xml`), prints the quality gate summary and
 archives `reports/` (with the single-file Allure report, `reports/allure-report/index.html`),

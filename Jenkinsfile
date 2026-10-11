@@ -38,6 +38,9 @@ pipeline {
     string(name: 'PETSTORE_PORT', defaultValue: '', description: 'Host port for the Petstore container when 8080 is taken (for example by Jenkins itself); the API URLs follow it.')
     string(name: 'API_BASE_URL', defaultValue: '', description: 'Overrides the environment base URL, e.g. http://host.docker.internal:8080/api/v3 when the agent runs in a container.')
     string(name: 'API_SPEC_URL', defaultValue: '', description: 'Overrides the environment contract URL, same reason as API_BASE_URL.')
+    string(name: 'ALLURE_TOKEN_CREDENTIALS_ID', defaultValue: '', description: 'Secret-text credential with an Allure TestOps API token. Set: the run is reported to TestOps instead of the tool in qa-config.')
+    string(name: 'ALLURE_ENDPOINT', defaultValue: '', description: 'Allure TestOps instance URL, with ALLURE_TOKEN_CREDENTIALS_ID.')
+    string(name: 'ALLURE_PROJECT_ID', defaultValue: '', description: 'Allure TestOps project id, with ALLURE_TOKEN_CREDENTIALS_ID.')
     booleanParam(name: 'PUBLISH_ALLURE', defaultValue: false, description: 'Publish allure-results with the Allure plugin (needs an Allure Commandline tool).')
   }
 
@@ -102,12 +105,14 @@ pipeline {
             // fresh workspace starts empty: rebuild them from the registries before reporting.
             String provider = shell(returnStdout: true,
               'node -p "require(\'./qa-config.example.json\').test_management.provider"').trim()
-            if (!fileExists('qa-config.json') && provider == 'local') {
+            if (!params.ALLURE_TOKEN_CREDENTIALS_ID && !fileExists('qa-config.json') && provider == 'local') {
               shell 'npm run tm:publish -- --service petstore'
             }
 
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              shell 'npm run tm:report -- --service petstore'
+              withTestManagement {
+                shell 'npm run tm:report -- --service petstore'
+              }
             }
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
               shell 'npm run coverage:status'
@@ -180,6 +185,24 @@ def withApiEnvironment(Closure body) {
       withEnv(["API_KEY=${key}"]) {
         body()
       }
+    }
+  }
+}
+
+// Allure TestOps receives the run when its token credential is configured (docs/ci.md#reporting-to-
+// allure-testops); the token reaches only the report step. Otherwise the tool in qa-config does.
+def withTestManagement(Closure body) {
+  if (!params.ALLURE_TOKEN_CREDENTIALS_ID) {
+    body()
+    return
+  }
+  withEnv([
+    'QA_TM_PROVIDER=allure-testops',
+    "ALLURE_ENDPOINT=${params.ALLURE_ENDPOINT}",
+    "ALLURE_PROJECT_ID=${params.ALLURE_PROJECT_ID}",
+  ]) {
+    withCredentials([string(credentialsId: params.ALLURE_TOKEN_CREDENTIALS_ID, variable: 'ALLURE_TOKEN')]) {
+      body()
     }
   }
 }
