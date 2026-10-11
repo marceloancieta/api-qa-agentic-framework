@@ -1,0 +1,166 @@
+// Jenkins counterpart of .github/workflows/drift.yml (CI-03): the live contract against the tracked
+// digest, the known-gap lane, the published cases on changed operations and every published case,
+// against the Petstore. A contract that moved fails the build after the lanes have run, so the
+// report shows both. What each step does and why: docs/ci.md (Jenkins).
+//
+// Agent requirements and plugins: the same as the Jenkinsfile next to this one.
+
+def shell(Map options = [:], String command) {
+  if (isUnix()) {
+    return sh(options + [script: command])
+  }
+  return bat(options + [script: "@${command}"])
+}
+
+/** A relative path with the separators of the agent's shell (cmd reads `/x` as a switch). */
+def nativePath(String path) {
+  return isUnix() ? path : path.replace('/', '\\')
+}
+
+/** Runs an npm script with its output in reports/drift/<name>.txt, prints it and returns the exit code. */
+def captured(String name, String npmScript) {
+  String file = "reports/drift/${name}.txt"
+  int status = shell(returnStatus: true, "npm run --silent ${npmScript} > ${nativePath(file)} 2>&1")
+  echo readFile(file)
+  return status
+}
+
+pipeline {
+  // Parameters exist only after the first build has read this file, hence the fallback.
+  agent { label params.AGENT_LABEL ?: '' }
+
+  triggers {
+    cron('H 5 * * *')
+  }
+
+  options {
+    timeout(time: 60, unit: 'MINUTES')
+    timestamps()
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '30'))
+  }
+
+  parameters {
+    string(name: 'AGENT_LABEL', defaultValue: '', description: 'Label of the agent that runs the build; empty means any agent.')
+    string(name: 'CONTRACT_ENV', defaultValue: '', description: 'qa-config environment whose contract the digest is compared with; empty means the active one.')
+    string(name: 'API_KEY_CREDENTIALS_ID', defaultValue: '', description: 'Secret-text credential with the API key. Empty: a random key per build, which the Petstore accepts.')
+    string(name: 'API_BASE_URL', defaultValue: '', description: 'Overrides the environment base URL, e.g. http://host.docker.internal:8080/api/v3 when the agent runs in a container.')
+    string(name: 'API_SPEC_URL', defaultValue: '', description: 'Overrides the environment contract URL, same reason as API_BASE_URL.')
+  }
+
+  environment {
+    COMPOSE_PROJECT_NAME = 'qa-jenkins-drift'
+    QA_RUN_ID = "${env.BUILD_TAG}"
+    CI = 'true'
+  }
+
+  stages {
+    stage('Node') {
+      steps {
+        script {
+          String wanted = readFile('.nvmrc').trim()
+          String actual = shell(returnStdout: true, 'node -p "process.versions.node.split(\'.\')[0]"').trim()
+          if (actual != wanted) {
+            error("The agent has Node ${actual}; .nvmrc asks for ${wanted}.")
+          }
+        }
+      }
+    }
+
+    stage('Install') {
+      steps {
+        shell 'npm ci'
+      }
+    }
+
+    stage('Drift (petstore)') {
+      steps {
+        script {
+          writeFile(file: 'reports/drift/.keep', text: '')
+          withApiEnvironment {
+            timeout(time: 5, unit: 'MINUTES') {
+              shell 'npm run petstore:up'
+            }
+
+            List<String> contractEnv = params.CONTRACT_ENV ? ["QA_ENV=${params.CONTRACT_ENV}"] : []
+            int digest = 0
+            withEnv(contractEnv) {
+              digest = captured('digest', 'contract:digest:live')
+            }
+            // 0: no structural drift. 1: drift, recorded; the build fails after the lanes.
+            // Anything else: the contract could not be compared, which stops the build now.
+            if (digest > 1) {
+              error("The live contract could not be compared with the tracked digest (exit ${digest}).")
+            }
+
+            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+              if (captured('known-gap', 'lanes:known-gap') != 0) {
+                error('The known-gap lane failed.')
+              }
+            }
+            if (digest == 1) {
+              withEnv(contractEnv) {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                  if (captured('published-changed', 'lanes:published:changed:live') != 0) {
+                    error('The published cases on changed operations failed.')
+                  }
+                }
+              }
+            }
+            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+              if (captured('published', 'lanes:published') != 0) {
+                error('The published-case lane failed.')
+              }
+            }
+
+            if (digest == 1) {
+              error('The live contract moved. Review the change, then refresh the pack contract and its digest in a pull request (docs/ci.md).')
+            }
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts(artifacts: 'reports/**, allure-results/**, playwright-report/**', allowEmptyArchive: true)
+    }
+    failure {
+      script {
+        shell(returnStatus: true, "docker compose logs --no-color petstore > ${nativePath('reports/petstore.log')} 2>&1")
+        archiveArtifacts(artifacts: 'reports/petstore.log', allowEmptyArchive: true)
+      }
+    }
+    cleanup {
+      script {
+        shell(returnStatus: true, 'npm run petstore:down')
+      }
+    }
+  }
+}
+
+// The variable named by qa-config api.auth.env, from a credential when one is configured, otherwise
+// a random value per build; plus the optional URL overrides.
+def withApiEnvironment(Closure body) {
+  List<String> overrides = []
+  if (params.API_BASE_URL) {
+    overrides << "API_BASE_URL=${params.API_BASE_URL}"
+  }
+  if (params.API_SPEC_URL) {
+    overrides << "API_SPEC_URL=${params.API_SPEC_URL}"
+  }
+  withEnv(overrides) {
+    if (params.API_KEY_CREDENTIALS_ID) {
+      withCredentials([string(credentialsId: params.API_KEY_CREDENTIALS_ID, variable: 'API_KEY')]) {
+        body()
+      }
+    } else {
+      String key = shell(returnStdout: true,
+        'node -p "require(\'node:crypto\').randomBytes(12).toString(\'hex\')"').trim()
+      withEnv(["API_KEY=${key}"]) {
+        body()
+      }
+    }
+  }
+}
