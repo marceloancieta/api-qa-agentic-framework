@@ -28,6 +28,10 @@ updates:
       # The type definitions follow the Node major in .nvmrc; a new major comes with a runtime change.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
+      # typescript-eslint declares the TypeScript range it supports (peer dependency); a TypeScript
+      # major outside it fails `npm ci`. Move both together by hand once typescript-eslint allows it.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /

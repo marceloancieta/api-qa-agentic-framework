@@ -27,6 +27,9 @@ the comments in step.
   delayed.
 - **`@types/node`.** Major versions are ignored: the type definitions follow the Node major in
   `.nvmrc`, and moving to a new major is a runtime change made on purpose.
+- **`typescript`.** Major versions are ignored too: `typescript-eslint` declares the TypeScript
+  range it supports as a peer dependency, and a major outside it fails `npm ci` in the gates. Both
+  move together, by hand, once `typescript-eslint` accepts the new major.
 - **Commit messages.** Dependabot accepts only a fixed prefix, so its commits read
   `build(deps): Bump <package> from <old> to <new>` (`build(deps-dev)` for development
   dependencies) and `ci(deps): Bump <action> ...`. This satisfies Conventional Commits and the
