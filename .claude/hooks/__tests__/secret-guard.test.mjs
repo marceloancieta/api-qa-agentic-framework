@@ -29,6 +29,38 @@ const PRE_TOOL_USE = [
   ['Read an ssh key', pre('Read', { file_path: '/home/u/.ssh/id_rsa' }), 'block'],
   ['Bash cat .env', pre('Bash', { command: 'cat .env' }), 'block'],
   ['Bash reading a .pem', pre('Bash', { command: 'type certs\\server.pem' }), 'block'],
+  ['Bash reading a bare .key file', pre('Bash', { command: 'cat server.key' }), 'block'],
+  // key files named inside embedded code: a string literal or a path is a file reference
+  [
+    'inline node reading a key file literal',
+    pre('Bash', { command: `node -e "require('fs').readFileSync('tls.key')"` }),
+    'block',
+  ],
+  [
+    'quoted heredoc script reading a key file path',
+    pre('Bash', { command: "node <<'EOF'\nread(`${dir}/server.key`);\nEOF" }),
+    'block',
+  ],
+  [
+    'quoted heredoc fed to a shell',
+    pre('Bash', { command: "bash <<'EOF'\ncat server.key\nEOF" }),
+    'block',
+  ],
+  [
+    'unquoted heredoc expanding a command',
+    pre('Bash', { command: 'cat <<EOF\n$(cat server.key)\nEOF' }),
+    'block',
+  ],
+  [
+    'substitution inside a double-quoted inline script',
+    pre('Bash', { command: 'node -e "console.log(`cat server.key`)"' }),
+    'block',
+  ],
+  [
+    'inline python reading the env file',
+    pre('Bash', { command: `python -c "open('.env').read()"` }),
+    'block',
+  ],
   // egress combined with secrets
   [
     'curl with a secret env var',
@@ -77,6 +109,24 @@ const PRE_TOOL_USE = [
   [
     'env var reference without egress',
     pre('Bash', { command: 'node -e "console.log(process.env.HOME)"' }),
+    'allow',
+  ],
+  // member access that ends like a key file name, inside embedded code
+  [
+    'inline node reading a member named key',
+    pre('Bash', { command: 'node -e "console.log(issue.key, o.pem)"' }),
+    'allow',
+  ],
+  [
+    'single-quoted inline python reading a member named key',
+    pre('Bash', { command: "python3 -c 'print(entry.key)'" }),
+    'allow',
+  ],
+  [
+    'quoted heredoc writing code with a member named key',
+    pre('Bash', {
+      command: "cat > s.mjs <<'EOF'\nconst id = issue.key;\nreturn map[o.key];\nEOF\nnode s.mjs",
+    }),
     'allow',
   ],
   [

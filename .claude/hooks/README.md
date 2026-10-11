@@ -52,6 +52,16 @@ it reports that explicitly with ask or deny. It never answers as if the check ha
 `secret-guard` also refuses payloads it cannot parse; `git-policy` lets them through, because
 secret-guard already covers that case.
 
+## Secret files named in a shell command
+
+`secret-guard` reads every word of a shell command as a possible file name, except inside code the
+command hands to an interpreter: the body of a heredoc with a quoted delimiter (`<<'EOF'`) that does
+not feed a shell, and the argument of an inline-code flag (`node -e`, `python -c`). Code names a file
+as a string literal or a path, so there a word counts only when it opens right after a quote or
+contains a path separator; `issue.key` is a member access and passes, `'server.key'` and
+`certs/tls.pem` are refused. Command substitutions inside a double-quoted argument and unquoted
+heredoc bodies run in the shell, so they are read as shell words.
+
 ## Configuration
 
 `git-policy` and `session-probe` read `qa-config.json` and fall back to `qa-config.example.json`. They

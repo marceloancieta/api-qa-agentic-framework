@@ -70,11 +70,60 @@ function isSensitiveFile(raw) {
   return !SAFE_TEMPLATES.has(name) && SENSITIVE_MATCHERS.some((matches) => matches(path, name));
 }
 
+// Code embedded in a shell command: the body of a heredoc whose delimiter is quoted (no expansion)
+// and that does not feed a shell, and the argument of an interpreter's inline-code flag
+// (`node -e "..."`, `python -c '...'`). Command substitutions inside a double-quoted argument still
+// run in the shell, so they stay shell text.
+const QUOTED_HEREDOC = /(?<!<)<<(?!<)-?[ \t]*(['"])([\w.-]+)\1/g;
+const RUNS_SHELL = /(?:^|[\s/\\])(?:(?:ba|da|k|z)?sh|ssh|pwsh|powershell)(?:\.exe)?(?:\s|$)/i;
+const INLINE_CODE = new RegExp(
+  String.raw`\b(?:node|bun|deno|python3?|py|ruby|perl|php)(?:\.exe)?\b[^|;&\n]*?\s(?:-[a-z]*e|-c|-r|--eval|--print)\s+(?:"((?:\\[\s\S]|[^"\\])*)"|'([^']*)')`,
+  'gi',
+);
+const SUBSTITUTION = /\$\(([^()]*)\)|`([^`]*)`/g;
+
+/** Splits a command into the text the shell reads and the code it hands to an interpreter. */
+function separateCode(command) {
+  const lines = String(command ?? '').split('\n');
+  const shell = [];
+  const code = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i++];
+    shell.push(line);
+    for (const { index, 2: delimiter } of line.matchAll(QUOTED_HEREDOC)) {
+      const body = [];
+      while (i < lines.length && lines[i].replace(/^\t+/, '').trimEnd() !== delimiter) {
+        body.push(lines[i++]);
+      }
+      i++;
+      const feedsShell = RUNS_SHELL.test(line.slice(0, index).split(/[;&|]/).pop());
+      (feedsShell ? shell : code).push(...body);
+    }
+  }
+  const shellText = shell.join('\n').replace(INLINE_CODE, (whole, doubled, single) => {
+    const script = doubled ?? single;
+    code.push(script);
+    const substitutions = doubled === undefined ? [] : [...doubled.matchAll(SUBSTITUTION)];
+    const prefix = whole.slice(0, whole.length - script.length - 2);
+    return `${prefix} ${substitutions.map((m) => m[1] ?? m[2]).join(' ')} `;
+  });
+  return { shellText, code };
+}
+
+// In code a file name is a string literal or a path, so a word counts only when it opens right after
+// a quote or contains a path separator; a bare `issue.key` is a member access, not a key file.
+const CODE_WORD = /(['"`])?([^\s'"`|;&<>()=,]+)/g;
+const fileWordsInCode = (script) =>
+  [...script.matchAll(CODE_WORD)]
+    .filter(([, quote, word]) => quote || /[/\\]/.test(word))
+    .map(([, , word]) => word);
+
 /** The first word of a shell command that refers to a sensitive file, if any. */
 function sensitiveFileInCommand(command) {
-  return String(command ?? '')
-    .split(/[\s'"|;&<>()=,]+/)
-    .find((word) => word && isSensitiveFile(word));
+  const { shellText, code } = separateCode(command);
+  const words = [...shellText.split(/[\s'"|;&<>()=,]+/), ...code.flatMap(fileWordsInCode)];
+  return words.find((word) => word && isSensitiveFile(word));
 }
 
 /** Why a shell command would send secrets over the network, or null. */
