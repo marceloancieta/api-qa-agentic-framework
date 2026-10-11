@@ -25,16 +25,24 @@
  *   not-run       Playwright produced no result, or the lane stopped before the case
  * and one recovery outcome: recovered, command-failed or not-ready.
  *
- *   node scripts/destructive-lane.mjs [--project api] [--list] [--json] [--root dir] [--config file]
+ *   node scripts/destructive-lane.mjs [--project api] [--list] [--json] [--new-run] [--root dir]
+ *                                     [--config file]
  *
  * `--list` prints the selection without running anything (offline). The lane refuses to run in an
  * environment whose `allow_writes` is false, or that names no recovery.
+ *
+ * One run. The lane runs last, after the shared run, and its results belong to that run: it reuses
+ * the run id of the latest results in allure-results/ and keeps them (QA_RUN_ID, QA_KEEP_RESULTS=1),
+ * so `tm:report` reports both together. With `--new-run`, or when there are no results, it starts
+ * a run of its own instead.
  *
  * Exit codes: 0 every case passed, skipped or failed as an armed gap, and every recovery worked;
  * 1 otherwise; 2 the lane could not run.
  */
 
 import { spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
@@ -129,6 +137,35 @@ export async function waitUntilAnswers(url, timeoutS, { fetchImpl = fetch, sleep
 }
 
 // ---------------------------------------------------------------------------------------------
+// The run the lane belongs to
+
+/** The `run` label of the most recent result in `resultsDir`, or null when there is none. */
+export function latestRunId(resultsDir) {
+  if (!existsSync(resultsDir)) return null;
+  let latest = null;
+  for (const name of readdirSync(resultsDir).filter((n) => n.endsWith('-result.json'))) {
+    let result;
+    try {
+      result = JSON.parse(readFileSync(join(resultsDir, name), 'utf8'));
+    } catch {
+      continue;
+    }
+    const run = (result.labels ?? []).find((l) => l.name === 'run')?.value;
+    if (run && (!latest || (result.stop ?? 0) > latest.stop))
+      latest = { run, stop: result.stop ?? 0 };
+  }
+  return latest?.run ?? null;
+}
+
+/**
+ * The environment of the case at `index`: the lane's selection plus one run id for every case.
+ * Results are kept, except by the first case of a new run, whose global setup clears old ones.
+ */
+export function caseEnv(index, { runId, join: joining }) {
+  return { ...LANE_ENV, QA_RUN_ID: runId, QA_KEEP_RESULTS: joining || index > 0 ? '1' : '0' };
+}
+
+// ---------------------------------------------------------------------------------------------
 // Running
 
 /** Playwright arguments that select exactly one case. */
@@ -145,16 +182,20 @@ export function caseArgs(file, line, project, config) {
  * Run each case in its own process, then its recovery. `recover()` returns `{ ok, outcome, detail }`.
  * After a failed recovery the remaining cases are reported as not run.
  */
-export async function runDestructive(cases, { scanRoot, runRoot, project, config, recover, run }) {
+export async function runDestructive(
+  cases,
+  { scanRoot, runRoot, project, config, recover, run, runId = 'lane', join: joining = false },
+) {
   const results = [];
   let stopped = null;
-  for (const item of cases) {
+  for (const [index, item] of cases.entries()) {
     if (stopped) {
       results.push({ ...item, verdict: 'not-run', detail: `lane stopped: ${stopped}` });
       continue;
     }
     const file = relative(runRoot, join(scanRoot, item.file)).replace(/\\/g, '/');
-    const lane = (run ?? runLane)(runRoot, caseArgs(file, item.line, project, config), LANE_ENV);
+    const env = caseEnv(index, { runId, join: joining });
+    const lane = (run ?? runLane)(runRoot, caseArgs(file, item.line, project, config), env);
     if (retriedRecords(lane.records).length > 0) {
       throw new Error('a case was retried although QA_RETRIES=0; gate lanes run without retries');
     }
@@ -213,6 +254,7 @@ async function main(argv = process.argv.slice(2)) {
       json: { type: 'boolean', default: false },
       root: { type: 'string' },
       config: { type: 'string' },
+      'new-run': { type: 'boolean', default: false },
     },
   });
   const scanRoot = values.root ? resolve(values.root) : REPO_ROOT;
@@ -242,7 +284,16 @@ async function main(argv = process.argv.slice(2)) {
     );
   }
   const baseUrl = (process.env.API_BASE_URL || environment.config.base_url).replace(/\/+$/, '');
+  const previous = values['new-run'] ? null : latestRunId(join(REPO_ROOT, 'allure-results'));
+  const runId = previous ?? randomBytes(4).toString('hex');
+  console.log(
+    previous
+      ? `destructive-lane: joining run ${runId}, the latest in allure-results (--new-run starts one)`
+      : `destructive-lane: new run ${runId}`,
+  );
   const results = await runDestructive(cases, {
+    runId,
+    join: Boolean(previous),
     scanRoot,
     runRoot: REPO_ROOT,
     project: values.project,

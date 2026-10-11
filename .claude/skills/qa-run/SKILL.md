@@ -18,7 +18,8 @@ description: >-
    `npm run lanes:known-gap`, `npm run lanes:published`), or named cases (`--grep TC-PET-0[1-3]`).
    If the selection matches no test (`--list` shows none), say so and stop; never widen it on your
    own. `@destructive` cases are left out of every run by the Playwright config; run them only with
-   `npm run lanes:destructive`, last, which follows each with the environment's recovery (L-59).
+   `npm run lanes:destructive`, last, which follows each with the environment's recovery (L-59) and
+   adds its results to the run before it, so step 5 reports both.
 2. **Check the environment**: `QA_ENV`, its `base_url` and `allow_writes` (`.claude/rules/service-packs.md`)
    and reachability (`.claude/rules/reachability.md`). Never run against an environment the user did
    not choose.

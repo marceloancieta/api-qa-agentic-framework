@@ -1,6 +1,7 @@
 // Global setup: check that this run will produce results, then delete the old ones.
 // Order matters. Clearing is destructive, so it happens only after every check has passed: a
-// misconfigured run fails with the old results still on disk.
+// misconfigured run fails with the old results still on disk. QA_KEEP_RESULTS=1 keeps them: the
+// destructive lane runs one process per case and adds each to the run before it (same QA_RUN_ID).
 
 import { randomBytes } from 'node:crypto';
 import { rmSync } from 'node:fs';
@@ -17,10 +18,11 @@ export const RESULTS_DIR = join(REPO_ROOT, 'allure-results');
 /**
  * Playwright treats a `--reporter` flag as the full reporter list, discarding the configured one, so
  * such a run can pass while writing no results at all. Extra reporters are added through the
- * QA_JSON_REPORT and QA_JUNIT_REPORT variables instead (see playwright.config.ts).
+ * QA_JSON_REPORT and QA_JUNIT_REPORT variables instead (see playwright.config.ts). Every
+ * test-management provider reports from allure-results (scripts/tm/manifest.mjs), so the check
+ * applies whichever one is configured.
  */
 export function assertResultsReporter(config: FullConfig, provider: string): void {
-  if (!provider.startsWith('allure')) return;
   // Resolved reporter entries carry the module path, so match on the package name inside it.
   const reporters = config.reporter.map((entry) => String(entry[0]));
   if (reporters.some((path) => /allure-playwright/.test(path))) return;
@@ -34,7 +36,7 @@ export function assertResultsReporter(config: FullConfig, provider: string): voi
 export default function globalSetup(config: FullConfig): void {
   assertResultsReporter(config, loadRuntime().testManagement);
   acquireRunLock();
-  rmSync(RESULTS_DIR, { recursive: true, force: true });
+  if (process.env.QA_KEEP_RESULTS !== '1') rmSync(RESULTS_DIR, { recursive: true, force: true });
 
   // Fix the root seed before workers start: they inherit this environment, so every worker derives
   // its test seeds from the same root, and the printed value replays the whole run.

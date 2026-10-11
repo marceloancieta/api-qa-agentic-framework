@@ -1,15 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { REPO_ROOT } from '../lib/cli.mjs';
 import { configErrors } from '../config-check.mjs';
 import {
   LANE_ENV,
   caseArgs,
+  caseEnv,
   classifyCase,
   findDestructive,
   laneProblems,
+  latestRunId,
   recoveryOf,
   runDestructive,
   waitUntilAnswers,
@@ -93,7 +96,14 @@ test('every case runs in its own process with QA_DESTRUCTIVE=1, each followed by
       caseArgs('services/demo/specs/breaks-search.spec.ts', 14, 'api'),
     ],
   );
-  assert.ok(calls.every((c) => c.env === LANE_ENV));
+  assert.deepEqual(
+    calls.map((c) => [c.env.QA_DESTRUCTIVE, c.env.QA_RUN_ID, c.env.QA_KEEP_RESULTS]),
+    [
+      ['1', 'lane', '0'],
+      ['1', 'lane', '1'],
+      ['1', 'lane', '1'],
+    ],
+  );
   assert.equal(LANE_ENV.QA_DESTRUCTIVE, '1');
   assert.equal(LANE_ENV.QA_RETRIES, '0');
   assert.deepEqual(
@@ -201,4 +211,22 @@ test('config: a recovery needs a command and an environment that allows writes',
 
 test('the known-gap lane leaves an armed destructive case (TC-DEMO-04) to this lane', () => {
   assert.deepEqual(findKnownGaps(FIXTURES), []);
+});
+
+test('one run: the lane joins the latest recorded run, or starts one whose first case clears', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'lane-results-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  assert.equal(latestRunId(dir), null);
+  assert.equal(latestRunId(join(dir, 'missing')), null);
+  const result = (run, stop) => ({ stop, labels: [{ name: 'run', value: run }] });
+  writeFileSync(join(dir, 'a-result.json'), JSON.stringify(result('older', 10)));
+  writeFileSync(join(dir, 'b-result.json'), JSON.stringify(result('newer', 20)));
+  writeFileSync(join(dir, 'c-result.json'), 'not json');
+  writeFileSync(join(dir, 'd-container.json'), JSON.stringify(result('ignored', 99)));
+  assert.equal(latestRunId(dir), 'newer');
+
+  assert.equal(caseEnv(0, { runId: 'r', join: true }).QA_KEEP_RESULTS, '1');
+  assert.equal(caseEnv(0, { runId: 'r', join: false }).QA_KEEP_RESULTS, '0');
+  assert.equal(caseEnv(1, { runId: 'r', join: false }).QA_KEEP_RESULTS, '1');
+  assert.equal(caseEnv(1, { runId: 'r', join: false }).QA_RUN_ID, 'r');
 });
