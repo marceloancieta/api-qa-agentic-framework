@@ -32,9 +32,10 @@
 // over the registry's endpoints; fewer cases than the floor is a finding that quotes both numbers.
 //
 // The latest run is the last group of `*-result.json` files in the results directory (grouped as in
-// declared-codes), and a case is found there by its identity `<service>-<version>-<TC id>` (the
-// testCaseId set by helpers/case-meta.ts, L-22). Without results the run-based checks are skipped
-// and the report says so (L-05).
+// declared-codes), counting only results that carry a case identity `<service>-<version>-<TC id>`
+// (the testCaseId set by helpers/case-meta.ts, L-22): a unit-test run has none, so it never hides the
+// last API run. A case is found there by that identity. Without such results the run-based checks
+// are skipped and the report says so (L-05).
 //
 // Usage:
 //   node scripts/coverage-status.mjs [--service <pack>] [--results <dir>] [--root <dir>]
@@ -52,6 +53,8 @@ import { operationFloor } from './derive-floor.mjs';
 import { groupRuns } from './lib/results.mjs';
 
 /** Every rule a finding can carry, in report order. */
+const CASE_IDENTITY = /^[a-z][a-z0-9-]*-[a-z0-9][a-z0-9.-]*-TC-[A-Z][A-Z0-9]*-\d+$/;
+
 export const RULES = [
   'registry-structure',
   'unknown-endpoint',
@@ -87,7 +90,9 @@ export function trackerPattern(root) {
 /**
  * The latest run in a results directory: `{ dir, found, files, run, byIdentity }`, where
  * `byIdentity` maps a testCaseId to its last result `{ status, name, stop }` (retries collapse to
- * the attempt that finished last). `found` is false when the directory holds no result files.
+ * the attempt that finished last). Only results with a case identity count; `found` is false when
+ * there is none: Allure gives every result a hashed testCaseId, while a designed case carries
+ * `<service>-<version>-<TC id>`.
  */
 export function readLatestRun(dir) {
   const files = existsSync(dir)
@@ -95,7 +100,9 @@ export function readLatestRun(dir) {
         .filter((name) => name.endsWith('-result.json'))
         .sort()
     : [];
-  const results = files.map((name) => JSON.parse(readFileSync(join(dir, name), 'utf8')));
+  const results = files
+    .map((name) => JSON.parse(readFileSync(join(dir, name), 'utf8')))
+    .filter((result) => CASE_IDENTITY.test(result.testCaseId ?? ''));
   const runs = groupRuns(results);
   const run = runs.at(-1) ?? [];
   const byIdentity = new Map();
@@ -110,7 +117,7 @@ export function readLatestRun(dir) {
       });
     }
   }
-  return { dir, found: files.length > 0, files: files.length, run: run.length, byIdentity };
+  return { dir, found: results.length > 0, files: files.length, run: run.length, byIdentity };
 }
 
 const argumentText = (call, sourceFile) =>
@@ -438,7 +445,7 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
     );
   } else if (!results.found) {
     notes.push(
-      `No result files in ${resultsLabel}: "published in the latest run" and "blocked but passing" were not checked. Run the suite, or point --results at a results directory.`,
+      `No results of designed cases in ${resultsLabel}: "published in the latest run" and "blocked but passing" were not checked. Run the suite, or point --results at a results directory.`,
     );
   }
   const order = (finding) => RULES.indexOf(finding.rule);

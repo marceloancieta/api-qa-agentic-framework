@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { coverageStatus, inspectTest, RULES } from '../coverage-status.mjs';
@@ -96,7 +96,7 @@ test('without results the run-based checks are skipped visibly, not silently', a
   assert.equal(status['notes'].length, 1);
   assert.match(
     status['notes'][0],
-    /No result files in no-such-results: "published in the latest run"/,
+    /No results of designed cases in no-such-results: "published in the latest run"/,
   );
 });
 
@@ -168,4 +168,22 @@ test('the repository registries have no findings', () => {
   const result = run('--root', REPO_ROOT, '--results', join(ROOT, 'no-such-results'));
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /No findings\./);
+});
+
+test('a later run without case identities (unit tests) never becomes the latest run', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'coverage-unit-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  for (const name of readdirSync(join(ROOT, 'allure-results'))) {
+    copyFileSync(join(ROOT, 'allure-results', name), join(dir, name));
+  }
+  const later = 2_000_000_000_000;
+  writeFileSync(
+    join(dir, 'z-unit-result.json'),
+    JSON.stringify({ name: 'a unit test', status: 'passed', start: later, stop: later + 1 }),
+  );
+  const status = await coverageStatus(ROOT, { resultsDir: dir });
+  assert.deepEqual(
+    { found: status['results'].found, run: status['results'].run },
+    { found: true, run: 5 },
+  );
 });
