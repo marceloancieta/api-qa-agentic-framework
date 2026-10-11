@@ -44,17 +44,27 @@ export function readService(name, root = REPO_ROOT) {
   return { ...JSON.parse(readFileSync(file, 'utf8')), dir };
 }
 
-/** The spec_url of the active qa-config environment (qa-config.json, else the example). */
-export function liveSpecUrl(root = REPO_ROOT, env = process.env) {
-  const name = ['qa-config.json', 'qa-config.example.json'].find((file) =>
+/**
+ * The active qa-config environment (qa-config.json, else the example; QA_ENV selects it):
+ * `{ source, name, config }` where `config` is the environment's entry as written.
+ */
+export function activeEnvironment(root = REPO_ROOT, env = process.env) {
+  const source = ['qa-config.json', 'qa-config.example.json'].find((file) =>
     existsSync(join(root, file)),
   );
-  if (!name) throw new Error('No qa-config.json or qa-config.example.json found.');
-  const api = JSON.parse(readFileSync(join(root, name), 'utf8')).api ?? {};
-  const environment = env.QA_ENV || api.default_environment;
-  const url = api.environments?.[environment]?.spec_url;
-  if (!url) throw new Error(`${name}: environment "${environment}" has no spec_url.`);
-  return url;
+  if (!source) throw new Error('No qa-config.json or qa-config.example.json found.');
+  const api = JSON.parse(readFileSync(join(root, source), 'utf8')).api ?? {};
+  const name = env.QA_ENV || api.default_environment;
+  const config = api.environments?.[name];
+  if (!config) throw new Error(`${source}: environment "${name}" is not defined.`);
+  return { source, name, config };
+}
+
+/** The spec_url of the active qa-config environment. */
+export function liveSpecUrl(root = REPO_ROOT, env = process.env) {
+  const { source, name, config } = activeEnvironment(root, env);
+  if (!config.spec_url) throw new Error(`${source}: environment "${name}" has no spec_url.`);
+  return config.spec_url;
 }
 
 /**

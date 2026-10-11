@@ -47,10 +47,12 @@ go to data they create, or to shared data under a resource guard, in an environm
    npm run lint:qa
    npx playwright test services/<pack>/specs/<file> --list --grep @regression
    ```
-   Every designed case appears exactly once across the layer tags.
+   Every designed case appears exactly once across the layer tags. `@destructive` cases are left
+   out of every run and listing; add `QA_DESTRUCTIVE=1` to list them.
 5. **Run** the new specs together against the environment
-   (`npx playwright test services/<pack>/specs/<file> ...`), the `@destructive` ones alone after
-   them. Authors' runs replace each other's results, so this run is the one step 7 reads.
+   (`npx playwright test services/<pack>/specs/<file> ...`), then the `@destructive` ones with
+   `npm run lanes:destructive`, which runs each alone and follows it with the environment's
+   recovery. Authors' runs replace each other's results, so this run is the one step 7 reads.
    Data-backed cases pass, or fail as armed known gaps. Data-gated cases skip with a reason. Anything
    else is a test error to fix, or a finding for `qa-report-bug`.
 6. **Review**: launch the `api-spec-reviewer` agent on every new or changed spec, as a fresh agent

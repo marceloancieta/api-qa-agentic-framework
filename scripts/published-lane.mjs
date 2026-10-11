@@ -15,11 +15,13 @@
  *     current description. Operations reached through a changed named schema count as changed, and
  *     so does changed operation text, since prose can announce a behaviour change.
  *   - Tests tagged `@quarantine` are left out (gate lanes run with `--grep-invert @quarantine`).
+ *   - Tests tagged `@destructive` are left out: they run only in the destructive lane, each alone
+ *     and followed by the environment's recovery (scripts/destructive-lane.mjs).
  *
  * All selected cases run in one Playwright process with zero retries, selected with a `--grep`
  * built from their ids. Each case gets a verdict: passed, known-gap (an armed expected failure that
  * still fails), failed, skipped, not-run (no result), missing (no test carries the id) or
- * quarantined (not run on purpose).
+ * quarantined or destructive (not run here on purpose).
  *
  *   node scripts/published-lane.mjs [--changed-from-digest] [--pack name] [--project api]
  *                                   [--list] [--json] [--root dir] [--config file]
@@ -46,6 +48,7 @@ import {
   retriedRecords,
   runLane,
 } from './lib/playwright-lane.mjs';
+import { DESTRUCTIVE_TAG } from './lib/tags.mjs';
 
 const CASE_ID = /^(TC-[A-Z][A-Z0-9]*-\d+)\b/;
 export const PROBLEM_VERDICTS = new Set(['failed', 'not-run', 'missing']);
@@ -168,6 +171,7 @@ export function selectPublished(registries, corpusByPack, changed = null) {
         registry: registry.file,
         tests,
         quarantined: tests.length > 0 && tests.every((t) => t.tags.includes(QUARANTINE_TAG)),
+        destructive: tests.length > 0 && tests.every((t) => t.tags.includes(DESTRUCTIVE_TAG)),
       });
     }
   }
@@ -204,6 +208,9 @@ export function classifyCase(selection, records) {
     return { verdict: 'missing', detail: `no test title starts with ${selection.id}` };
   }
   if (selection.quarantined) return { verdict: 'quarantined', detail: `tagged ${QUARANTINE_TAG}` };
+  if (selection.destructive) {
+    return { verdict: 'destructive', detail: 'runs in the destructive lane (lanes:destructive)' };
+  }
   const own = records.filter((r) => CASE_ID.exec(r.title)?.[1] === selection.id);
   if (own.length === 0) return { verdict: 'not-run', detail: 'no result for this case' };
   const failed = own.filter((r) => r.outcome === 'unexpected' || r.outcome === 'flaky');
@@ -223,7 +230,7 @@ export function classifyCase(selection, records) {
  * case. Returns `{ results, records }`; `runRoot` is where Playwright runs (it has node_modules).
  */
 export function runPublished(selected, { scanRoot, runRoot, project, config, run = runLane }) {
-  const runnable = selected.filter((s) => s.tests.length > 0 && !s.quarantined);
+  const runnable = selected.filter((s) => s.tests.length > 0 && !s.quarantined && !s.destructive);
   let records = [];
   if (runnable.length > 0) {
     const runFiles = [

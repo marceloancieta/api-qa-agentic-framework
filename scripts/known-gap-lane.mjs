@@ -12,6 +12,8 @@
  *   - a `test.fail(...)` inside a test body whose reason is `knownGap(key, why)`, directly or through
  *     a variable initialised from it (`const reason = await knownGap(...)`);
  *   - or a test tagged `@known-gap`.
+ * A `@destructive` known gap is left out: it runs only in the destructive lane, followed by its
+ * recovery (scripts/destructive-lane.mjs), which reports its arm the same way.
  *
  * Verdicts (one per case):
  *   open        the arm was reached and the case still fails: the gap is open, nothing to do
@@ -44,7 +46,7 @@ import {
   retriedRecords,
   runLane,
 } from './lib/playwright-lane.mjs';
-import { KNOWN_GAP_TAG } from './lib/tags.mjs';
+import { DESTRUCTIVE_TAG, KNOWN_GAP_TAG } from './lib/tags.mjs';
 
 export { KNOWN_GAP_TAG };
 
@@ -119,6 +121,7 @@ export function findArm(body, sourceFile) {
 export function knownGapsOf(spec) {
   const gaps = [];
   for (const test of spec.tests) {
+    if (test.tags.includes(DESTRUCTIVE_TAG)) continue;
     const body = test.node.arguments.find((argument) => ts.isFunctionLike(argument));
     const arm = findArm(body, spec.sourceFile);
     const tagged = test.tags.includes(KNOWN_GAP_TAG);

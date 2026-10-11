@@ -74,6 +74,40 @@ function splitRow(line) {
   return inner.split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, '|'));
 }
 
+/**
+ * The case details: every `### TC-...` section, as `{ id, line, fields }` where `fields` maps each
+ * `- **Label**:` bullet to its text, continuation lines included.
+ */
+export function parseDetails(lines) {
+  const details = [];
+  let current = null;
+  let field = null;
+  lines.forEach((text, index) => {
+    const heading = /^###\s+(TC-[A-Z0-9]+-\d{2,3})(?![\w-])/.exec(text);
+    if (heading) {
+      current = { id: heading[1], line: index + 1, fields: {} };
+      details.push(current);
+      field = null;
+      return;
+    }
+    if (/^#{1,3}\s/.test(text)) {
+      current = null;
+      return;
+    }
+    if (!current) return;
+    const bullet = /^- \*\*([^*]+)\*\*:?\s*(.*)$/.exec(text);
+    if (bullet) {
+      field = bullet[1].replace(/:$/, '').trim();
+      current.fields[field] = bullet[2];
+    } else if (field && /^\s+\S/.test(text)) {
+      current.fields[field] += ` ${text.trim()}`;
+    } else {
+      field = null;
+    }
+  });
+  return details;
+}
+
 /** Parse one registry. Never throws on content: every defect is a problem with a line number. */
 export function parseRegistry(text, file = 'registry.md') {
   const problems = [];
@@ -129,11 +163,12 @@ export function parseRegistry(text, file = 'registry.md') {
   const requirementIds = new Set(requirements.map((r) => r?.id));
 
   const lines = text.split(/\r?\n/);
+  const details = parseDetails(lines);
   const heading = lines.findIndex((line) => /^##\s+Cases\s*$/.test(line));
   const cases = [];
   if (heading === -1) {
     problem(1, 'missing "## Cases" section');
-    return { file, meta, requirements, cases, problems };
+    return { file, meta, requirements, cases, details, problems };
   }
 
   let index = heading + 1;
@@ -142,7 +177,7 @@ export function parseRegistry(text, file = 'registry.md') {
   const headerCells = splitRow(header);
   if (headerCells.join('|') !== COLUMNS.join('|')) {
     problem(index + 1, `the cases table header must be: | ${COLUMNS.join(' | ')} |`);
-    return { file, meta, requirements, cases, problems };
+    return { file, meta, requirements, cases, details, problems };
   }
   index += 2; // header and separator
 
@@ -195,7 +230,7 @@ export function parseRegistry(text, file = 'registry.md') {
       }
     }
   }
-  return { file, meta, requirements, cases, problems };
+  return { file, meta, requirements, cases, details, problems };
 }
 
 /** Cases counted against the contract floor: every case except those listed in beyond_floor. */

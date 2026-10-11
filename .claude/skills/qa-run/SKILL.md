@@ -17,8 +17,8 @@ description: >-
 1. **Pick the selection**: a pack (`services/<pack>/specs/`), a lane (`--grep @smoke`,
    `npm run lanes:known-gap`, `npm run lanes:published`), or named cases (`--grep TC-PET-0[1-3]`).
    If the selection matches no test (`--list` shows none), say so and stop; never widen it on your
-   own. Leave `@destructive` cases out of any shared selection (`--grep-invert @destructive`); run
-   them only on their own, last, followed by the recovery their case names (L-59).
+   own. `@destructive` cases are left out of every run by the Playwright config; run them only with
+   `npm run lanes:destructive`, last, which follows each with the environment's recovery (L-59).
 2. **Check the environment**: `QA_ENV`, its `base_url` and `allow_writes` (`.claude/rules/service-packs.md`)
    and reachability (`.claude/rules/reachability.md`). Never run against an environment the user did
    not choose.

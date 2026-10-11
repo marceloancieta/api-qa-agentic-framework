@@ -87,9 +87,10 @@ Follow the generation rule exactly; the reviewer checks it:
 Do not change what a case means. If its details cannot be automated as written, park it and say why;
 the case goes back to `qa-design` through the main conversation.
 
-A `@destructive` case goes in its own spec file and ends with the recovery its details name. It is
-never run together with other specs (L-59). Run it alone only if the launch prompt allows it;
-otherwise report it as `written, not run`.
+A `@destructive` case goes in its own spec file and cleans up in `finally` what an API call can
+remove; the environment's recovery covers the rest. Every other run leaves it out (L-59). Run it,
+with `npm run lanes:destructive`, only if the launch prompt allows it; otherwise report it as
+`written, not run`.
 
 ## Checks, then the run
 

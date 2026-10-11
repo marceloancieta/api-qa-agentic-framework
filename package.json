@@ -50,6 +50,7 @@
     "lanes:published": "node scripts/published-lane.mjs",
     "lanes:published:changed": "node scripts/published-lane.mjs --changed-from-digest",
     "lanes:flake": "node scripts/flake-lane.mjs --quarantine-report",
+    "lanes:destructive": "node scripts/destructive-lane.mjs",
     "quality:gate": "node scripts/quality-gate.mjs --summary reports/quality-gate.md",
     "tm:manifest": "node scripts/tm/manifest.mjs",
     "tm:publish": "node scripts/tm/run.mjs publish",

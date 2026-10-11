@@ -63,6 +63,10 @@
 //     applies). A tag outside it is reported where it is written, on a test or a describe. A
 //     designed case (a title starting with its TC id) carries exactly one layer tag, on itself or
 //     on a describe around it, so every lane selects it exactly once.
+//   destructive-isolation (L-59)
+//     A `@destructive` test (tagged on itself or a describe) in a file that also declares tests
+//     without the tag. Such a case runs alone in the destructive lane, followed by the
+//     environment's recovery; the files it shares with other cases are run by every shared lane.
 //
 // Findings about a whole test are reported on the line of its title.
 //
@@ -82,7 +86,7 @@ import {
   tagsOf,
   ts,
 } from './lib/corpus.mjs';
-import { KNOWN_GAP_TAG, LAYER_TAGS, TAGS } from './lib/tags.mjs';
+import { DESTRUCTIVE_TAG, KNOWN_GAP_TAG, LAYER_TAGS, TAGS } from './lib/tags.mjs';
 import { parseCli, REPO_ROOT } from './lib/cli.mjs';
 import { finding, report, selfTest } from './lib/lint.mjs';
 
@@ -667,6 +671,19 @@ function tagTaxonomy(spec, add) {
   }
 }
 
+function destructiveIsolation(spec, add) {
+  const others = spec.tests.filter((test) => !test.tags.includes(DESTRUCTIVE_TAG));
+  if (others.length === 0) return;
+  for (const test of spec.tests.filter((t) => t.tags.includes(DESTRUCTIVE_TAG))) {
+    add(
+      'destructive-isolation',
+      test.node.arguments[0] ?? test.node,
+      `${test.caseId ?? test.title} is ${DESTRUCTIVE_TAG} but shares its file with ${others.length} ` +
+        'test(s) that are not; give destructive cases a spec file of their own',
+    );
+  }
+}
+
 const RULE_FUNCTIONS = [
   xfailAndKnownGap,
   metadataAfterSkip,
@@ -675,6 +692,7 @@ const RULE_FUNCTIONS = [
   moduleScopeIo,
   unnormalizedComparison,
   tagTaxonomy,
+  destructiveIsolation,
 ];
 
 /** Findings for one parsed spec (`parseSpecSource` output), deduplicated by line and rule. */

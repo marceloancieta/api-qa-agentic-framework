@@ -36,10 +36,12 @@ Rules of thumb:
   state back is not `@data-integrity`.
 - **`@known-gap` and the arm go together.** The tag without `knownGap()` in the body, or the arm
   without the tag, is a lint finding (L-14). Arm right before the action (L-13).
-- **`@destructive` names its recovery.** The case details say how the service gets back to a usable
-  state: the delete that removes the record, or a restart when nothing else can. Shared runs leave
-  these cases out (`--grep-invert @destructive`); they run alone, last, followed by that recovery
-  (backlog GATE-12).
+- **`@destructive` names its recovery.** The case details have a `**Recovery**` bullet saying how
+  the service gets back to a usable state: the delete that removes the record, or a restart when
+  nothing else can (`lint-docs` destructive-recovery). The case lives in a spec file of its own
+  (`lint-harness` destructive-isolation). Every run leaves these cases out (the `api` project's
+  `grepInvert`); `npm run lanes:destructive` runs them alone, last, each followed by the
+  environment's `recovery` command from qa-config.
 - **A workaround names its exit.** Code that compensates for someone else's defect says which issue
   it waits on and what has to become true to remove it, in a form `npm run cited:status` can read:
   "until `<KEY>` ships". If the issue closes as won't fix, rewrite the comment, either to point at

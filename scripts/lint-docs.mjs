@@ -46,6 +46,10 @@
 //                      name of a tracked file (`swagger-digest`, `evidence`), an exported symbol, or
 //                      a quoted rule name in scripts/ or .claude/.
 //   registry-shape     problems reported by `loadRegistries` for services/<pack>/registry/*.md.
+//   destructive-recovery  a case whose details tag it `@destructive` has no `**Recovery**` bullet
+//                      saying how the service gets back to a usable state (L-59). The destructive
+//                      lane runs the environment's recovery after it; the bullet says what that
+//                      recovery must restore and how the case confirms it.
 //
 // "Planned" (dead-path and lesson-guard): a name that an open backlog row mentions in a code span (or,
 // for a bare file name, whose stem an open row uses as a word: `CHANGELOG.md`), or, for dead-path,
@@ -64,6 +68,7 @@ import { join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { finding, report, selfTest } from './lib/lint.mjs';
 import { loadRegistries } from './lib/registry.mjs';
+import { DESTRUCTIVE_TAG } from './lib/tags.mjs';
 import { parseCli, REPO_ROOT } from './lib/cli.mjs';
 
 export const FIXTURE_DIR = join(import.meta.dirname, '__fixtures__', 'lint-docs');
@@ -734,6 +739,18 @@ function checkRegistries(corpus, out) {
   for (const registry of loadRegistries(corpus.root)) {
     for (const problem of registry.problems) {
       out.push(finding('registry-shape', problem.file, problem.line, problem.message));
+    }
+    for (const detail of registry.details ?? []) {
+      const tags = detail.fields['Tags'] ?? '';
+      if (!tags.includes(DESTRUCTIVE_TAG) || detail.fields['Recovery']?.trim()) continue;
+      out.push(
+        finding(
+          'destructive-recovery',
+          registry.file,
+          detail.line,
+          `${detail.id} is ${DESTRUCTIVE_TAG} but its details have no **Recovery** bullet`,
+        ),
+      );
     }
   }
 }

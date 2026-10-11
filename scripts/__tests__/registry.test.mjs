@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { COLUMNS, loadRegistries, parseRegistry } from '../lib/registry.mjs';
+import { COLUMNS, loadRegistries, parseDetails, parseRegistry } from '../lib/registry.mjs';
 
 const header = `| ${COLUMNS.join(' | ')} |\n|${COLUMNS.map(() => '---').join('|')}|`;
 const front = [
@@ -179,4 +179,35 @@ test('the registry template parses once its placeholders are filled in', () => {
     parsed.cases.map((c) => c.id),
     ['TC-PET-01'],
   );
+});
+
+test('case details: each ### TC section maps its bullets, continuation lines included', () => {
+  const lines = [
+    '## Case details',
+    '',
+    '### TC-PET-01',
+    '',
+    '- **Request**: `GET /pet`.',
+    '- **Recovery**: delete the pet,',
+    '  then read it back.',
+    '- **Tags**: `@regression`',
+    '',
+    'A paragraph ends the bullet list.',
+    '### TC-PET-02 <!-- a note after the id -->',
+    '- **Tags**: `@smoke`',
+    '## Another section',
+    '- **Tags**: not a case',
+  ];
+  assert.deepEqual(parseDetails(lines), [
+    {
+      id: 'TC-PET-01',
+      line: 3,
+      fields: {
+        Request: '`GET /pet`.',
+        Recovery: 'delete the pet, then read it back.',
+        Tags: '`@regression`',
+      },
+    },
+    { id: 'TC-PET-02', line: 11, fields: { Tags: '`@smoke`' } },
+  ]);
 });

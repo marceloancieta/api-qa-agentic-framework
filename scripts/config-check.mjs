@@ -67,6 +67,13 @@ export function semanticErrors(config) {
       `api.default_environment "${api.default_environment}" is not one of: ${Object.keys(api.environments).join(', ')}`,
     );
   }
+  for (const [name, environment] of Object.entries(api.environments ?? {})) {
+    if (environment?.recovery && !environment.allow_writes) {
+      errors.push(
+        `api.environments.${name}.recovery is set but allow_writes is false: destructive cases never run there`,
+      );
+    }
+  }
   for (const name of Object.keys(api.actors ?? {})) {
     if (RESERVED_ACTORS.includes(name)) {
       errors.push(`api.actors.${name} is built in and cannot be redefined (use another name)`);

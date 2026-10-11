@@ -285,7 +285,8 @@ can make a shared read fail for every other caller until it is removed, and some
 can remove it. A case that reproduces such a defect is not just mutating, it is destructive: it
 cannot share a run with other cases, and the run must end by restoring the service. Find these at
 intake, with writes measured against data the run creates, before any suite depends on the broken
-read. *Guarded by:* the `@destructive` tag (E6) and its isolated lane (GATE-12).
+read. *Guarded by:* the `@destructive` tag (E6); `destructive-lane`, `destructive-recovery` and
+`destructive-isolation` (GATE-12).
 
 **L-60 - Parallel agents need disjoint data.** Agents that run against the same environment at the
 same time can each mistake the other's records for leftovers, and one of them deleted a record

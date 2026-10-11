@@ -9,7 +9,8 @@
       "local": {
         "base_url": "http://localhost:8080/api/v3",
         "spec_url": "http://localhost:8080/api/v3/openapi.json",
-        "allow_writes": true
+        "allow_writes": true,
+        "recovery": { "command": "docker compose restart petstore" }
       },
       "public": {
         "base_url": "https://petstore3.swagger.io/api/v3",

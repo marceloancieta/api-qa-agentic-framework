@@ -29,6 +29,9 @@ const worktreesOfThisCheckout = new RegExp(
 // Generated output (quality gate and mutation reports).
 const reportsOfThisCheckout = new RegExp(`^${escapedRoot}[\\\\/]reports[\\\\/]`);
 
+const DESTRUCTIVE = /@destructive/;
+const destructiveLane = process.env.QA_DESTRUCTIVE === '1';
+
 // Retries hide flakiness, so they are off unless a lane opts in. Gate lanes never set QA_RETRIES.
 function retries(): number {
   const raw = process.env.QA_RETRIES ?? '0';
@@ -75,6 +78,10 @@ export default defineConfig({
       testDir: './services',
       testMatch: '**/specs/**/*.spec.ts',
       dependencies: ['preflight'],
+      // A @destructive case breaks the service for every other caller until its recovery runs, so
+      // every run leaves it out. The destructive lane (`npm run lanes:destructive`) sets
+      // QA_DESTRUCTIVE=1, which selects only those cases, and runs each alone (L-59).
+      ...(destructiveLane ? { grep: DESTRUCTIVE } : { grepInvert: DESTRUCTIVE }),
     },
   ],
 });
