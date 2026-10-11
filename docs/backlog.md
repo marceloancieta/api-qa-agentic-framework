@@ -46,11 +46,6 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 |---|---|---|---|
 | TM-07 | `npm run tracker -- search <text>` in the tracker interface and every adapter (local, GitHub, Jira), with contract tests: intake, bug reporting and the `contract-investigator` agent must search for existing issues, and today the CLI only offers `get`, `create`, `comment` and `move`. | exp | todo |
 | GATE-13 | `secret-guard` reads a JavaScript member access such as `x.key` as a key file name and refuses the command; match only path-like words for the key-file patterns, with fixtures for both shapes. | exp | todo |
-| CI-01 | GitHub Actions: gates → Petstore e2e with service container → daily drift (live digest, known-gap lane, published-case lane), re-running affected cases when the digest moves. | roadmap, L-28, L-31 | todo |
-| CI-02 | Supply chain: Dependabot, CodeQL, gitleaks in Actions. | plan | todo |
-| CI-04 | Every wrapper propagates the test runner exit code; CI fails on any gate or spec failure. | L-49 | todo |
-| CI-05 | AI pull-request review workflow with a project rubric that lists what the gates already cover, so the review spends itself on what no gate checks. | exp | todo |
-| CI-06 | Run the GitHub Actions workflows locally with `act` (Docker) before the first push, so CI-01, CI-02 and CI-05 are exercised while the repository is still local; document the command and the jobs `act` cannot reproduce (e.g. CodeQL, hosted secrets). | plan | todo |
 
 ## E9 - Docs and release
 
@@ -147,3 +142,8 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 | AGT-02 | `contract-investigator` agent: one discrepancy per launch, read-only measurement, a classification (contract drift, defect candidate, test error, undetermined); used by `qa-intake` and `qa-report-bug`. | `b0e6235` |
 | GATE-12 | `@destructive` lane: every run leaves those cases out (the `api` project's `grepInvert`); `npm run lanes:destructive` runs each alone, then the environment's `recovery` command from qa-config (for Petstore, a container restart) and waits until the API answers, and adds its results to the run before it. Lints: `destructive-recovery` (a Recovery bullet in the registry) and `destructive-isolation` (a spec file of its own). | `cb15707`, `ce9782d` |
 | PET-02 | Petstore phases 2-4 on a representative sample: 25 of the 166 approved cases (every technique, the layer and category tags in use, the `input-error` and `not-found` envelopes, the three decision tables, two actors), authored and reviewed (`api-spec-reviewer` approve), published with the `local` adapter and run and reported as one run with the destructive lane. The other cases stay `approved` as design examples. | `36ede6a`, `cb078ff`, `41b2052`, `6f6fc84` |
+| CI-01 | GitHub Actions: `ci.yml` (gates, then the Petstore end-to-end run with docker compose: suite, destructive lane with its container restarts, report, coverage, quality gate) and `drift.yml` (daily: live digest, known-gap lane, the published cases on changed operations through `lanes:published:changed:live`, then every published case; a drift turns the run red). Compose instead of a service container, because the destructive lane's recovery restarts the container. | `672638d` |
+| CI-02 | Supply chain: Dependabot (npm and actions, 14-day cooldown), CodeQL (`security-extended`), gitleaks over the full history with a checksum-verified binary. | `621e0a7` |
+| CI-04 | Every wrapper propagates the runner's exit code (`scripts/lib/spawn.mjs`); the lanes fail on an unexplained non-zero Playwright exit; npm chains use only `&&` (`package-scripts.test.mjs`). | `1abf4e5` |
+| CI-05 | AI pull-request review (`pr-review.yml`, advisory, `pull_request` only, skipped without `ANTHROPIC_API_KEY`) against `.github/review-rubric.md`, which lists what the gates already enforce and what only a reviewer can judge. | `621e0a7` |
+| CI-06 | The workflows run locally with `act` (`.actrc`, `API_SPEC_URL` override): gates, e2e, drift, gitleaks and the review's key check pass; `docs/ci.md` lists what `act` cannot reproduce. | `b3cb208` |
