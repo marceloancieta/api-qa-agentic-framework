@@ -188,7 +188,8 @@ None of these is needed for a green run. Turn on what your project uses.
 - **Test management.** Results and case definitions reach a test-management tool through adapters,
   chosen by `test_management.provider` in qa-config: an Allure HTML report when none is set, local
   JSON files in the example configuration, and others behind the same contract. See
-  [test management](docs/test-management.md).
+  [test management](docs/test-management.md). CI can report to Allure TestOps instead once its
+  token is configured ([reporting to Allure TestOps](docs/ci.md#reporting-to-allure-testops)).
 - **Issue trackers.** Defects are searched, filed and re-read through `tracker.provider`; the example
   uses a local tracker kept in `docs/tracker/local/`. `none` turns every tracker call off. Same page.
 - **CI workflows.** `.github/workflows/` runs the gates, the end-to-end suite and a daily drift check

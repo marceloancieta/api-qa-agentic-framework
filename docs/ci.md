@@ -265,12 +265,15 @@ environment variables. To run the CI pipeline every night, open the job's config
 UTC:
 
 ```text
-TZ=America/La_Paz
+TZ=<Area/City>
 0 23 * * *
 ```
 
+`<Area/City>` is an IANA time zone such as `Europe/Madrid`; without the line the schedule follows
+the controller's clock.
+
 Jenkins keeps a trigger set in the job's configuration, because the pipeline declares none of its
-own; `Jenkinsfile.drift` declares its daily `cron`, so its schedule is changed in the file. For the
-example's machine, where Jenkins itself listens on 8080, the agent's environment holds
-`PETSTORE_PORT` and, to report to TestOps, `ALLURE_TOKEN_CREDENTIALS_ID`, `ALLURE_ENDPOINT` and
-`ALLURE_PROJECT_ID`.
+own; `Jenkinsfile.drift` declares its daily `cron`, so its schedule is changed in the file. A
+machine where Jenkins itself listens on 8080, for example, sets `PETSTORE_PORT` in the agent's
+environment, and a project that reports to TestOps sets `ALLURE_TOKEN_CREDENTIALS_ID`,
+`ALLURE_ENDPOINT` and `ALLURE_PROJECT_ID` there.
