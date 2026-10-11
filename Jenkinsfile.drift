@@ -13,12 +13,14 @@ def shell(Map options = [:], String command) {
 }
 
 /**
- * A parameter, or, when it is empty, the Jenkins environment variable of the same name (global, or
- * set on the agent). A scheduled build takes every parameter's default, so this is how it still
- * gets the machine's setup: the port, the API URLs, the TestOps project (docs/ci.md#jenkins).
+ * A parameter, or, when it is empty, the Jenkins environment variable DEFAULT_<name> (global, or set
+ * on the agent). A scheduled build takes every parameter's default, so this is how it still gets the
+ * machine's setup: the port, the API URLs, the TestOps project (docs/ci.md#jenkins). The fallback
+ * has its own name because Jenkins also exposes each parameter as a variable of the same name,
+ * empty when the parameter is, which would hide one set on the agent.
  */
 def setting(String name) {
-  return (params[name] ?: env."${name}" ?: '').toString().trim()
+  return (params[name] ?: env."DEFAULT_${name}" ?: '').toString().trim()
 }
 
 /** A relative path with the separators of the agent's shell (cmd reads `/x` as a switch). */

@@ -5,6 +5,8 @@
 // compose plugin. Linux agents run the steps with `sh`, Windows agents with `bat`.
 // Plugins: Pipeline, Git, Credentials Binding, JUnit, Timestamper; Allure is optional.
 
+import groovy.transform.Field
+
 def shell(Map options = [:], String command) {
   if (isUnix()) {
     return sh(options + [script: command])
@@ -14,12 +16,14 @@ def shell(Map options = [:], String command) {
 }
 
 /**
- * A parameter, or, when it is empty, the Jenkins environment variable of the same name (global, or
- * set on the agent). A scheduled build takes every parameter's default, so this is how it still
- * gets the machine's setup: the port, the API URLs, the TestOps project (docs/ci.md#jenkins).
+ * A parameter, or, when it is empty, the Jenkins environment variable DEFAULT_<name> (global, or set
+ * on the agent). A scheduled build takes every parameter's default, so this is how it still gets the
+ * machine's setup: the port, the API URLs, the TestOps project (docs/ci.md#jenkins). The fallback
+ * has its own name because Jenkins also exposes each parameter as a variable of the same name,
+ * empty when the parameter is, which would hide one set on the agent.
  */
 def setting(String name) {
-  return (params[name] ?: env."${name}" ?: '').toString().trim()
+  return (params[name] ?: env."DEFAULT_${name}" ?: '').toString().trim()
 }
 
 /** A relative path with the separators of the agent's shell (cmd reads `/x` as a switch). */
@@ -28,7 +32,7 @@ def nativePath(String path) {
 }
 
 // Set once the suite starts; the post steps publish results only then.
-suiteRan = false
+@Field boolean suiteRan = false
 
 pipeline {
   // Parameters exist only after the first build has read this file, hence the fallback.
@@ -50,7 +54,7 @@ pipeline {
     string(name: 'ALLURE_TOKEN_CREDENTIALS_ID', defaultValue: '', description: 'Secret-text credential with an Allure TestOps API token. Set: the run is reported to TestOps instead of the tool in qa-config.')
     string(name: 'ALLURE_ENDPOINT', defaultValue: '', description: 'Allure TestOps instance URL, with ALLURE_TOKEN_CREDENTIALS_ID.')
     string(name: 'ALLURE_PROJECT_ID', defaultValue: '', description: 'Allure TestOps project id, with ALLURE_TOKEN_CREDENTIALS_ID.')
-    booleanParam(name: 'PUBLISH_ALLURE', defaultValue: true, description: 'Publish allure-results with the Allure plugin, which needs an Allure Commandline tool. On a Jenkins without the plugin, set it to false or the build fails.')
+    booleanParam(name: 'PUBLISH_ALLURE', defaultValue: true, description: 'Publish allure-results with the Allure plugin (it needs an Allure Commandline tool). Without the plugin the build only prints a notice.')
   }
 
   environment {
@@ -147,7 +151,12 @@ pipeline {
             echo readFile('reports/quality-gate.md')
           }
           if (params.PUBLISH_ALLURE) {
-            allure(results: [[path: 'allure-results']])
+            try {
+              allure(results: [[path: 'allure-results']])
+            } catch (NoSuchMethodError missing) {
+              echo 'PUBLISH_ALLURE is on, but this Jenkins has no Allure plugin: the single-file ' +
+                'report is archived instead. Set PUBLISH_ALLURE to false to drop this notice.'
+            }
           }
         }
       }
