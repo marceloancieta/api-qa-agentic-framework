@@ -43,5 +43,6 @@ agent must know about this API that the contract does not say.
 `npm run scaffold:service -- --name <pack> --spec <file|url>` creates one from a contract. It
 reports what it found and writes nothing until it is run again with `--write`: the pack, its
 generated contract files and its skill, from
-[the service skill template](../../docs/templates/service-skill.md). Never copy another pack by hand. Facts specific to that API
-would come along and be wrong.
+[the service skill template](../../docs/templates/service-skill.md). For a pack that exists without
+a skill, `--write --skill-only` writes only the skill. Never copy another pack by hand. Facts
+specific to that API would come along and be wrong.

@@ -13,8 +13,8 @@ the spec versions real APIs publish. Each tool parsing raw specs would multiply 
 model: schemas, request bodies (including 2.0 `body`/`formData`), responses, parameters, nullability
 (`x-nullable` / `nullable` / `type: null`), servers vs `host` + `basePath`, security schemes and
 `allOf`/`oneOf`/`anyOf`. Every tool reads the model, never the raw spec. Any other version is
-rejected with an explicit error, never processed partially. Response validation picks the ajv draft by spec version (3.0
-schemas are converted; 3.1 uses `ajv/dist/2020`).
+rejected with an explicit error, never processed partially. Response validation reads the same
+model: every version is first converted to JSON Schema 2020-12 and checked with `ajv/dist/2020`.
 
 A self-test asserts that the same resource described in 2.0 and in 3.0 yields the same model, floor
 and probes.

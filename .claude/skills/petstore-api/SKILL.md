@@ -10,8 +10,9 @@ description: >-
 
 # Swagger Petstore (petstore v3)
 
-Created with `npm run scaffold:service -- --skill-only` and completed by hand from the pack. Facts
-the pack already owns are linked, not copied (`.claude/rules/documentation.md`).
+Created with `npm run scaffold:service -- --name petstore --spec <file|url> --write --skill-only`
+and completed by hand from the pack. Facts the pack already owns are linked, not copied
+(`.claude/rules/documentation.md`).
 
 ## Contract
 

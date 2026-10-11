@@ -2,8 +2,8 @@
 
 Observed behaviour of the local Petstore image (`swaggerapi/petstore3:1.0.28`) that differs from its
 OpenAPI document (`../openapi.json`) or that a case must know about. Each entry says how to reproduce
-it and how it is tracked. In E6 every entry becomes a designed case; a defect becomes a known gap
-linked to an issue once the repository has a tracker.
+it and how it is tracked. At design time every entry becomes a designed case, and a defect becomes
+a known gap linked to its tracker issue.
 
 **Status:** `untracked` (observed, no issue yet) · `tracked` (issue filed, key given) · `by-design`
 (a difference to tolerate, not a defect).

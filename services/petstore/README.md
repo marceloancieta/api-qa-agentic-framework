@@ -12,7 +12,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `openapi.json` | The contract under test (Petstore 1.0.28, OpenAPI 3.0.4, Apache-2.0). Response bodies are validated against its schemas. | present |
 | `generated/` | Contract outputs (do not edit): `value-sets.json`, `enums.ts`, `probe-matrix.json`. See `docs/contract-tooling.md`. | present |
 | `error-envelopes.json` | The error formats this API answers with, by kind, for `expectErrorEnvelope`. | present |
-| `types.ts` | Request and response types and enum value sets (generated from the OpenAPI document from E2 on). | present |
+| `types.ts` | Request and response interfaces, written by hand, and aliases of the enum value sets generated in `generated/enums.ts`. | present |
 | `clients/` | One client per resource, extending `helpers/base-client.ts`. Paths with parameters use `this.route('pet/{petId}', { petId })`. Methods return the raw response. | present |
 | `fixtures.ts` | The core `test` extended with this pack's clients and `actor(name)`. Specs import from here. | present |
 | `specs/` | Playwright specs, run by the `api` project. | present |
@@ -67,7 +67,7 @@ for two actors side by side.
 ## Contract checks
 
 - **Schemas.** `expect(body).toMatchSchema(contract, 'Pet')` validates a body against the OpenAPI
-  schema with the JSON Schema dialect of the document's version, and lists every mismatch.
+  schema (every version normalized to JSON Schema 2020-12 first) and lists every mismatch.
 - **Error envelopes.** `await expectErrorEnvelope(response, envelopes, 'input-error')` checks status,
   content type and body shape of a documented error kind. Pass `{ field }` only for envelopes that
   report the field in a key; Petstore's do not, so its cases assert the kind only.
@@ -84,8 +84,8 @@ Where this API departs from its contract is recorded in [`docs/contract-notes.md
 
 ## Specs
 
-The registries hold 166 approved cases. The specs automate a representative sample of them (backlog
-PET-02): every technique, layer and category tag in use, the `input-error` and `not-found`
+The specs automate a representative sample of the designed cases (`npm run coverage:status` counts
+them per status; backlog PET-02): every technique, layer and category tag in use, the `input-error` and `not-found`
 envelopes, the three decision tables and the two actors. A `server-error` is never the expected
 answer; it shows only as the departure an armed known gap reproduces. The other cases stay
 `approved` as design examples.

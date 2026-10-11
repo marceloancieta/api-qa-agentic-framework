@@ -27,9 +27,9 @@ Write requests are not.
 ## Steps
 
 1. **Pin the scope.** List the endpoints as `METHOD /path` and check each one exists in the contract
-   (`npm run contract:digest -- --service <pack>`). A requested endpoint or feature that the
-   contract does not have is reported as such. Stop and ask: never design for an operation that does
-   not exist, and never quietly swap in a similar one.
+   (`node scripts/swagger-digest.mjs --service <pack>` prints the digest without writing it). A
+   requested endpoint or feature that the contract does not have is reported as such. Stop and ask:
+   never design for an operation that does not exist, and never quietly swap in a similar one.
 2. **Check reachability** of what you are about to call (`.claude/rules/reachability.md`).
 3. **Read the contract** for these endpoints: parameters, bodies, responses, declared errors, security.
    Run `npm run contract:value-sets`, `npm run contract:floor` and `npm run contract:probes` for

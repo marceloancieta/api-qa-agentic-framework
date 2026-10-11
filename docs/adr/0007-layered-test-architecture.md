@@ -18,7 +18,7 @@ rules, registry, contract docs and specs. The core (`helpers/`, `fixtures/`, `sc
 imports from a service pack. A new API is a new pack, created by the scaffolder. *(Plugin
 architecture; convention over configuration.)*
 
-### Layers (each layer only knows the one below)
+### Layers (calls go downward; only clients send HTTP, through `BaseClient`)
 
 ```
 specs            Playwright tests + expect + schema validation
@@ -28,7 +28,9 @@ clients          one Service Object per resource                 (Service Object
 BaseClient       Playwright APIRequestContext, evidence, redaction
 ```
 
-- **Clients** stay the base layer. A simple test uses a client fixture directly.
+- **Clients** stay the base layer. A simple test uses a client fixture directly, and a spec may
+  also use builders, state models, guards and core helpers; what it never does is send a request
+  itself. [The architecture page](../architecture.md) draws the import directions the code has.
 - **Actors** (`actor('owner')`, `actor('user')`, `actor('anonymous')`) are the same clients bound to
   different credentials. They enable authorization matrices, covering OWASP API Security Top 10
   API1:2023 Broken Object Level Authorization.

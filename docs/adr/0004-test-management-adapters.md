@@ -16,7 +16,8 @@ neutral case manifest feeds a tool-specific adapter under `scripts/tm/adapters/<
 `qa-config` `test_management.provider` and invoked through `npm run tm:publish` / `tm:report`.
 
 Interface: `capabilities { definitions, runs }`, `publishDefinitions`, `startRun`, `reportResults`,
-`closeRun`.
+`closeRun`, and the read-back methods `readDefinitions` and `readRun` that verify every write. The
+full list, with the optional capabilities, is in the header of `scripts/tm/adapter.mjs`.
 
 Adapters: `allure-report` (default; no definitions, so the publish phase is skipped with a notice),
 `local` (JSON files, definitions-first: the reference implementation that runs the adapter contract

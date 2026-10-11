@@ -52,7 +52,7 @@ CI-06 are in **Done**; CI-03 moved to Later.
 | DOC-02 | Guides: add a test case, add a service pack. | practice | todo |
 | DOC-03 | CHANGELOG built from Conventional Commits and semantic versioning; tag `v0.1.0`. | plan, ADR 0008 | todo |
 | DOC-04 | Release gate, before the first push: (1) rewrite the local history into clean commits (one per stage, neutral messages) so no earlier wording or file version reaches the public history; (2) full-history gitleaks + denylist scan and a wording review of every commit message; (3) create the GitHub repository and push only with explicit approval. | roadmap, ADR 0001 | todo |
-| DOC-05 | Right after the first push, switch to GitHub Flow: protect `main` (required CI checks, pull requests only, squash merge, linear history), add a pull-request template linking the backlog item, and enable the matching `git-policy` rules (backlog-id key pattern, Conventional Commits, protected `main`). | ADR 0008 | todo |
+| DOC-05 | Right after the first push, switch to GitHub Flow: protect `main` (required CI checks, pull requests only, squash merge, linear history), add a pull-request template linking the backlog item, and enable the matching `git-policy` rules (backlog-id key pattern, Conventional Commits, protected `main`), and turn on private vulnerability reporting, which CONTRIBUTING points security reports to. | ADR 0008 | todo |
 
 ## Later (after v0.1.0)
 
@@ -65,8 +65,9 @@ CI-06 are in **Done**; CI-03 moved to Later.
 | FUT-06 | Differential testing against a reference implementation, e.g. two versions of an API serving the same requests, using the field-bucket model. | exp | todo |
 | FUT-05 | Template repository / `npx create-api-qa` scaffolder. | plan | todo |
 | CI-03 | Jenkinsfile and Jenkinsfile.drift as placeholder examples. | roadmap | todo |
-| FUT-08 | Mutation testing of the framework's own libraries with Stryker (`npm run mutation`, command runner over node:test), taken out of v0.1.0 because it is slow and outside the gates; the quality gate already reads its JSON report. | plan | todo |
 | FUT-07 | Second service pack: VAmPI (single container, OpenAPI 3, JWT, users owning books) run in both its secure and vulnerable modes, so the same actor-based authorization matrix (OWASP API1 BOLA) passes on one and detects the flaw on the other. Needs a `login` auth strategy (credentials from variables, token minted and refreshed) and the container bound to localhost only. Verify image, tag and spec path before adopting. | plan | todo |
+| FUT-09 | Several packs on different hosts: qa-config holds one `api.auth`, one set of `api.actors` and one `base_url` per environment, and the `api` project and the lanes collect every pack's specs. Move auth, actors and base URL per pack (or per environment and pack) and scope the lanes by pack; until then run one pack folder at a time. | exp | todo |
+| GATE-14 | `coverage:status` judges every `published` row against the latest run only, so after running one spec or one pack the rows outside it are `not-in-results` and `npm run gates` fails until a full run. Keep the latest result per pack (or per case) instead. | exp | todo |
 
 ---
 
@@ -111,11 +112,11 @@ CI-06 are in **Done**; CI-03 moved to Later.
 | GATE-06 | `known-gap-lane` (one process per armed case; a passing gap is investigated) and `published-lane` (published cases, optionally only those touching changed operations). Lanes run from worktrees and share helpers in `scripts/lib/playwright-lane.mjs`. | `80c478f`, `53b1926`, `57c7a42` |
 | GATE-08 | `quality-gate`: optional `qa-config.quality_gate` checks (pass rate, p95, DAST, mutation score), one strategy each, PASS / REVIEW / FAIL with SKIPPED for missing sources, validated input, JSON artifact and Markdown summary. | `55f7187` |
 | GATE-09 | `flake-lane`: `--repeat-each` detection with zero retries, `@quarantine` convention and release candidates; every lane refuses a non-zero `QA_RETRIES`. | `53b1926` |
-| GATE-10 | Stryker on `scripts/lib` and `.claude/hooks/lib`, on demand, feeding the quality gate; later taken out of v0.1.0 and moved to FUT-08. | `55f7187` |
+| GATE-10 | Stryker on `scripts/lib` and `.claude/hooks/lib`, on demand, feeding the quality gate; taken out for a while as FUT-08 and brought back with a pinned `qs` override. | `55f7187` |
 | GATE-11 | `npm run gates`: lint, format, types, config, hook and script tests, contract check, `lint:qa` (three linters and their self-tests), coverage status, unit tests, denylist self-test. `docs/quality-gates.md`. | `2d7df05` |
 | TM-01 | `scripts/tm/manifest.mjs`: cases from registries joined with specs, latest results of the packs keyed by identity, unattributed results excluded with reasons, unit-test results counted apart; shared `scripts/lib/results.mjs`. | `def84ad` |
 | TM-02 | Adapter interface and contract tests (`scripts/tm/contract.mjs`, with a negative control); `local` adapter as reference and template; `tm:publish` / `tm:report`. | `dc5883d` |
-| TM-03 | Adapters `allure-report` (default, Allure 3 HTML report read back against its results) and `allure-testops` (results-first: launch per run, uploads keyed by identity without machine labels, polled read-back; contract run live against a TestOps 26.3 trial, `npm run tm:contract:live`); `testrail` documented in `docs/test-management.md`. | `49c462c`, `3564ee7` |
+| TM-03 | Adapters `allure-report` (default, Allure 3 HTML report read back against its results) and `allure-testops` (results-first: launch per run, uploads keyed by identity without machine labels, polled read-back; contract run live against TestOps 26.3, `npm run tm:contract:live`); `testrail` documented in `docs/test-management.md`. | `49c462c`, `3564ee7` |
 | TM-04 | Adapter base: HTTP retries for 429/5xx/network with Retry-After or backoff (`scripts/lib/http.mjs`), idempotent close, scoped operations, read-back after every write. | `dc5883d`, `e239e96` |
 | TM-05 | Tracker interface (`scripts/tracker/`): local, GitHub and Jira adapters behind a verified wrapper (read-back, rendered placeholders kept), credentials from the environment only, contract tests over fakes; `npm run tracker`. | `e239e96` |
 | TM-06 | Run id and timestamps on tool output (`scripts/lib/log.mjs`); the run id is set by the test run, carried as a result label and reused by `tm:report`. | `3616cd8`, `49c462c` |

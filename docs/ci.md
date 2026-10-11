@@ -20,8 +20,8 @@ so a broken lint, type, contract or linter check fails in minutes, before any co
 is the same command as the pre-push hook: a gate counts only if its failure blocks (L-49).
 
 No gate needs a binary that the runner lacks. Gitleaks is called only by the git hooks through
-`scripts/secret-scan.mjs`; the gates need only git and Node. Secret scanning in Actions is backlog
-item CI-02.
+`scripts/secret-scan.mjs`; the gates need only git and Node. In Actions the secret scan is a
+workflow of its own (`secret-scan.yml`, see [CI security](ci-security.md)).
 
 ### `e2e`
 
@@ -140,8 +140,10 @@ Each run uploads one artifact, even when a step failed, and keeps it for 14 days
 
 - **Another pack against a containerised API.** Add its service to `docker-compose.yml` and its
   environment to qa-config, with a `recovery.command` if it has `@destructive` cases. Then change
-  the start step and `--service` in the report step. The suite and the lanes already cover every
-  pack in `services/`.
+  the start step and `--service` in the report step. The suite and the lanes collect every pack in
+  `services/`, but qa-config has one `base_url`, one `api.auth` and one set of actors per
+  environment, so packs on different hosts need one job per pack, each running its own
+  `services/<pack>/specs` folder with its `QA_ENV` (backlog FUT-09).
 - **A deployed environment.** Drop the start and stop steps, and set `QA_ENV` on the job to the
   qa-config environment. That environment has a `base_url`, a `spec_url` and the credentials its
   `api.auth` names, supplied as secrets. `qa-config.json` is per machine and not tracked, so CI
@@ -185,6 +187,5 @@ What `act` does not reproduce:
 | `schedule` triggers | run the scheduled job with `workflow_dispatch` instead |
 | `dependabot.yml` | Dependabot is a GitHub service, not a workflow |
 
-Results under `act` can differ from a hosted runner in timing. One `act` run of `e2e` saw a
-`DELETE /pet/{petId}` answer `500` once; it did not recur in the next `act` run or in 560 local
-executions of the suite through `npm run lanes:flake`.
+Results under `act` can differ from a hosted runner in timing. Before treating a failure seen only
+under `act` as a defect, repeat the suite with `npm run lanes:flake`.

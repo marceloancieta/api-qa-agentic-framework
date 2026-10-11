@@ -21,24 +21,21 @@ Runs before every push (pre-push hook) and needs no API:
 
 ## Linters
 
-| Linter | Reads | Rules |
+| Linter | Reads | Looks for |
 |---|---|---|
-| `lint-harness` | specs, through the TypeScript syntax tree | `xfail-armed-early`, `known-gap-untracked`, `metadata-after-skip`, `optional-assertion`, `shared-fixture-mutation`, `module-scope-io`, `unnormalized-comparison` |
+| `lint-harness` | specs, through the TypeScript syntax tree | harness misuse: known gaps armed too early or untracked, metadata after a skip, assertions that cannot fail, shared fixtures mutated, I/O at module scope, unnormalized comparisons, tags outside the taxonomy, destructive cases sharing a file |
 | `lint-suite` | specs, registries and docs | real e-mail addresses, hosts, IPs, phone numbers, JWTs, UUIDs and long ids. Only reserved values are accepted (RFC 2606/6761 names, RFC 5737 ranges, 555-01xx, nil UUID, `<placeholders>`); there is no allow-list |
-| `lint-docs` | tracked Markdown | `dead-link`, `dead-path`, `orphan-doc`, `backlog-row-shape`, `count-claim`, `adr-index`, `lesson-guard`, `registry-shape` |
+| `lint-docs` | tracked Markdown | dead links and paths, orphan docs, backlog rows, numbering, the ADR index, lesson guards, registry shape, destructive cases without a recovery |
 
-Each linter's header documents its rules in detail.
+Each linter's header lists its rule names and documents each one; `--self-test` proves them
+against the fixtures in `scripts/__fixtures__/`.
 
 ## Registries, coverage and traceability
 
-Designed cases live in `services/<pack>/registry/<FEATURE>.md`: YAML front matter (`feature`, `title`,
-`endpoints` as a block list, optional `requirements`) and a `## Cases` table with the columns
-`ID | Title | Requirement | Technique | Priority | Status | Spec | Defect`. The format is defined in
-`scripts/lib/registry.mjs`.
-
-The status lifecycle is `draft` → `approved` → `automated` → `published`, and `blocked` (with a
-defect key) when a case cannot run. `npm run coverage:status` enforces the lifecycle against the specs
-and the latest results, and compares each registry with the floor of its endpoints.
+Designed cases live in `services/<pack>/registry/<feature>.md`. The format and the status lifecycle
+are defined in `scripts/lib/registry.mjs` and explained in
+[the registry rule](../.claude/rules/registry.md). `npm run coverage:status` enforces the lifecycle
+against the specs and the latest results, and compares each registry with the floor of its endpoints.
 `npm run traceability` prints the requirement → case → technique → spec → status → result → defect
 matrix, and `traceability:write` writes it to `docs/traceability/<pack>.md`.
 
@@ -77,10 +74,18 @@ optional, and each one is a separate strategy:
 - `pass_rate`, from the Playwright JSON report or Allure results;
 - `p95_latency`, from the duration of API cases;
 - `dast`, from a ZAP JSON report;
-- `mutation_score`, from a Stryker JSON report, for packs or libraries that run Stryker.
+- `mutation_score`, from Stryker's JSON report (`npm run mutation`, below).
 
 Each check is PASS, REVIEW or FAIL. A missing source is SKIPPED with its reason, or FAIL when the
 check is `required`; malformed input is a FAIL with the reason. The worst check decides the verdict.
 REVIEW writes the artifact (`reports/quality-gate.json`) and a Markdown summary without failing the
 build; `--fail-on-review` makes it fail.
 
+## Mutation testing
+
+`npm run mutation` runs Stryker over the framework's shared libraries (`scripts/lib` and
+`.claude/hooks/lib`) against the `node:test` suites; [`stryker.config.mjs`](../stryker.config.mjs)
+holds the scope and explains how to narrow a run to one file. Stryker has no `node:test` runner, so
+every mutant reruns the suites as a whole: the run is slow, it is not part of `npm run gates`, and
+it is meant before a release or after changing a library. Its JSON report is the source of the
+`mutation_score` check above.
