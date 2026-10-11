@@ -1,0 +1,159 @@
+# Daily drift (CI-01): does the live contract still match the tracked digest (L-28), are the known
+# gaps still open, and do the published cases still pass (L-31)? A drift found fails the run and the
+# job summary says what moved. What each step runs and why: docs/ci.md.
+name: drift
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+    inputs:
+      contract_env:
+        description: 'qa-config environment whose spec_url is compared with the digest (empty: the default environment)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+# An explicit bash shell runs with `-eo pipefail`, so `lane | tee` keeps the lane's exit code.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  drift:
+    name: drift (petstore)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      COMPOSE_PROJECT_NAME: qa-drift
+      QA_RUN_ID: gh-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The variable named by qa-config api.auth.env. A real API takes it from the API_KEY secret;
+      # the Petstore accepts any non-empty value, so without the secret one is generated per run.
+      - name: Provide API_KEY
+        env:
+          PROVIDED_API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          if [ -n "$PROVIDED_API_KEY" ]; then
+            key="$PROVIDED_API_KEY"
+          else
+            key="$(openssl rand -hex 12)"
+          fi
+          echo "::add-mask::$key"
+          echo "API_KEY=$key" >> "$GITHUB_ENV"
+
+      - name: Start the Petstore
+        id: petstore
+        timeout-minutes: 5
+        run: npm run petstore:up
+
+      # swagger-digest exits 0 (matches), 1 (structural drift) or 2 (could not compare). Drift is
+      # recorded here and fails the job in the last check, after both lanes have run; a comparison
+      # that could not run fails right away.
+      - name: Live contract against the tracked digest
+        id: digest
+        env:
+          QA_ENV: ${{ inputs.contract_env || vars.QA_DRIFT_CONTRACT_ENV }}
+        run: |
+          mkdir -p reports/drift
+          status=0
+          npm run --silent contract:digest:live > reports/drift/digest.txt 2>&1 || status=$?
+          cat reports/drift/digest.txt
+          case "$status" in
+            0) echo "moved=false" >> "$GITHUB_OUTPUT" ;;
+            1)
+              echo "moved=true" >> "$GITHUB_OUTPUT"
+              echo "::error title=Contract drift::The live contract has moved away from the tracked digest; the job summary lists what moved."
+              ;;
+            *)
+              echo "::error title=Contract digest::The live contract could not be compared with the tracked digest (exit $status); see the log of this step."
+              exit "$status"
+              ;;
+          esac
+
+      # Runs against the local API whatever the digest said: the lanes need only the Petstore.
+      - name: Known-gap lane
+        if: ${{ !cancelled() && steps.petstore.outcome == 'success' }}
+        run: |
+          mkdir -p reports/drift
+          npm run --silent lanes:known-gap 2>&1 | tee reports/drift/known-gap.txt
+
+      # When the deployed contract moved, the cases on the changed operations first, so their result
+      # names what the move broke (L-31). --live diffs the tracked digest against QA_ENV's spec_url,
+      # the same environment the digest step read; the selected cases run there too (on an
+      # environment whose allow_writes is false, the write cases skip with their reason).
+      - name: Published cases on changed operations
+        if: ${{ !cancelled() && steps.petstore.outcome == 'success' && steps.digest.outputs.moved == 'true' }}
+        env:
+          QA_ENV: ${{ inputs.contract_env || vars.QA_DRIFT_CONTRACT_ENV }}
+        run: |
+          mkdir -p reports/drift
+          npm run --silent lanes:published:changed:live 2>&1 | tee reports/drift/published-changed.txt
+
+      # Every published case, every day (L-31), whether or not the contract moved.
+      - name: Published-case lane
+        if: ${{ !cancelled() && steps.petstore.outcome == 'success' }}
+        run: |
+          mkdir -p reports/drift
+          npm run --silent lanes:published 2>&1 | tee reports/drift/published.txt
+
+      - name: Job summary
+        if: ${{ always() }}
+        run: |
+          section() {
+            [ -f "$2" ] || return 0
+            { echo "### $1"; echo; echo '```text'; cat "$2"; echo '```'; echo; } >> "$GITHUB_STEP_SUMMARY"
+          }
+          echo "## Drift" >> "$GITHUB_STEP_SUMMARY"
+          section "Live contract against the tracked digest" reports/drift/digest.txt
+          section "Known-gap lane" reports/drift/known-gap.txt
+          section "Published-case lane" reports/drift/published.txt
+
+      - name: Fail on contract drift
+        if: ${{ !cancelled() && steps.digest.outputs.moved == 'true' }}
+        run: |
+          cat reports/drift/digest.txt
+          echo "::error title=Contract drift::The live contract moved. Review the change, then refresh the pack contract and its digest in a pull request (docs/ci.md)."
+          exit 1
+
+      - name: Petstore logs
+        if: ${{ failure() }}
+        run: |
+          mkdir -p reports
+          docker compose logs --no-color petstore > reports/petstore.log 2>&1 || echo "no Petstore logs"
+
+      - name: Upload reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: drift-reports-${{ github.run_attempt }}
+          path: |
+            reports/
+            allure-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop the Petstore
+        if: ${{ always() }}
+        run: npm run petstore:down

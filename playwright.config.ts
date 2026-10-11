@@ -42,6 +42,12 @@ function retries(): number {
   return value;
 }
 
+function traceMode(): 'off' | 'on' | 'retain-on-failure' {
+  const raw = process.env.QA_TRACE ?? 'retain-on-failure';
+  if (raw === 'off' || raw === 'on' || raw === 'retain-on-failure') return raw;
+  throw new Error(`QA_TRACE must be off, on or retain-on-failure, got "${raw}".`);
+}
+
 export default defineConfig({
   globalSetup: './fixtures/global-setup.ts',
   globalTeardown: './fixtures/global-teardown.ts',
@@ -62,7 +68,9 @@ export default defineConfig({
       ],
   use: {
     baseURL: `${qa.baseUrl}/`,
-    trace: 'retain-on-failure',
+    // Traces record request headers unredacted (unlike the clients' evidence, L-42) and the HTML
+    // report embeds them; QA_TRACE=off keeps a real credential out of uploaded CI artifacts.
+    trace: traceMode(),
   },
   projects: [
     // Unit tests of the core and the packs: no network, part of `npm run gates`.

@@ -47,9 +47,12 @@ matrix, and `traceability:write` writes it to `docs/traceability/<pack>.md`.
 | Command | Runs |
 |---|---|
 | `npm run lanes:known-gap` | Every case armed with `test.fail(true, await knownGap(...))`, each in its own Playwright process. A gap that starts passing is reported for investigation before the arm is removed. |
-| `npm run lanes:published` | Registry cases with status `published`, zero retries. `lanes:published:changed` runs only those whose endpoints changed against the tracked digest. |
+| `npm run lanes:published` | Registry cases with status `published`, zero retries. `lanes:published:changed` runs only those whose endpoints changed against the tracked digest (`:live` compares with the environment's `spec_url`). |
 | `npm run lanes:destructive` | Every `@destructive` case (L-59), each alone in its own Playwright process, followed by the environment's `recovery` command from qa-config and a wait until the API answers again. Every other run leaves these cases out (the `api` project's `grepInvert`), so the known-gap and published lanes skip them too. A failed recovery stops the lane. Refuses an environment with `allow_writes` false or no recovery. Its results join the latest run in `allure-results/` (same run id, nothing cleared), so `tm:report` reports the shared run and the destructive cases together; `--new-run` starts a run of its own. |
 | `npm run lanes:flake` | A selection repeated N times (`--repeat-each`, default 5) with retries forced to 0. Reports tests whose repeats disagree and what to quarantine or release. |
+
+In CI the destructive lane runs after the suite on every pull request, and the known-gap and
+published lanes run daily ([continuous integration](ci.md)).
 
 Every lane refuses a non-zero `QA_RETRIES`: a retry turns an intermittent failure into a pass.
 

@@ -23,8 +23,12 @@
  * still fails), failed, skipped, not-run (no result), missing (no test carries the id) or
  * quarantined or destructive (not run here on purpose).
  *
- *   node scripts/published-lane.mjs [--changed-from-digest] [--pack name] [--project api]
+ *   node scripts/published-lane.mjs [--changed-from-digest [--live]] [--pack name] [--project api]
  *                                   [--list] [--json] [--root dir] [--config file]
+ *
+ * `--live` diffs the tracked digest against the active environment's spec_url (QA_ENV) instead of
+ * the pack's contract file. Without it, the selection follows edits to the tracked contract; with it,
+ * a scheduled run selects the cases whose operations moved in the deployed contract.
  *
  * Exit codes: 0 every selected case passed or was not selected (including when there is none);
  * 1 a case failed, did not run or has no test, or Playwright exited non-zero although no case
@@ -272,14 +276,17 @@ export function runPublished(selected, { scanRoot, runRoot, project, config, run
 // ---------------------------------------------------------------------------------------------
 // Command line
 
-async function changedByPack(packs, root) {
+async function changedByPack(packs, root, { live = false } = {}) {
   const changed = new Map();
   for (const pack of packs) {
     const file = digestPath(pack, root);
     if (!existsSync(file)) {
       throw new Error(`--changed-from-digest: no tracked digest for "${pack}" at ${file}.`);
     }
-    const { source } = resolveSpecSource({ service: pack }, root);
+    const { source } = resolveSpecSource(
+      live ? { service: pack, live: true } : { service: pack },
+      root,
+    );
     const current = computeDigest(await loadModel(source));
     const keys = changedOperations(JSON.parse(readFileSync(file, 'utf8')), current);
     changed.set(pack, new Set(keys));
@@ -303,6 +310,7 @@ async function main(argv = process.argv.slice(2)) {
     args: argv,
     options: {
       'changed-from-digest': { type: 'boolean', default: false },
+      live: { type: 'boolean', default: false },
       pack: { type: 'string' },
       project: { type: 'string', default: 'api' },
       list: { type: 'boolean', default: false },
@@ -319,7 +327,12 @@ async function main(argv = process.argv.slice(2)) {
     }
   }
   const packs = [...corpusByPack.keys()];
-  const changed = values['changed-from-digest'] ? await changedByPack(packs, scanRoot) : null;
+  if (values.live && !values['changed-from-digest']) {
+    throw new Error('--live only applies with --changed-from-digest');
+  }
+  const changed = values['changed-from-digest']
+    ? await changedByPack(packs, scanRoot, { live: values.live })
+    : null;
   if (changed) {
     for (const [pack, keys] of changed) {
       console.log(

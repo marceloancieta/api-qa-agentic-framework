@@ -49,6 +49,7 @@
     "lanes:known-gap": "node scripts/known-gap-lane.mjs",
     "lanes:published": "node scripts/published-lane.mjs",
     "lanes:published:changed": "node scripts/published-lane.mjs --changed-from-digest",
+    "lanes:published:changed:live": "node scripts/published-lane.mjs --changed-from-digest --live",
     "lanes:flake": "node scripts/flake-lane.mjs --quarantine-report",
     "lanes:destructive": "node scripts/destructive-lane.mjs",
     "quality:gate": "node scripts/quality-gate.mjs --summary reports/quality-gate.md",
