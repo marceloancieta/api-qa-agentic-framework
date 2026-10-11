@@ -35,6 +35,7 @@ pipeline {
   parameters {
     string(name: 'AGENT_LABEL', defaultValue: '', description: 'Label of the agent that runs the build; empty means any agent.')
     string(name: 'API_KEY_CREDENTIALS_ID', defaultValue: '', description: 'Secret-text credential with the API key. Empty: a random key per build, which the Petstore accepts.')
+    string(name: 'PETSTORE_PORT', defaultValue: '', description: 'Host port for the Petstore container when 8080 is taken (for example by Jenkins itself); the API URLs follow it.')
     string(name: 'API_BASE_URL', defaultValue: '', description: 'Overrides the environment base URL, e.g. http://host.docker.internal:8080/api/v3 when the agent runs in a container.')
     string(name: 'API_SPEC_URL', defaultValue: '', description: 'Overrides the environment contract URL, same reason as API_BASE_URL.')
     booleanParam(name: 'PUBLISH_ALLURE', defaultValue: false, description: 'Publish allure-results with the Allure plugin (needs an Allure Commandline tool).')
@@ -150,14 +151,20 @@ pipeline {
 }
 
 // The variable named by qa-config api.auth.env, from a credential when one is configured, otherwise
-// a random value per build; plus the optional URL overrides.
+// a random value per build; plus the optional port and URL overrides.
 def withApiEnvironment(Closure body) {
   List<String> overrides = []
-  if (params.API_BASE_URL) {
-    overrides << "API_BASE_URL=${params.API_BASE_URL}"
+  String port = params.PETSTORE_PORT ?: ''
+  if (port) {
+    overrides << "PETSTORE_PORT=${port}"
   }
-  if (params.API_SPEC_URL) {
-    overrides << "API_SPEC_URL=${params.API_SPEC_URL}"
+  String baseUrl = params.API_BASE_URL ?: (port ? "http://localhost:${port}/api/v3" : '')
+  String specUrl = params.API_SPEC_URL ?: (port ? "http://localhost:${port}/api/v3/openapi.json" : '')
+  if (baseUrl) {
+    overrides << "API_BASE_URL=${baseUrl}"
+  }
+  if (specUrl) {
+    overrides << "API_SPEC_URL=${specUrl}"
   }
   withEnv(overrides) {
     if (params.API_KEY_CREDENTIALS_ID) {
