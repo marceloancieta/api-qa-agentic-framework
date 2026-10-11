@@ -28,7 +28,7 @@ Each API under test is a pack in `services/<name>/` (ADR 0007). The core (`helpe
 | `openapi.json` | the contract under test |
 | `generated/` | contract outputs; regenerate with the `contract:*` scripts, never edit |
 | `error-envelopes.json` | the error formats the API answers with |
-| `clients/`, `fixtures.ts`, `flows/`, `builders/`, `state-models.ts`, `guards.ts` | the layers of `.claude/rules/generation.md` |
+| `clients/`, `fixtures.ts`, `flows/`, `builders/`, `state-models.ts`, `guards.ts`, `assertions.ts` | the layers of `.claude/rules/generation.md` |
 | `rules/` | decision tables as YAML |
 | `registry/` | designed cases (`.claude/rules/registry.md`) |
 | `services/<name>/docs/features/` | feature contracts written at intake |

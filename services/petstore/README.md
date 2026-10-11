@@ -17,10 +17,11 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `fixtures.ts` | The core `test` extended with this pack's clients and `actor(name)`. Specs import from here. | present |
 | `specs/` | Playwright specs, run by the `api` project. | present |
 | `__tests__/` | Offline unit tests of the pack (builders), run by the `unit` project. | present |
-| `flows/` | Multi-step business sequences over an actor's clients, one named step each. | present |
-| `builders/` | Test Data Builders (`aPet`, `anOrder`) and the Object Mother (`PetMother`). | present |
-| `state-models.ts` | Field buckets (identity, business, provenance, volatile) for comparing pets and orders. | present |
+| `flows/` | Multi-step business sequences over an actor's clients, one named step each (`purchasePet`), and cleanup confirmed by a read (`removePet`, `removeOrder`, `removeUser`). | present |
+| `builders/` | Test Data Builders (`aPet`, `anOrder`, `aUser`) and the Object Mother (`PetMother`). | present |
+| `state-models.ts` | Field buckets (identity, business, provenance, volatile) for comparing pets, orders and users. | present |
 | `guards.ts` | Resource guards for shared seed data (`seedPet(pets, id)`). | present |
+| `assertions.ts` | Checks several specs share, for shapes the contract declares inline (`expectInventoryMap`). | present |
 | `rules/` | Decision tables as YAML, generated into `generated/decision-tables.ts` (`npm run contract:decision-tables`). | present |
 | `registry/` | Designed test cases and their status, one or more files per feature code (see Feature contracts below). | present |
 | `docs/` | `contract-notes.md`: observed departures from the contract and their status. `features/`: the feature contracts written at intake, one per registry code. | present |
@@ -48,7 +49,8 @@ Cases that write check `qa.allowWrites` and skip with the reason when the enviro
 - **Data.** Use the `faker`, `rng` and `clock` fixtures, never `Math.random` or `Date.now()`. Every
   test records its `QA_SEED`; rerun with that value to get the same data. `QA_CLOCK` pins "now".
 
-See `specs/purchase.spec.ts` for all three together.
+See TC-STOR-01 in `specs/store.spec.ts` for all three together, and TC-PET-26 in `specs/pet.spec.ts`
+for two actors side by side.
 
 ## Shared data and preconditions
 
@@ -79,6 +81,23 @@ See `specs/purchase.spec.ts` for all three together.
   `tracker.key_pattern` and `tracker.issue_url` in qa-config.
 
 Where this API departs from its contract is recorded in [`docs/contract-notes.md`](docs/contract-notes.md).
+
+## Specs
+
+The registries hold 166 approved cases. The specs automate a representative sample of them (backlog
+PET-02): every technique, layer and category tag in use, the `input-error` and `not-found`
+envelopes, the three decision tables and the two actors. A `server-error` is never the expected
+answer; it shows only as the departure an armed known gap reproduces. The other cases stay
+`approved` as design examples.
+
+| Spec | Cases |
+|---|---|
+| `specs/pet.spec.ts` | create, read and delete pets; an int64 edge; a mislabelled body; two actors |
+| `specs/pet-search.spec.ts` | the find-by-status and find-by-tags decision tables; hostile tags; status moves |
+| `specs/store.spec.ts` | orders through the purchase flow, every status and complete combination, malformed bodies, the inventory |
+| `specs/user.spec.ts` | users, an int32 edge, two known gaps (password exposure, the login decision table) |
+| `specs/store-destructive.spec.ts`, `specs/user-destructive.spec.ts` | `@destructive` cases: left out of every run, run by `npm run lanes:destructive` |
+| `specs/errors.spec.ts`, `specs/shared-data.spec.ts` | examples without a case id: path errors, and a resource guard on a seed pet |
 
 ## Feature contracts
 

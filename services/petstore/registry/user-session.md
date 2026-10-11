@@ -40,7 +40,7 @@ as a header, never probed, and no latency budget is declared, so no case measure
 |---|---|---|---|---|---|---|---|
 | TC-USER-63 | A login with a created user's credentials answers 200 with a session and a rate limit | REQ-USER-08 | equivalence-partition | high | approved | | |
 | TC-USER-64 | The login answer has the declared body and expiry formats | REQ-USER-08 | equivalence-partition | medium | approved | | LOCAL-4 |
-| TC-USER-65 | Login refuses every credential combination except the owner's | REQ-USER-08 | decision-table | high | approved | | LOCAL-4 |
+| TC-USER-65 | Login refuses every credential combination except the owner's | REQ-USER-08 | decision-table | high | automated | specs/user.spec.ts | LOCAL-4 |
 | TC-USER-66 | Injection-like and overlong login values are refused without internals | REQ-USER-08 | error-guessing | medium | approved | | LOCAL-4 |
 | TC-USER-67 | Two logins of the same user issue different sessions | REQ-USER-08 | equivalence-partition | low | approved | | |
 | TC-USER-68 | A login leaves the user record unchanged | REQ-USER-08 | error-guessing | medium | approved | | |

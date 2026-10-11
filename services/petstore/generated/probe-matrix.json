@@ -7,15 +7,15 @@
   },
   "totals": {
     "scheduled": {
-      "covered": 1,
+      "covered": 17,
       "total": 44
     },
     "exploratory": {
-      "covered": 0,
+      "covered": 2,
       "total": 149
     },
     "service-wide": {
-      "covered": 1,
+      "covered": 5,
       "total": 45
     },
     "unprobeable": 0
@@ -58,7 +58,7 @@
     {
       "operation": "POST /pet",
       "scheduled": {
-        "covered": 0,
+        "covered": 1,
         "total": 6
       },
       "exploratory": {
@@ -66,7 +66,7 @@
         "total": 32
       },
       "service-wide": {
-        "covered": 0,
+        "covered": 1,
         "total": 4
       },
       "unprobeable": 0
@@ -74,7 +74,7 @@
     {
       "operation": "GET /pet/findByStatus",
       "scheduled": {
-        "covered": 1,
+        "covered": 2,
         "total": 2
       },
       "exploratory": {
@@ -90,7 +90,7 @@
     {
       "operation": "GET /pet/findByTags",
       "scheduled": {
-        "covered": 0,
+        "covered": 1,
         "total": 1
       },
       "exploratory": {
@@ -186,15 +186,15 @@
     {
       "operation": "POST /store/order",
       "scheduled": {
-        "covered": 0,
+        "covered": 12,
         "total": 17
       },
       "exploratory": {
-        "covered": 0,
+        "covered": 2,
         "total": 18
       },
       "service-wide": {
-        "covered": 0,
+        "covered": 3,
         "total": 3
       },
       "unprobeable": 0
@@ -234,7 +234,7 @@
     {
       "operation": "POST /user",
       "scheduled": {
-        "covered": 0,
+        "covered": 1,
         "total": 2
       },
       "exploratory": {
@@ -1323,7 +1323,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/pet.spec.ts"]
     },
     {
       "id": "p-d78805f16c",
@@ -2003,7 +2004,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/pet.spec.ts"]
     },
     {
       "id": "p-6ac1bbf69a",
@@ -2043,7 +2045,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/pet-search.spec.ts"]
     },
     {
       "id": "p-71b75f7773",
@@ -2064,7 +2067,7 @@
         "status": "4xx"
       },
       "covered": true,
-      "coveredBy": ["services/petstore/specs/errors.spec.ts"]
+      "coveredBy": ["services/petstore/specs/pet-search.spec.ts"]
     },
     {
       "id": "p-d5d4a0da19",
@@ -2084,7 +2087,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/pet-search.spec.ts"]
     },
     {
       "id": "p-899ef8dbff",
@@ -2489,7 +2493,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-7b9b5328a3",
@@ -2869,7 +2874,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store-destructive.spec.ts"]
     },
     {
       "id": "p-d1c0bd98e0",
@@ -2959,7 +2965,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-16a5f8465e",
@@ -2989,7 +2996,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-a651760305",
@@ -3019,7 +3027,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-68ed126724",
@@ -3049,7 +3058,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-8cb7db05f7",
@@ -3079,7 +3089,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-eec4f45f31",
@@ -3109,7 +3120,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-9e83ee67ff",
@@ -3139,7 +3151,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-9363ba71df",
@@ -3169,7 +3182,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-47e36835bb",
@@ -3199,7 +3213,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-46c7d683e4",
@@ -3229,7 +3244,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store-destructive.spec.ts"]
     },
     {
       "id": "p-14922c0e29",
@@ -3259,7 +3275,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store-destructive.spec.ts"]
     },
     {
       "id": "p-6e48590751",
@@ -3289,7 +3306,8 @@
         "outcome": "accept",
         "status": "2xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store-destructive.spec.ts"]
     },
     {
       "id": "p-6e89af34c6",
@@ -3309,7 +3327,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-f54f62ef61",
@@ -3329,7 +3348,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-2d61516968",
@@ -3349,7 +3369,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/store.spec.ts"]
     },
     {
       "id": "p-e24dabf6e8",
@@ -3971,7 +3992,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/petstore/specs/user.spec.ts"]
     },
     {
       "id": "p-f393f6eac0",

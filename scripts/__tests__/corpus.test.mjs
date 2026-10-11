@@ -81,9 +81,10 @@ test('tests are read from the syntax tree, with describe path, tags, ids and pro
 
 test('the Petstore pack specs are found and parsed', () => {
   const files = specFiles(REPO_ROOT, 'petstore');
-  assert.ok(files.includes('services/petstore/specs/smoke.spec.ts'));
+  assert.ok(files.includes('services/petstore/specs/pet.spec.ts'));
   const corpus = loadCorpus(REPO_ROOT, 'petstore');
-  const smoke = corpus.find((spec) => spec.file.endsWith('smoke.spec.ts'));
-  assert.ok(smoke.tests.length >= 2);
-  assert.ok(smoke.tests.every((t) => t.tags.includes('@smoke')));
+  const pets = corpus.find((spec) => spec.file.endsWith('/pet.spec.ts'));
+  assert.ok(pets.tests.length >= 2);
+  assert.ok(pets.tests.every((t) => t.caseId?.startsWith('TC-PET-')));
+  assert.ok(pets.tests.some((t) => t.tags.includes('@smoke')));
 });

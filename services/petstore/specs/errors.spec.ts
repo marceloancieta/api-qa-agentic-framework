@@ -14,13 +14,6 @@ test.describe('Petstore error envelopes', { tag: '@regression' }, () => {
     await expectErrorEnvelope(await pets.getById('abc'), envelopes, 'input-error');
   });
 
-  test('a status outside the enum is rejected as an input error probe:p-71b75f7773', async ({
-    pets,
-    envelopes,
-  }) => {
-    await expectErrorEnvelope(await pets.findByStatus('lost'), envelopes, 'input-error');
-  });
-
   test('an unknown pet id answers not-found', async ({ pets, envelopes }) => {
     // Above every generated id, and never created by any case.
     const response = await pets.getById(GENERATED_ID_MAX + 1);

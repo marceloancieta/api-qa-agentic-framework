@@ -26,6 +26,29 @@ export class PetClient extends BaseClient {
       : this.get('pet/findByStatus', { params: { status } });
   }
 
+  /**
+   * A create whose body is sent byte for byte with the given content type: numbers JSON cannot hold
+   * exactly (an int64 edge) or a body labelled with a type the operation does not accept.
+   */
+  createRaw(body: string, contentType = 'application/json'): Promise<APIResponse> {
+    return this.post('pet', { data: body, headers: { 'Content-Type': contentType } });
+  }
+
+  /** One `tags` value, sent as given (an empty string included); `undefined` leaves it out. */
+  findByTags(tag: string | undefined): Promise<APIResponse> {
+    return tag === undefined
+      ? this.get('pet/findByTags')
+      : this.get('pet/findByTags', { params: { tags: tag } });
+  }
+
+  /** `POST /pet/{petId}` with `name` and `status` as query parameters; a field left out is not sent. */
+  updateWithForm(id: number, fields: { name?: string; status?: string }): Promise<APIResponse> {
+    const params: Record<string, string> = {};
+    if (fields.name !== undefined) params['name'] = fields.name;
+    if (fields.status !== undefined) params['status'] = fields.status;
+    return this.post(this.route('pet/{petId}', { petId: id }), { params });
+  }
+
   remove(id: number | string): Promise<APIResponse> {
     return this.delete(this.route('pet/{petId}', { petId: id }));
   }

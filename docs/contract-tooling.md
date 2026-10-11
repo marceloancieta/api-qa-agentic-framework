@@ -51,7 +51,8 @@ while they are being collected (L-24).
 
 A spec iterates one table in one test, so the case keeps a single identity. Each rule becomes a
 step with soft assertions, and the spec maps each class to concrete inputs, taking values from
-`generated/enums.ts`. `services/petstore/specs/decision-tables.spec.ts` is the worked example.
+`generated/enums.ts`. TC-PET-55 and TC-PET-60 in `services/petstore/specs/pet-search.spec.ts` are
+the worked examples.
 
 ## Floor
 

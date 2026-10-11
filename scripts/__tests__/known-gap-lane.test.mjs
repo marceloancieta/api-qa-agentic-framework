@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { REPO_ROOT } from '../lib/cli.mjs';
 import { parseSpecFile } from '../lib/corpus.mjs';
@@ -47,8 +49,10 @@ test('selection reads the arm from the syntax tree, with the issue key', () => {
   assert.equal(gaps[0].line, 6);
 });
 
-test('a repository without known gaps selects nothing', () => {
-  assert.deepEqual(findKnownGaps(REPO_ROOT), []);
+test('a repository without known gaps selects nothing', (t) => {
+  const empty = mkdtempSync(join(tmpdir(), 'no-gaps-'));
+  t.after(() => rmSync(empty, { recursive: true, force: true }));
+  assert.deepEqual(findKnownGaps(empty), []);
 });
 
 test('records are matched by project, line and file suffix', () => {

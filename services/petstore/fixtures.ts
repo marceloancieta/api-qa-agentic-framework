@@ -1,5 +1,5 @@
 // Petstore fixtures: the core `test` plus this pack's manifest, contract and clients, either bound to
-// the default credential (`pets`, `store`) or to any named actor (`actor('user')`). Every case gets
+// the default credential (`pets`, `store`, `users`) or to any named actor (`actor('user')`). Every case gets
 // its identity and suite labels automatically. Specs import `test` and `expect` from here.
 
 import { readFileSync } from 'node:fs';
@@ -14,6 +14,7 @@ import { createSchemaValidator, type SchemaValidator } from '../../helpers/schem
 import { loadService, type ServicePack } from '../../helpers/service';
 import { PetClient } from './clients/pet-client';
 import { StoreClient } from './clients/store-client';
+import { UserClient } from './clients/user-client';
 
 export function clientsFor(request: APIRequestContext, auth: AuthStrategy, service: ServicePack) {
   const redaction: RedactionPolicy = {
@@ -23,6 +24,7 @@ export function clientsFor(request: APIRequestContext, auth: AuthStrategy, servi
   return {
     pets: new PetClient(request, auth, redaction),
     store: new StoreClient(request, auth, redaction),
+    users: new UserClient(request, auth, redaction),
   };
 }
 
@@ -32,6 +34,7 @@ export type Actor = PetstoreClients & { name: string };
 interface PetstoreFixtures {
   pets: PetClient;
   store: StoreClient;
+  users: UserClient;
   /** The pack's clients bound to a named credential: `default`, `anonymous` or one of `api.actors`. */
   actor: (name: string) => Promise<Actor>;
   caseMeta: void;
@@ -79,6 +82,9 @@ export const test = core.extend<PetstoreFixtures, PetstoreWorkerFixtures>({
   },
   store: async ({ request, auth, service }, use) => {
     await use(clientsFor(request, auth, service).store);
+  },
+  users: async ({ request, auth, service }, use) => {
+    await use(clientsFor(request, auth, service).users);
   },
   actor: async ({ actorSession, service }, use) => {
     await use(async (name) => {

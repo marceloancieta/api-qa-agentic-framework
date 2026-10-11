@@ -21,6 +21,7 @@ ADR 0007; `services/petstore/` is the worked example.
 | Combinations of conditions | `rules/<id>.yaml`, generated into `generated/decision-tables.ts` | iterates the table in one test, one step per rule |
 | State comparison | `state-models.ts` | uses `expectSameState` and `expectOnlyChanged` (L-53) |
 | Shared records | `guards.ts` with `withResourceGuard` | wraps every write to data it did not create (L-39) |
+| Checks several specs share (an inline schema with no name) | `assertions.ts` | imports them; never imports another spec |
 
 ## Every case
 

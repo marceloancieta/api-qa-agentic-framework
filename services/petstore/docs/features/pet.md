@@ -146,8 +146,8 @@ than copying values from here:
 - `npm run contract:probes -- --service petstore --gaps`: the body operations carry the bulk of the
   scheduled and exploratory probes (missing required, int64 overflow, wrong type, null, unknown
   property, enum outside) plus the service-wide body probes; the `{petId}` operations carry the
-  path probes. Two probes are already covered by `services/petstore/specs/errors.spec.ts`
-  (`p-658044b361`, `p-71b75f7773`). Read-only probes measured in this intake: `p-9e9221c97f`
+  path probes. At intake two probes were already covered by `services/petstore/specs/errors.spec.ts`
+  (`p-658044b361`, `p-71b75f7773`); TC-PET-55 has covered the second since PET-02. Read-only probes measured in this intake: `p-9e9221c97f`
   (M-08), `p-d5d4a0da19` (M-15), `p-899ef8dbff` (M-03), `p-9785590d88` and `p-0515e92c4d` (M-04).
   The write run measured the body probes listed under W-18 to W-32.
 - `npm run contract:digest:check` and `contract:digest:live`: the tracked and the live contract

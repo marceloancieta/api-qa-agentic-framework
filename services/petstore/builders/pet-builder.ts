@@ -37,6 +37,14 @@ export class PetBuilder {
     return this;
   }
 
+  /** One tag whose name no other case uses, so a search by it finds only this case's pet. */
+  withUniqueTag(): this {
+    this.pet.tags = [
+      { id: this.faker.number.int({ min: 1, max: 1_000 }), name: uniqueTag(this.faker) },
+    ];
+    return this;
+  }
+
   /** Any status from the contract's value set, chosen by the seeded faker. */
   withAnyStatus(): this {
     this.pet.status = this.faker.helpers.arrayElement(PET_STATUSES);
@@ -52,6 +60,28 @@ export class PetBuilder {
   build(): Pet {
     return structuredClone(this.pet);
   }
+
+  /**
+   * The pet as JSON text, with the named fields written as the given digits. A JSON number past
+   * 2^53 cannot round-trip through a JavaScript number, so an int64 edge is sent this way.
+   */
+  toJson(rawNumbers: Partial<Record<keyof Pet, string>> = {}): string {
+    const pet: Record<string, unknown> = { ...this.build() };
+    const marks = new Map<string, string>();
+    for (const [field, digits] of Object.entries(rawNumbers)) {
+      if (!/^-?\d+$/.test(digits)) throw new Error(`toJson: "${digits}" is not an integer`);
+      const mark = `__raw_${field}__`;
+      pet[field] = mark;
+      marks.set(`"${mark}"`, digits);
+    }
+    let json = JSON.stringify(pet);
+    for (const [mark, digits] of marks) json = json.split(mark).join(digits);
+    return json;
+  }
 }
 
 export const aPet = (faker: Faker): PetBuilder => new PetBuilder(faker);
+
+/** A tag name unique to the case: seed pets and other cases never carry it. */
+export const uniqueTag = (faker: Faker): string =>
+  `qa-tag-${faker.string.alphanumeric({ length: 12, casing: 'lower' })}`;

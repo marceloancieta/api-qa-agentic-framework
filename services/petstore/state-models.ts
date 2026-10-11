@@ -12,6 +12,19 @@ export const PET_FIELDS: FieldModel = {
   tags: { bucket: 'business', normalize: normalize.unordered },
 };
 
+export const USER_FIELDS: FieldModel = {
+  id: 'identity',
+  username: 'identity',
+  firstName: 'business',
+  lastName: 'business',
+  email: 'business',
+  phone: 'business',
+  userStatus: 'business',
+  // Never compared: whether an answer carries it at all is what TC-USER-21 and TC-USER-39 check
+  // (LOCAL-3), and a comparison would print it.
+  password: 'volatile',
+};
+
 export const ORDER_FIELDS: FieldModel = {
   id: 'identity',
   petId: 'business',
