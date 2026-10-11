@@ -31,6 +31,7 @@ import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { REPO_ROOT } from './lib/cli.mjs';
 import { normalize, parseDocument } from './lib/openapi.mjs';
+import { describeExit, exitCodeOf } from './lib/spawn.mjs';
 
 const NAME = /^[a-z][a-z0-9-]*$/;
 const VERSION = /^[a-z0-9][a-z0-9.-]*$/;
@@ -552,9 +553,9 @@ export function generateContractFiles(name, root = REPO_ROOT) {
         encoding: 'utf8',
       },
     );
-    if (run.status !== 0) {
+    if (exitCodeOf(run) !== 0) {
       throw new Error(
-        `${script} --service ${name} --write failed: ${(run.stderr || run.stdout).trim()}`,
+        `${script} --service ${name} --write failed (${describeExit(run)}): ${(run.stderr || run.stdout || '').trim()}`,
       );
     }
   }
@@ -570,7 +571,9 @@ export function generateContractFiles(name, root = REPO_ROOT) {
       encoding: 'utf8',
     },
   );
-  if (prettier.status !== 0) throw new Error(`prettier failed: ${prettier.stderr}`);
+  if (exitCodeOf(prettier) !== 0) {
+    throw new Error(`prettier failed (${describeExit(prettier)}): ${prettier.stderr ?? ''}`);
+  }
 }
 
 async function main() {

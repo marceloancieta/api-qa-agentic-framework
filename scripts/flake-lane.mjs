@@ -20,7 +20,9 @@
  *                               [--repeat-each 5] [--quarantine-report] [--config file] [--json]
  *
  * Exit codes: 0 every non-quarantined test was stable; 1 a non-quarantined test was flaky or failed
- * in every repeat; 2 the lane could not run (bad arguments, retries enabled, no report).
+ * in every repeat, or Playwright exited non-zero although no repeat failed (L-49); 2 the lane could
+ * not run (bad arguments, retries enabled, no report, a Playwright process that was killed or could
+ * not start).
  */
 
 import { parseArgs } from 'node:util';
@@ -35,6 +37,7 @@ import {
   errorLine,
   normalizeTags,
   runLane,
+  unexplainedExit,
 } from './lib/playwright-lane.mjs';
 
 export {
@@ -139,10 +142,18 @@ export function parseRepeats(raw) {
   return value;
 }
 
-/** Run the lane and return `{ code, report }`; the caller prints. Throws when it cannot run. */
-export function flakeLane(options, root = REPO_ROOT, env = process.env) {
+/**
+ * Run the lane and return `{ code, report }`; the caller prints. Throws when it cannot run, which
+ * includes a Playwright process that did not finish (killed, could not start): its repeats are
+ * incomplete. `report.failure` is set, and the code is 1, when Playwright exited non-zero although
+ * no repeat failed (L-49). `run` replaces `runLane` in tests.
+ */
+export function flakeLane(options, root = REPO_ROOT, env = process.env, run = runLane) {
   assertZeroRetries(env);
-  const lane = runLane(root, laneArgs(options), GATE_ENV);
+  const lane = run(root, laneArgs(options), GATE_ENV);
+  if (lane.runnerError) {
+    throw new Error(`${unexplainedExit(lane, false)}.\n${lane.stderr || lane.stdout}`.trim());
+  }
   if (lane.records.length === 0) {
     throw new Error(
       `Playwright produced no report (exit ${lane.exitCode}).\n${lane.stderr || lane.stdout}`.trim(),
@@ -157,12 +168,18 @@ export function flakeLane(options, root = REPO_ROOT, env = process.env) {
   }
   const verdicts = flakeVerdicts(lane.records);
   const blocking = blockingVerdicts(verdicts);
+  // A failed repeat, quarantined or not, accounts for a non-zero exit; nothing else does.
+  const failure = unexplainedExit(
+    lane,
+    lane.records.some((record) => repeatResult(record) === 'fail'),
+  );
   const report = {
     repeats: options.repeats,
     verdicts,
     quarantine: options.quarantineReport ? quarantineReport(verdicts, options.repeats) : null,
+    failure,
   };
-  return { code: blocking.length > 0 ? 1 : 0, report };
+  return { code: blocking.length > 0 || failure ? 1 : 0, report };
 }
 
 function printReport(report) {
@@ -182,6 +199,7 @@ function printReport(report) {
       .map((verdict) => `${verdict}: ${counts[verdict]?.length ?? 0}`)
       .join(', '),
   );
+  if (report.failure) console.log(`\nThe run failed: ${report.failure}`);
   if (!report.quarantine) return;
   const list = (heading, items, hint) => {
     console.log(`\n${heading} (${items.length})${items.length > 0 ? `: ${hint}` : ''}`);

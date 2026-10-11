@@ -7,6 +7,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { exitCodeOf, spawnFailure } from './spawn.mjs';
 
 // Resolved like an import, so it is found from a git worktree that has no node_modules of its own.
 const CLI = createRequire(import.meta.url).resolve('@playwright/test/cli');
@@ -52,14 +53,18 @@ export function flattenReport(report) {
 }
 
 /**
- * Run `playwright test <args>` in `root` and return `{ exitCode, records, stdout, stderr }`.
- * `env` is added to the current environment.
+ * Run `playwright test <args>` in `root` and return `{ exitCode, runnerError, records, stdout,
+ * stderr }`. `env` is added to the current environment; `spawn` replaces `spawnSync` in tests.
+ *
+ * `exitCode` is Playwright's own code, or 1 when it has none (`exitCodeOf`). `runnerError` is null
+ * when Playwright ran to the end, otherwise why it did not (killed by a signal, could not start, its
+ * output overflowed): its records, if any, are then incomplete and the lane must not trust them.
  */
-export function runLane(root, args, env = {}) {
+export function runLane(root, args, env = {}, { spawn = spawnSync } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'lane-'));
   const reportFile = join(dir, 'report.json');
   try {
-    const run = spawnSync(process.execPath, [CLI, 'test', ...args], {
+    const run = spawn(process.execPath, [CLI, 'test', ...args], {
       cwd: root,
       env: { ...process.env, ...env, QA_JSON_REPORT: reportFile },
       encoding: 'utf8',
@@ -71,10 +76,37 @@ export function runLane(root, args, env = {}) {
     } catch {
       // No report: the run failed before any test (config error, refused lock). stderr says why.
     }
-    return { exitCode: run.status ?? 1, records, stdout: run.stdout, stderr: run.stderr };
+    const runnerError = spawnFailure(run);
+    const stderr = [run?.stderr, runnerError && `Playwright ${runnerError}`]
+      .filter(Boolean)
+      .join('\n');
+    return { exitCode: exitCodeOf(run), runnerError, records, stdout: run?.stdout ?? '', stderr };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+const outputTail = (lane) =>
+  (lane.stderr || lane.stdout || '').trim().split('\n').slice(-3).join(' | ');
+
+/**
+ * Why a lane must fail although its verdicts do not say so, or null (L-49). `explained` is true when
+ * the verdicts already account for a failure. Playwright's exit code has the last word:
+ *   - a run that did not finish (`runnerError`) is never trusted, whatever its records say;
+ *   - a run that exited non-zero while no verdict failed broke somewhere the verdicts do not see
+ *     (global setup or teardown, a dependency project whose failure skipped the cases, a worker
+ *     crash), and a wrapper that returned 0 then would hide it.
+ */
+export function unexplainedExit(lane, explained) {
+  if (lane.runnerError) return `Playwright did not finish: ${lane.runnerError}`;
+  if (!lane.exitCode || explained) return null;
+  const tail = outputTail(lane);
+  return `Playwright exited ${lane.exitCode} although no case failed${tail ? `: ${tail}` : ''}`;
+}
+
+/** The detail for a case with no result: Playwright's exit code and the end of its output. */
+export function exitDetail(lane) {
+  return `Playwright exited ${lane.exitCode}: ${outputTail(lane)}`;
 }
 
 // ---------------------------------------------------------------------------------------------

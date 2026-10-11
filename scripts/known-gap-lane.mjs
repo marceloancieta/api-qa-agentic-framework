@@ -20,7 +20,9 @@
  *   passing     the arm was reached and the case passed: the defect may be fixed or the
  *               reproduction may have broken. Investigate before removing the arm (L-14)
  *   unarmed     the case passed without reaching an arm (its condition did not hold)
- *   errored     the case failed before the arm, or ended in a timeout or an interruption
+ *   errored     the case failed before the arm, or ended in a timeout or an interruption; or its
+ *               Playwright process did not finish (killed, could not start), or exited non-zero
+ *               while the case's own result looked fine (L-49: the exit code has the last word)
  *   skipped     the case skipped itself (reported, does not fail the lane)
  *   not-run     Playwright produced no result for the case
  *
@@ -42,9 +44,11 @@ import {
   GATE_ENV,
   assertZeroRetries,
   errorLine,
+  exitDetail,
   formatTable,
   retriedRecords,
   runLane,
+  unexplainedExit,
 } from './lib/playwright-lane.mjs';
 import { DESTRUCTIVE_TAG, KNOWN_GAP_TAG } from './lib/tags.mjs';
 
@@ -210,10 +214,9 @@ export function runKnownGaps(gaps, { scanRoot, runRoot, project, config, run = r
       throw new Error('a case was retried although QA_RETRIES=0; gate lanes run without retries');
     }
     const result = classifyGap(recordsFor({ ...gap, file }, lane.records, project));
-    if (result.verdict === 'not-run' && lane.exitCode !== 0) {
-      const why = (lane.stderr || lane.stdout || '').trim().split('\n').slice(-3).join(' | ');
-      result.detail = `Playwright exited ${lane.exitCode}: ${why}`;
-    }
+    const failure = unexplainedExit(lane, PROBLEM_VERDICTS.has(result.verdict));
+    if (failure) Object.assign(result, { verdict: 'errored', detail: failure });
+    else if (result.verdict === 'not-run' && lane.exitCode !== 0) result.detail = exitDetail(lane);
     return { ...gap, ...result };
   });
 }

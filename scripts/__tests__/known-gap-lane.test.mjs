@@ -10,6 +10,7 @@ import {
   classifyGap,
   findKnownGaps,
   knownGapsOf,
+  PROBLEM_VERDICTS,
   recordsFor,
   runKnownGaps,
   sameFile,
@@ -120,6 +121,35 @@ test('every gap gets its own Playwright process, selected by file and line', () 
     ['not-run', 'not-run'],
   );
   assert.match(results[0].detail, /exited 1: config error/);
+});
+
+test('a Playwright failure the verdict does not show turns the case into errored (L-49)', () => {
+  const gap = { file: 'demo/specs/gaps.spec.ts', line: 10 };
+  const lane = (overrides) => () => ({
+    exitCode: 0,
+    runnerError: null,
+    records: [record({})],
+    stdout: '',
+    stderr: '',
+    ...overrides,
+  });
+  const verdictOf = (run) =>
+    runKnownGaps([gap], { scanRoot: REPO_ROOT, runRoot: REPO_ROOT, project: 'api', run })[0];
+
+  assert.equal(verdictOf(lane({})).verdict, 'open', 'exit 0 and a failing arm: the gap is open');
+  const teardown = verdictOf(lane({ exitCode: 1, stderr: 'Error in global teardown' }));
+  assert.equal(teardown.verdict, 'errored');
+  assert.match(teardown.detail, /exited 1 although no case failed: Error in global teardown/);
+  const skipped = verdictOf(
+    lane({ exitCode: 1, records: [record({ outcome: 'skipped', attempts: [] })] }),
+  );
+  assert.equal(skipped.verdict, 'errored', 'a case skipped because its dependency failed');
+  const killed = verdictOf(lane({ exitCode: 1, runnerError: 'killed by SIGKILL' }));
+  assert.deepEqual(
+    [killed.verdict, killed.detail],
+    ['errored', 'Playwright did not finish: killed by SIGKILL'],
+  );
+  assert.ok(PROBLEM_VERDICTS.has('errored'));
 });
 
 test('a retried case stops the lane', () => {

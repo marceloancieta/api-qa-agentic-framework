@@ -16,6 +16,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { lastAttempts, readResultFiles } from '../../../lib/results.mjs';
+import { describeExit } from '../../../lib/spawn.mjs';
 
 // The package does not export its CLI file, so it is located next to the package's main entry.
 const CLI = join(dirname(dirname(createRequire(import.meta.url).resolve('allure'))), 'cli.js');
@@ -68,7 +69,9 @@ export function createAdapter(options = {}, { root = process.cwd() } = {}) {
         { encoding: 'utf8', cwd: root },
       );
       if (generate.status !== 0) {
-        throw new Error(`allure generate failed (${generate.status}): ${(generate.stderr || generate.stdout).trim().slice(0, 500)}`);
+        throw new Error(
+          `allure generate failed (${describeExit(generate)}): ${(generate.stderr || generate.stdout || '').trim().slice(0, 500)}`,
+        );
       }
       const source = sourceTests();
       const report = readReport();

@@ -109,6 +109,48 @@ test('arguments, repeat counts, errors and tables', () => {
   );
 });
 
+test('a non-zero Playwright exit that no failed repeat explains fails the lane; a killed run throws', () => {
+  const repeat = (outcome, tags = []) => ({
+    title: 't',
+    titlePath: ['t'],
+    file: 'a.spec.ts',
+    line: 1,
+    project: 'offline',
+    tags,
+    outcome,
+    attempts: [{ status: outcome === 'expected' ? 'passed' : 'failed', retry: 0 }],
+  });
+  const lane = (overrides) => () => ({
+    exitCode: 0,
+    runnerError: null,
+    records: [repeat('expected'), repeat('expected')],
+    stdout: '',
+    stderr: '',
+    ...overrides,
+  });
+  const run = (fake) => flakeLane({ project: 'offline', repeats: 2 }, REPO_ROOT, {}, fake);
+
+  assert.equal(run(lane({})).code, 0);
+  const teardown = run(lane({ exitCode: 1, stderr: 'Error in global teardown' }));
+  assert.equal(teardown.code, 1);
+  assert.match(teardown.report.failure, /exited 1 although no case failed/);
+  const quarantined = run(
+    lane({
+      exitCode: 1,
+      records: [repeat('expected', ['@quarantine']), repeat('unexpected', ['@quarantine'])],
+    }),
+  );
+  assert.deepEqual(
+    [quarantined.code, quarantined.report.failure],
+    [0, null],
+    'a failing quarantined repeat explains the exit and does not block',
+  );
+  assert.throws(
+    () => run(lane({ exitCode: 1, runnerError: 'killed by SIGTERM' })),
+    /Playwright did not finish: killed by SIGTERM/,
+  );
+});
+
 test('end to end: repeated runs of an offline project expose the flaky tests', () => {
   const { code, report } = flakeLane(
     {

@@ -229,7 +229,8 @@ so a test run, its publication and any tracker update can be tied together after
 
 **L-49 - A gate only counts if failure blocks.** Checks that exist but are not wired into CI, or wrapper
 scripts that return a different command's exit code, let failing work through. *Guarded by:*
-`npm run gates` in CI and pre-push (E0, E8); exit-code tests for wrappers (E4).
+`npm run gates` in CI and pre-push (E0, E8); `exitCodeOf` and the exit-code tests of every
+wrapper, with `package-scripts.test.mjs` (CI-04).
 
 ## G. Defects and reporting
 

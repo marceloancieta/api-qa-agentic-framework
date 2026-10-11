@@ -53,6 +53,14 @@ matrix, and `traceability:write` writes it to `docs/traceability/<pack>.md`.
 
 Every lane refuses a non-zero `QA_RETRIES`: a retry turns an intermittent failure into a pass.
 
+**Exit codes (L-49).** Every lane and wrapper exits non-zero when what it runs fails. Playwright's
+exit code has the last word: a run that exits non-zero while every case looks fine (a global setup
+or teardown error, a failed dependency project that skipped the cases, a worker crash) fails the
+lane: `errored` in the known-gap lane, `failed` in the destructive lane, a run failure in the
+published and flake lanes. A Playwright process killed by a signal, timed out or unable to start is
+never read as a pass. Child processes are mapped through `scripts/lib/spawn.mjs` (`exitCodeOf`),
+and `scripts/__tests__/package-scripts.test.mjs` keeps every npm script chain on `&&`.
+
 **Quarantine.** A test that `lanes:flake` confirms as flaky gets the tag `@quarantine` and a link to
 the issue that tracks the fix. Gate lanes run with `--grep-invert @quarantine`, so a quarantined test
 cannot turn a gate red. Quarantine is temporary: the flake lane keeps running quarantined tests and

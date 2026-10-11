@@ -17,8 +17,8 @@
 // problem: a broken report must never pass for a green one. The overall verdict is the worst
 // evaluated check; SKIPPED checks do not count, and a run where every check was skipped is SKIPPED.
 //
-// Exit codes: 0 for PASS, REVIEW and SKIPPED (1 for REVIEW with --fail-on-review), 1 for FAIL,
-// 2 for a usage or configuration error.
+// Exit codes: 0 for PASS, REVIEW and SKIPPED (1 for REVIEW with --fail-on-review), 1 for FAIL
+// (and for any verdict the gate does not know), 2 for a usage or configuration error.
 //
 // Usage:
 //   node scripts/quality-gate.mjs [--config <qa-config>] [--out <file>] [--summary <file.md>]
@@ -354,10 +354,11 @@ export function evaluate(gate = {}, options = {}) {
   return { verdict: worst(checks.map((c) => c.verdict)) ?? 'SKIPPED', checks };
 }
 
+/** Fails closed: a verdict this table does not know is a failure, never a pass (L-49). */
 export function exitCode(verdict, failOnReview = false) {
-  if (verdict === 'FAIL') return 1;
-  if (verdict === 'REVIEW' && failOnReview) return 1;
-  return 0;
+  if (verdict === 'PASS' || verdict === 'SKIPPED') return 0;
+  if (verdict === 'REVIEW') return failOnReview ? 1 : 0;
+  return 1;
 }
 
 const showValue = (value) =>

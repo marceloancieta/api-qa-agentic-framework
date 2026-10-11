@@ -113,6 +113,50 @@ test('each case gets one verdict from the records', () => {
   assert.equal(classifyCase(one, [rec('skipped')]).verdict, 'skipped');
 });
 
+test('a non-zero Playwright exit that no verdict explains fails the lane; a killed run throws', () => {
+  const selected = [
+    { id: 'TC-X-01', tests: [{ file: 'x.spec.ts', tags: [] }], quarantined: false },
+  ];
+  const passed = {
+    title: 'TC-X-01 t',
+    project: 'api',
+    outcome: 'expected',
+    expectedStatus: 'passed',
+    attempts: [{ status: 'passed', errors: [] }],
+  };
+  const lane = (overrides) => () => ({
+    exitCode: 0,
+    runnerError: null,
+    records: [passed],
+    stdout: '',
+    stderr: '',
+    ...overrides,
+  });
+  const options = { scanRoot: REPO_ROOT, runRoot: REPO_ROOT, project: 'api' };
+
+  assert.equal(runPublished(selected, { ...options, run: lane({}) }).failure, null);
+  const teardown = runPublished(selected, {
+    ...options,
+    run: lane({ exitCode: 1, stderr: 'Error in global teardown' }),
+  });
+  assert.equal(teardown.results[0].verdict, 'passed');
+  assert.match(teardown.failure, /exited 1 although no case failed: Error in global teardown/);
+  const failing = runPublished(selected, {
+    ...options,
+    run: lane({ exitCode: 1, records: [{ ...passed, outcome: 'unexpected' }] }),
+  });
+  assert.equal(failing.results[0].verdict, 'failed');
+  assert.equal(failing.failure, null, 'the failed case already explains the exit code');
+  assert.throws(
+    () =>
+      runPublished(selected, {
+        ...options,
+        run: lane({ exitCode: 1, runnerError: 'killed by SIGKILL' }),
+      }),
+    /Playwright did not finish: killed by SIGKILL/,
+  );
+});
+
 test('end to end: one zero-retry run over the published cases of an offline project', () => {
   const { registries, corpusByPack } = loadInputs(PROJECT);
   const { results, records } = runPublished(selectPublished(registries, corpusByPack), {

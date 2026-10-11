@@ -15,6 +15,7 @@ import {
   latestRunId,
   recoveryOf,
   runDestructive,
+  runRecoveryCommand,
   waitUntilAnswers,
 } from '../destructive-lane.mjs';
 import { findKnownGaps } from '../known-gap-lane.mjs';
@@ -141,6 +142,44 @@ test('a failed recovery stops the lane: later cases are not run against a broken
   );
   assert.match(results[1].detail, /lane stopped: recovery after TC-DEMO-01 failed/);
   assert.equal(laneProblems(results).length, 3);
+});
+
+test('a Playwright failure the verdict does not show fails the case, and the recovery still runs', async () => {
+  const [first] = findDestructive(FIXTURES);
+  const outcomes = [
+    { exitCode: 1, runnerError: null, stderr: 'Error in global teardown' },
+    { exitCode: 1, runnerError: 'killed by SIGTERM', stderr: '' },
+  ];
+  for (const outcome of outcomes) {
+    let recoveries = 0;
+    const [result] = await runDestructive([first], {
+      scanRoot: FIXTURES,
+      runRoot: FIXTURES,
+      project: 'api',
+      run: () => ({ records: [record({})], stdout: '', ...outcome }),
+      recover: async () => {
+        recoveries += 1;
+        return { ok: true, outcome: 'recovered', detail: '' };
+      },
+    });
+    assert.equal(result.verdict, 'failed', JSON.stringify(outcome));
+    assert.match(result.detail, /^Playwright (exited 1 although no case failed|did not finish)/);
+    assert.equal(recoveries, 1, 'the environment is recovered whatever the case did');
+    assert.equal(laneProblems([result]).length, 1);
+  }
+});
+
+test('a recovery command that exits non-zero is a failed recovery, with its last line', () => {
+  const node = JSON.stringify(process.execPath);
+  assert.deepEqual(runRecoveryCommand(`${node} -e "process.exit(0)"`, REPO_ROOT), {
+    ok: true,
+    detail: '',
+  });
+  const failed = runRecoveryCommand(
+    `${node} -e "console.error('down'); process.exit(3)"`,
+    REPO_ROOT,
+  );
+  assert.deepEqual(failed, { ok: false, detail: 'exit 3: down' });
 });
 
 test('a retried case stops the lane', async () => {

@@ -15,6 +15,10 @@
  *           when reporting failed; results that cannot be attributed are listed, never dropped
  *
  * Writes reports/tm/<phase>-<provider>.json with what was done, for the next step to read.
+ *
+ * Exit codes: 0 the phase finished, or was skipped with a notice (a tool without definitions or
+ * runs, no results to report); 1 the phase failed (an adapter error, a failed read-back, a report
+ * generator that exited non-zero); 2 a usage error.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';

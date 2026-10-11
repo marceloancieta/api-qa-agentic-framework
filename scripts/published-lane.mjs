@@ -27,7 +27,9 @@
  *                                   [--list] [--json] [--root dir] [--config file]
  *
  * Exit codes: 0 every selected case passed or was not selected (including when there is none);
- * 1 a case failed, did not run or has no test; 2 the lane could not run.
+ * 1 a case failed, did not run or has no test, or Playwright exited non-zero although no case
+ * failed (L-49); 2 the lane could not run (including a Playwright process that was killed or could
+ * not start).
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -47,11 +49,14 @@ import {
   formatTable,
   retriedRecords,
   runLane,
+  unexplainedExit,
 } from './lib/playwright-lane.mjs';
 import { DESTRUCTIVE_TAG } from './lib/tags.mjs';
 
 const CASE_ID = /^(TC-[A-Z][A-Z0-9]*-\d+)\b/;
 export const PROBLEM_VERDICTS = new Set(['failed', 'not-run', 'missing']);
+// The verdicts that come from the run itself and account for a non-zero Playwright exit.
+const RUN_VERDICTS = new Set(['failed', 'not-run']);
 
 // ---------------------------------------------------------------------------------------------
 // Changed operations
@@ -227,11 +232,15 @@ export function classifyCase(selection, records) {
 
 /**
  * Run the runnable cases of a selection in one Playwright process (zero retries) and classify every
- * case. Returns `{ results, records }`; `runRoot` is where Playwright runs (it has node_modules).
+ * case. Returns `{ results, records, failure }`; `runRoot` is where Playwright runs (it has
+ * node_modules). `failure` is null, or why the run failed although no case's verdict says so
+ * (Playwright exited non-zero with every case passed, skipped or a known gap): the lane fails then
+ * too (L-49). A run that did not finish (killed, could not start) throws: the lane could not run.
  */
 export function runPublished(selected, { scanRoot, runRoot, project, config, run = runLane }) {
   const runnable = selected.filter((s) => s.tests.length > 0 && !s.quarantined && !s.destructive);
   let records = [];
+  let lane = null;
   if (runnable.length > 0) {
     const runFiles = [
       ...new Set(
@@ -240,7 +249,10 @@ export function runPublished(selected, { scanRoot, runRoot, project, config, run
         ),
       ),
     ].sort();
-    const lane = run(runRoot, laneArgs(runnable, { project, config, runFiles }), GATE_ENV);
+    lane = run(runRoot, laneArgs(runnable, { project, config, runFiles }), GATE_ENV);
+    if (lane.runnerError) {
+      throw new Error(`${unexplainedExit(lane, false)}.\n${lane.stderr || lane.stdout}`.trim());
+    }
     if (retriedRecords(lane.records).length > 0) {
       throw new Error('a case was retried although QA_RETRIES=0; gate lanes run without retries');
     }
@@ -251,7 +263,10 @@ export function runPublished(selected, { scanRoot, runRoot, project, config, run
       );
     }
   }
-  return { results: selected.map((s) => ({ ...s, ...classifyCase(s, records) })), records };
+  const results = selected.map((s) => ({ ...s, ...classifyCase(s, records) }));
+  const explained = results.some((r) => RUN_VERDICTS.has(r.verdict));
+  const failure = lane ? unexplainedExit(lane, explained) : null;
+  return { results, records, failure };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -331,20 +346,21 @@ async function main(argv = process.argv.slice(2)) {
   }
 
   assertZeroRetries();
-  const { results } = runPublished(selected, {
+  const { results, failure } = runPublished(selected, {
     scanRoot,
     runRoot: REPO_ROOT,
     project: values.project,
     config: values.config,
   });
   const problems = results.filter((r) => PROBLEM_VERDICTS.has(r.verdict));
-  if (values.json) console.log(JSON.stringify({ cases: results }, null, 2));
+  if (values.json) console.log(JSON.stringify({ cases: results, failure }, null, 2));
   else {
     console.log(`published-lane: ${results.length} published case(s), one run, zero retries`);
     printResults(results);
     if (problems.length > 0) console.log(`\n${problems.length} case(s) need attention.`);
+    if (failure) console.log(`\nThe run failed: ${failure}`);
   }
-  return problems.length > 0 ? 1 : 0;
+  return problems.length > 0 || failure ? 1 : 0;
 }
 
 const entryScript = process.argv[1];

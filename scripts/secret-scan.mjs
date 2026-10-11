@@ -6,15 +6,19 @@
  * Fails CLOSED when gitleaks is missing: a secret scanner that silently does not run reports the same
  * green as one that found nothing. Install it (https://github.com/gitleaks/gitleaks#installing) or,
  * knowing what you skip, bypass once with `git commit --no-verify`. CI runs the same scan.
+ *
+ * Exit codes: 0 clean; 1 a finding, gitleaks missing, or a scanner that was killed by a signal or
+ * could not start (L-49: a scan without an exit code of its own never passes); 2 a usage error.
  */
 
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { exitCodeOf } from './lib/spawn.mjs';
 
 function findGitleaks() {
   const probe = spawnSync('gitleaks', ['version'], { encoding: 'utf8' });
-  if (probe.status === 0) return 'gitleaks';
+  if (exitCodeOf(probe) === 0) return 'gitleaks';
   // winget installs a link here, but a shell started before the install has a stale PATH.
   const winget =
     process.env.LOCALAPPDATA &&
@@ -24,7 +28,7 @@ function findGitleaks() {
 
 function run(command, args) {
   const result = spawnSync(command, args, { stdio: 'inherit' });
-  return result.status ?? 1;
+  return exitCodeOf(result);
 }
 
 const gitleaks = findGitleaks();

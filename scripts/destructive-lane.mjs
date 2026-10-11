@@ -20,7 +20,8 @@
  *   passed        the case passed
  *   known-gap     armed as an expected failure, still failing
  *   gap-passing   armed, but it passed: the defect may be fixed or the reproduction broken (L-14)
- *   failed        the case failed
+ *   failed        the case failed; or its Playwright process did not finish (killed, could not
+ *                 start), or exited non-zero while the case's own result looked fine (L-49)
  *   skipped       the case skipped itself (reported, does not fail the lane)
  *   not-run       Playwright produced no result, or the lane stopped before the case
  * and one recovery outcome: recovered, command-failed or not-ready.
@@ -52,10 +53,13 @@ import {
   GATE_ENV,
   assertZeroRetries,
   errorLine,
+  exitDetail,
   formatTable,
   retriedRecords,
   runLane,
+  unexplainedExit,
 } from './lib/playwright-lane.mjs';
+import { describeExit, exitCodeOf } from './lib/spawn.mjs';
 import { DESTRUCTIVE_TAG } from './lib/tags.mjs';
 import { recordsFor } from './known-gap-lane.mjs';
 
@@ -113,9 +117,9 @@ export function recoveryOf(environment) {
 /** Run the recovery command in `root`; `{ ok, detail }`. */
 export function runRecoveryCommand(command, root) {
   const run = spawnSync(command, { cwd: root, shell: true, encoding: 'utf8' });
-  if (run.status === 0) return { ok: true, detail: '' };
-  const why = (run.stderr || run.stdout || run.error?.message || '').trim().split('\n').at(-1);
-  return { ok: false, detail: `exit ${run.status ?? 'none'}${why ? `: ${why}` : ''}` };
+  if (exitCodeOf(run) === 0) return { ok: true, detail: '' };
+  const why = (run.stderr || run.stdout || '').trim().split('\n').at(-1);
+  return { ok: false, detail: `${describeExit(run)}${why ? `: ${why}` : ''}` };
 }
 
 /** Poll `url` until it answers below 500 or `timeoutS` passes; `{ ok, detail }`. */
@@ -200,10 +204,9 @@ export async function runDestructive(
       throw new Error('a case was retried although QA_RETRIES=0; gate lanes run without retries');
     }
     const result = classifyCase(recordsFor({ ...item, file }, lane.records, project));
-    if (result.verdict === 'not-run' && lane.exitCode !== 0) {
-      const why = (lane.stderr || lane.stdout || '').trim().split('\n').slice(-3).join(' | ');
-      result.detail = `Playwright exited ${lane.exitCode}: ${why}`;
-    }
+    const failure = unexplainedExit(lane, PROBLEM_VERDICTS.has(result.verdict));
+    if (failure) Object.assign(result, { verdict: 'failed', detail: failure });
+    else if (result.verdict === 'not-run' && lane.exitCode !== 0) result.detail = exitDetail(lane);
     const recovery = await recover();
     if (!recovery.ok) stopped = `recovery after ${item.caseId ?? item.title} failed`;
     results.push({

@@ -69,6 +69,12 @@ test('exit codes: FAIL is 1, REVIEW is 0 unless --fail-on-review, PASS and SKIPP
   assert.equal(exitCode('PASS', true), 0);
 });
 
+test('exit codes fail closed: a verdict the gate does not know is 1, never 0 (L-49)', () => {
+  for (const verdict of [undefined, null, '', 'pass', 'ERROR', 'UNKNOWN']) {
+    assert.equal(exitCode(verdict), 1, String(verdict));
+  }
+});
+
 test('percentile uses the nearest rank', () => {
   assert.equal(percentile([5], 95), 5);
   assert.equal(percentile([100, 120, 140, 160, 200, 900], 95), 900);
