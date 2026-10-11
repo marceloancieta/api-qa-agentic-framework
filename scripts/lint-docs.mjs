@@ -43,8 +43,9 @@
 //                      has no stage or every stage is complete (all of its backlog rows are in Done,
 //                      or Done has a row with the stage id), and it is not planned (below). It
 //                      exists when it is a path, an npm script (`npm run x`), the base
-//                      name of a tracked file (`swagger-digest`, `evidence`), an exported symbol, or
-//                      a quoted rule name in scripts/ or .claude/.
+//                      name of a tracked file (`swagger-digest`, `evidence`), the folder of a
+//                      SKILL.md (`qa-automate`), an exported symbol, or a quoted rule name or tag
+//                      (`@destructive`) in scripts/ or .claude/.
 //   registry-shape     problems reported by `loadRegistries` for services/<pack>/registry/*.md.
 //   destructive-recovery  a case whose details tag it `@destructive` has no `**Recovery**` bullet
 //                      saying how the service gets back to a usable state (L-59). The destructive
@@ -641,12 +642,16 @@ function checkAdrs(corpus, out) {
   }
 }
 
-/** Names an artifact may exist under: file base names, exports, npm scripts, quoted rule names. */
+/**
+ * Names an artifact may exist under: file base names, skill folders, exports, npm scripts, quoted
+ * rule names and quoted tags.
+ */
 function artifactIndex(corpus) {
   const names = new Set();
   for (const file of corpus.files) {
     const base = posix.basename(file);
     names.add(base.replace(/\.[^.]+$/, ''));
+    if (base === 'SKILL.md') names.add(posix.basename(posix.dirname(file)));
     if (!CODE_EXT.test(file)) continue;
     const text = readFileSync(join(corpus.root, file), 'utf8');
     for (const match of text.matchAll(
@@ -655,7 +660,7 @@ function artifactIndex(corpus) {
       names.add(match[1]);
     }
     if (/^(?:scripts|\.claude)\//.test(file)) {
-      for (const match of text.matchAll(/['"]([a-z][a-z0-9]*(?:-[a-z0-9]+)+)['"]/g)) {
+      for (const match of text.matchAll(/['"](@?[a-z][a-z0-9]*(?:-[a-z0-9]+)+|@[a-z]+)['"]/g)) {
         names.add(match[1]);
       }
     }
