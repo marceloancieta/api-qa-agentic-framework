@@ -33,8 +33,7 @@ GATE-12 came out of the E6 intake and is listed under E6 / E7 / E8.
 
 ## E4 - Test management
 
-The items of this stage are in **Done**. TM-07 (tracker search), found in E7, is open in the
-E6 / E7 / E8 table.
+Complete: TM-01 to TM-07 are in **Done** (TM-07, tracker search, came out of E7).
 
 ## E5 - Agentic process
 
@@ -42,10 +41,8 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 
 ## E6 / E7 / E8 - Petstore, agents, CI
 
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| TM-07 | `npm run tracker -- search <text>` in the tracker interface and every adapter (local, GitHub, Jira), with contract tests: intake, bug reporting and the `contract-investigator` agent must search for existing issues, and today the CLI only offers `get`, `create`, `comment` and `move`. | exp | todo |
-| GATE-13 | `secret-guard` reads a JavaScript member access such as `x.key` as a key file name and refuses the command; match only path-like words for the key-file patterns, with fixtures for both shapes. | exp | todo |
+Complete: PET-01, PET-02, AGT-01, AGT-02, GATE-12, GATE-13, TM-07 and CI-01, CI-02, CI-04 to
+CI-06 are in **Done**; CI-03 moved to Later.
 
 ## E9 - Docs and release
 
@@ -147,3 +144,5 @@ Complete: PROC-01 to PROC-14 are in **Done**.
 | CI-04 | Every wrapper propagates the runner's exit code (`scripts/lib/spawn.mjs`); the lanes fail on an unexplained non-zero Playwright exit; npm chains use only `&&` (`package-scripts.test.mjs`). | `1abf4e5` |
 | CI-05 | AI pull-request review (`pr-review.yml`, advisory, `pull_request` only, skipped without `ANTHROPIC_API_KEY`) against `.github/review-rubric.md`, which lists what the gates already enforce and what only a reviewer can judge. | `621e0a7` |
 | CI-06 | The workflows run locally with `act` (`.actrc`, `API_SPEC_URL` override): gates, e2e, drift, gitleaks and the review's key check pass; `docs/ci.md` lists what `act` cannot reproduce. | `b3cb208` |
+| GATE-13 | `secret-guard` reads code a command hands to an interpreter (a quoted heredoc that does not feed a shell, `node -e`, `python -c`) by code rules: there a file is a string literal or a path, so a member access such as `issue.key` passes; substitutions that the shell runs are still read as shell words. | `0d1db8a` |
+| TM-07 | `npm run tracker -- search <words> [--open] [--limit n]` in the tracker interface and the local, GitHub and Jira adapters, with contract tests; `qa-intake`, `qa-report-bug`, the bug-reporting reference and `contract-investigator` use it to look for existing issues. | `5df079b` |
