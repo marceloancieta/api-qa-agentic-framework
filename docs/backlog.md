@@ -33,7 +33,8 @@ GATE-12 came out of the E6 intake and is listed under E6 / E7 / E8.
 
 ## E4 - Test management
 
-Complete: TM-01 to TM-07 are in **Done** (TM-07, tracker search, came out of E7).
+Complete: TM-01 to TM-08 are in **Done** (TM-07, tracker search, came out of E7; TM-08, CI reporting
+to TestOps, out of the CI trial).
 
 ## E5 - Agentic process
 
@@ -144,7 +145,8 @@ CI-06 and CI-03 are in **Done**.
 | CI-06 | The workflows run locally with `act` (`.actrc`, `API_SPEC_URL` override): gates, e2e, drift, gitleaks and the review's key check pass; `docs/ci.md` lists what `act` cannot reproduce. | `b3cb208` |
 | GATE-13 | `secret-guard` reads code a command hands to an interpreter (a quoted heredoc that does not feed a shell, `node -e`, `python -c`) by code rules: there a file is a string literal or a path, so a member access such as `issue.key` passes; substitutions that the shell runs are still read as shell words. | `0d1db8a` |
 | TM-07 | `npm run tracker -- search <words> [--open] [--limit n]` in the tracker interface and the local, GitHub and Jira adapters, with contract tests; `qa-intake`, `qa-report-bug`, the bug-reporting reference and `contract-investigator` use it to look for existing issues. | `5df079b` |
+| TM-08 | CI reports to Allure TestOps when it is configured: `QA_TM_PROVIDER` replaces the qa-config provider for one run; `ci.yml` uses it when the `ALLURE_TOKEN` secret exists (endpoint and project as variables), the Jenkinsfile from a secret-text credential. Checked live from GitHub Actions and Jenkins. | `0cea1c5`, `a828ed0` |
 | DOC-01 | README (first ten minutes, adoption levels, spec-version compatibility, optional pieces), `docs/onboarding.md`, `CONTRIBUTING.md`, `docs/references/README.md`, and `docs/architecture.md` with Mermaid diagrams of the building blocks, layers, phases and a run, plus the patterns in use; unused files and project-internal wording removed. | `714c39b`, `f96ca81` |
 | DOC-02 | Guides: add a test case (with the phase skills or by hand) and add a service pack. | `f96ca81` |
 | FUT-08 | Mutation testing back in v0.1.0: `npm run mutation` (Stryker over the shared libraries, on demand), with `qs` pinned by an override. | `b2f77cb` |
-| CI-03 | `Jenkinsfile` and `Jenkinsfile.drift`: the CI and drift runs as declarative pipelines for Linux (`sh`) and Windows (`bat`) agents, with `PETSTORE_PORT` for a Jenkins that holds 8080; both ran green on a Jenkins with a Windows agent, checked out through SCM. | `dd69c2e`, `b33f513`, `63a521a` |
+| CI-03 | `Jenkinsfile` and `Jenkinsfile.drift`: the CI and drift runs as declarative pipelines for Linux (`sh`) and Windows (`bat`) agents, with `PETSTORE_PORT` for a Jenkins that holds 8080; both ran green on a Jenkins with a Windows agent, checked out through SCM.  Empty parameters fall back to Jenkins environment variables, so a scheduled build gets the machine's setup. | `dd69c2e`, `b33f513`, `63a521a`, `3523d6e`, `930fa07` |
