@@ -49,6 +49,10 @@ versus observed response codes. See [`docs/contract-tooling.md`](docs/contract-t
 coverage checks and the unit tests. Lanes for known gaps, published cases and flakiness, and the quality
 gate run on demand. See [`docs/quality-gates.md`](docs/quality-gates.md).
 
+GitHub Actions run the gates, the end-to-end suite with the destructive lane and a daily drift check
+([continuous integration](docs/ci.md)), plus Dependabot, CodeQL, a secret scan and an optional AI
+pull-request review ([CI security and review](docs/ci-security.md)).
+
 ## Test management and trackers
 
 Results and case definitions reach the test-management tool through adapters (`local` in the example
