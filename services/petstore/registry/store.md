@@ -124,12 +124,12 @@ quantity limits and information exposure.
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-STOR-01 | A valid order is placed and reads back with the values sent | REQ-STOR-01 | equivalence-partition | high | automated | specs/store.spec.ts | |
-| TC-STOR-02 | Every status and complete combination is stored and reads back as sent | REQ-STOR-02 | pairwise | medium | automated | specs/store.spec.ts | |
+| TC-STOR-01 | A valid order is placed and reads back with the values sent | REQ-STOR-01 | equivalence-partition | high | published | specs/store.spec.ts | |
+| TC-STOR-02 | Every status and complete combination is stored and reads back as sent | REQ-STOR-02 | pairwise | medium | published | specs/store.spec.ts | |
 | TC-STOR-03 | An order sent as XML or as a form is stored like a JSON one | REQ-STOR-01 | equivalence-partition | medium | approved | | |
 | TC-STOR-04 | An order whose status is outside the set is refused and stores nothing | REQ-STOR-02 | equivalence-partition | medium | approved | | |
 | TC-STOR-05 | A field of the wrong JSON type is refused with input-error and stores nothing | REQ-STOR-14 | equivalence-partition | high | approved | | |
-| TC-STOR-06 | A body that cannot be read as an Order is refused and stores nothing | REQ-STOR-14 | error-guessing | medium | automated | specs/store.spec.ts | |
+| TC-STOR-06 | A body that cannot be read as an Order is refused and stores nothing | REQ-STOR-14 | error-guessing | medium | published | specs/store.spec.ts | |
 | TC-STOR-07 | Ids at the int64 limit are accepted and one past the int64 or int32 limit is refused | REQ-STOR-14 | boundary-value | medium | approved | | |
 | TC-STOR-08 | Values the service would coerce (fractions, a number as status or date, text as boolean) are refused | REQ-STOR-14 | equivalence-partition | low | approved | | |
 | TC-STOR-09 | An impossible shipDate is refused rather than rolled over | REQ-STOR-14 | boundary-value | medium | approved | | |
@@ -144,14 +144,14 @@ quantity limits and information exposure.
 | TC-STOR-18 | Reading an id that names no order answers 404 not-found | REQ-STOR-04 | equivalence-partition | high | approved | | |
 | TC-STOR-19 | Reading an id that is not an int64 answers 400 input-error | REQ-STOR-04 | equivalence-partition | high | approved | | |
 | TC-STOR-20 | Reading zero, a negative id or an id the prose calls invalid answers 400 | REQ-STOR-06 | boundary-value | low | approved | | |
-| TC-STOR-21 | Deleting an owned order answers 200 and the order reads 404 afterwards | REQ-STOR-05 | state-transition | high | automated | specs/store.spec.ts | |
+| TC-STOR-21 | Deleting an owned order answers 200 and the order reads 404 afterwards | REQ-STOR-05 | state-transition | high | published | specs/store.spec.ts | |
 | TC-STOR-22 | Deleting an order that does not exist, or a second time, answers 404 | REQ-STOR-05 | state-transition | medium | approved | | |
 | TC-STOR-23 | Deleting an id that is not an int64 answers 400 and deletes nothing | REQ-STOR-05 | equivalence-partition | high | approved | | |
 | TC-STOR-24 | Ids around 1000 and ten-digit ids are deleted alike | REQ-STOR-07 | boundary-value | low | approved | | |
-| TC-STOR-25 | The inventory answers a map of int32 counts | REQ-STOR-08 | equivalence-partition | high | automated | specs/store.spec.ts | |
+| TC-STOR-25 | The inventory answers a map of int32 counts | REQ-STOR-08 | equivalence-partition | high | published | specs/store.spec.ts | |
 | TC-STOR-26 | The inventory moves by an owned order's quantity under its status, and not with a pet's status | REQ-STOR-08 | state-transition | medium | approved | | |
-| TC-STOR-27 | An order without status leaves the inventory answering 200 | REQ-STOR-13 | equivalence-partition | high | automated | specs/store-destructive.spec.ts | LOCAL-2 |
-| TC-STOR-28 | The inventory without an api_key header answers as the service declares | REQ-STOR-10 | equivalence-partition | high | automated | specs/store.spec.ts | |
+| TC-STOR-27 | An order without status leaves the inventory answering 200 | REQ-STOR-13 | equivalence-partition | high | published | specs/store-destructive.spec.ts | LOCAL-2 |
+| TC-STOR-28 | The inventory without an api_key header answers as the service declares | REQ-STOR-10 | equivalence-partition | high | published | specs/store.spec.ts | |
 | TC-STOR-29 | The inventory with an empty or arbitrary api_key answers as the service declares | REQ-STOR-10 | equivalence-partition | high | approved | | |
 | TC-STOR-30 | Error answers of the store operations disclose no implementation details | REQ-STOR-14 | error-guessing | medium | approved | | |
 

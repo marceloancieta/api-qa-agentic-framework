@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { REPO_ROOT } from '../lib/cli.mjs';
 import {
@@ -75,9 +76,21 @@ test('published rows map to the tests carrying their ids, narrowed by changed op
   assert.equal(selectPublished(registries, corpusByPack, miss).length, 0);
 });
 
-test('a repository with no published case selects nothing', () => {
-  const { registries, corpusByPack } = loadInputs(REPO_ROOT);
+test('a repository with no published case selects nothing', (t) => {
+  const empty = mkdtempSync(join(tmpdir(), 'no-published-'));
+  t.after(() => rmSync(empty, { recursive: true, force: true }));
+  const { registries, corpusByPack } = loadInputs(empty);
   assert.deepEqual(selectPublished(registries, corpusByPack), []);
+});
+
+test('a published destructive case is left to the destructive lane, never run here', () => {
+  const selection = { id: 'TC-X-02', tests: [{ tags: ['@destructive'] }], destructive: true };
+  assert.equal(classifyCase(selection, []).verdict, 'destructive');
+  const { registries, corpusByPack } = loadInputs(REPO_ROOT);
+  for (const selected of selectPublished(registries, corpusByPack)) {
+    const tagged = selected.tests.every((t) => t.tags.includes('@destructive'));
+    assert.equal(selected.destructive, selected.tests.length > 0 && tagged, selected.id);
+  }
 });
 
 test('each case gets one verdict from the records', () => {

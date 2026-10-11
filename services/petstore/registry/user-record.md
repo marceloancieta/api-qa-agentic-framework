@@ -59,14 +59,14 @@ keep reporting it as never seen until a run produces it.
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-USER-32 | A created user reads back with the declared User shape | REQ-USER-04 | equivalence-partition | high | automated | specs/user.spec.ts | |
+| TC-USER-32 | A created user reads back with the declared User shape | REQ-USER-04 | equivalence-partition | high | published | specs/user.spec.ts | |
 | TC-USER-33 | A read that asks for XML answers XML with the stored fields | REQ-USER-11 | equivalence-partition | medium | approved | | |
 | TC-USER-34 | An unknown username answers 404 with the not-found envelope | REQ-USER-04 | equivalence-partition | high | approved | | |
 | TC-USER-35 | A username with another case or a trailing space is a different, unknown user | REQ-USER-01 | boundary-value | medium | approved | | |
 | TC-USER-36 | Injection-like usernames answer 404 without internals | REQ-USER-12 | error-guessing | medium | approved | | |
 | TC-USER-37 | Overlong and encoded-slash usernames are refused or missed, never a server error | REQ-USER-04 | error-guessing | low | approved | | |
 | TC-USER-38 | A path of about 8 KB is refused with a client error | REQ-USER-12 | boundary-value | low | approved | | |
-| TC-USER-39 | A read never returns the stored password | REQ-USER-10 | equivalence-partition | high | automated | specs/user.spec.ts | LOCAL-3 |
+| TC-USER-39 | A read never returns the stored password | REQ-USER-10 | equivalence-partition | high | published | specs/user.spec.ts | LOCAL-3 |
 | TC-USER-40 | Anonymous and default reads of a user answer alike | REQ-USER-07 | equivalence-partition | low | approved | | |
 | TC-USER-41 | User answers do not disclose the server software | REQ-USER-12 | error-guessing | low | approved | | |
 | TC-USER-42 | A full-body update changes only the field it changes | REQ-USER-05 | equivalence-partition | high | approved | | |
@@ -82,9 +82,9 @@ keep reporting it as never seen until a run produces it.
 | TC-USER-52 | A form-encoded update stores its fields as sent | REQ-USER-05 | equivalence-partition | medium | approved | | |
 | TC-USER-53 | Repeating an identical update leaves the same state | REQ-USER-05 | state-transition | low | approved | | |
 | TC-USER-54 | Overlong and encoded-slash paths on update create nothing and never fail with a server error | REQ-USER-05 | error-guessing | low | approved | | |
-| TC-USER-55 | An anonymous update applies exactly like a default one | REQ-USER-07 | equivalence-partition | low | automated | specs/user.spec.ts | |
+| TC-USER-55 | An anonymous update applies exactly like a default one | REQ-USER-07 | equivalence-partition | low | published | specs/user.spec.ts | |
 | TC-USER-56 | The answer to an update never carries the password | REQ-USER-10 | error-guessing | medium | approved | | LOCAL-3 |
-| TC-USER-57 | Deleting a user removes it | REQ-USER-06 | state-transition | high | automated | specs/user.spec.ts | |
+| TC-USER-57 | Deleting a user removes it | REQ-USER-06 | state-transition | high | published | specs/user.spec.ts | |
 | TC-USER-58 | A second delete of the same user answers 404 | REQ-USER-06 | state-transition | medium | approved | | |
 | TC-USER-59 | Deleting a username that was never created answers 404 | REQ-USER-06 | equivalence-partition | high | approved | | |
 | TC-USER-60 | Overlong and encoded-slash paths on delete remove nothing and never fail with a server error | REQ-USER-06 | error-guessing | low | approved | | |

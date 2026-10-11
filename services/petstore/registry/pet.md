@@ -95,7 +95,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-PET-01 | A pet created with every field reads back as sent | REQ-PET-09 | equivalence-partition | high | automated | specs/pet.spec.ts | |
+| TC-PET-01 | A pet created with every field reads back as sent | REQ-PET-09 | equivalence-partition | high | published | specs/pet.spec.ts | |
 | TC-PET-02 | A pet created with only the required fields reads back with them | REQ-PET-01 | equivalence-partition | high | approved | | |
 | TC-PET-03 | A create without a name is refused and stores nothing | REQ-PET-01 | equivalence-partition | high | approved | | |
 | TC-PET-04 | A create without photo URLs is refused and stores nothing | REQ-PET-01 | equivalence-partition | high | approved | | |
@@ -105,22 +105,22 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 | TC-PET-08 | A create without an id is answered without a server error | REQ-PET-09 | equivalence-partition | high | approved | | |
 | TC-PET-09 | A create with the id of an existing pet does not replace that pet | REQ-PET-09 | state-transition | high | approved | | |
 | TC-PET-10 | A create with an unknown property stores and returns only declared fields | REQ-PET-09 | equivalence-partition | medium | approved | | |
-| TC-PET-11 | A create with an id one above the int64 maximum is refused and creates nothing | REQ-PET-09 | boundary-value | medium | automated | specs/pet.spec.ts | |
+| TC-PET-11 | A create with an id one above the int64 maximum is refused and creates nothing | REQ-PET-09 | boundary-value | medium | published | specs/pet.spec.ts | |
 | TC-PET-12 | Malformed, truncated, empty, null and array create bodies are refused as input errors | REQ-PET-09 | error-guessing | medium | approved | | |
 | TC-PET-13 | An empty object as create body is refused as an input error, not a server error | REQ-PET-01 | error-guessing | low | approved | | |
-| TC-PET-14 | A create body with an unsupported content type is refused and stores nothing | REQ-PET-09 | error-guessing | low | automated | specs/pet.spec.ts | |
+| TC-PET-14 | A create body with an unsupported content type is refused and stores nothing | REQ-PET-09 | error-guessing | low | published | specs/pet.spec.ts | |
 | TC-PET-15 | XML and flat form bodies create the pet as sent | REQ-PET-09 | equivalence-partition | medium | approved | | |
 | TC-PET-16 | A form-encoded create with tags stores tag objects and findByTags keeps answering | REQ-PET-05 | error-guessing | high | approved | | |
 | TC-PET-17 | Create and read errors reveal no implementation detail | | error-guessing | medium | approved | | |
-| TC-PET-18 | A seed pet reads back with the declared Pet shape | REQ-PET-07 | equivalence-partition | high | automated | specs/pet.spec.ts | |
+| TC-PET-18 | A seed pet reads back with the declared Pet shape | REQ-PET-07 | equivalence-partition | high | published | specs/pet.spec.ts | |
 | TC-PET-19 | Reading an id that names no pet answers not-found | REQ-PET-07 | equivalence-partition | high | approved | | |
 | TC-PET-20 | A malformed pet id on read is refused as an input error | REQ-PET-07 | equivalence-partition | medium | approved | | |
 | TC-PET-21 | Pet ids at the int64 edges are answered by class: not-found inside, input error outside | REQ-PET-07 | boundary-value | medium | approved | | |
 | TC-PET-22 | A pet read with an XML Accept answers XML, other Accept values answer JSON | REQ-PET-07 | equivalence-partition | low | approved | | |
-| TC-PET-23 | Deleting a pet removes it and a later read answers not-found | REQ-PET-11 | state-transition | high | automated | specs/pet.spec.ts | |
+| TC-PET-23 | Deleting a pet removes it and a later read answers not-found | REQ-PET-11 | state-transition | high | published | specs/pet.spec.ts | |
 | TC-PET-24 | Deleting a pet that does not exist does not report a deletion | REQ-PET-11 | state-transition | medium | approved | | |
 | TC-PET-25 | A malformed pet id on delete is refused and deletes nothing | REQ-PET-11 | equivalence-partition | medium | approved | | |
-| TC-PET-26 | An anonymous caller creates, reads and deletes its own pet like the default caller | REQ-PET-13 | equivalence-partition | medium | automated | specs/pet.spec.ts | |
+| TC-PET-26 | An anonymous caller creates, reads and deletes its own pet like the default caller | REQ-PET-13 | equivalence-partition | medium | published | specs/pet.spec.ts | |
 | TC-PET-27 | An unissued api_key header changes no answer of the read and the delete | REQ-PET-13 | equivalence-partition | low | approved | | |
 
 ## Case details

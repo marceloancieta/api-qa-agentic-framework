@@ -88,9 +88,9 @@ Every user probe that remains a gap is exploratory, and is left out on purpose:
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-USER-01 | A user created from a full JSON body reads back as sent | REQ-USER-02 | equivalence-partition | high | automated | specs/user.spec.ts | |
+| TC-USER-01 | A user created from a full JSON body reads back as sent | REQ-USER-02 | equivalence-partition | high | published | specs/user.spec.ts | |
 | TC-USER-02 | A body with only a username and an id stores those two and invents nothing | REQ-USER-02 | boundary-value | high | approved | | |
-| TC-USER-03 | An empty object body is refused and stores nothing | REQ-USER-02 | equivalence-partition | high | automated | specs/user-destructive.spec.ts | LOCAL-1 |
+| TC-USER-03 | An empty object body is refused and stores nothing | REQ-USER-02 | equivalence-partition | high | published | specs/user-destructive.spec.ts | LOCAL-1 |
 | TC-USER-04 | A body with other fields but no username is refused and stores nothing | REQ-USER-02 | equivalence-partition | high | approved | | LOCAL-1 |
 | TC-USER-05 | A null username is refused and stores nothing | REQ-USER-02 | error-guessing | medium | approved | | LOCAL-1 |
 | TC-USER-06 | A second create with an existing username is refused and the first record is kept | REQ-USER-02 | state-transition | high | approved | | |
@@ -101,7 +101,7 @@ Every user probe that remains a gap is exploratory, and is left out on purpose:
 | TC-USER-11 | Numbers or booleans in string fields are refused and nothing is stored | REQ-USER-14 | error-guessing | medium | approved | | |
 | TC-USER-12 | Fractions in integer fields are refused and nothing is stored | REQ-USER-14 | error-guessing | medium | approved | | |
 | TC-USER-13 | An id beyond int64 is refused and nothing is stored | REQ-USER-14 | boundary-value | medium | approved | | |
-| TC-USER-14 | userStatus at the int32 maximum is stored and one beyond it is refused | REQ-USER-15 | boundary-value | medium | automated | specs/user.spec.ts | |
+| TC-USER-14 | userStatus at the int32 maximum is stored and one beyond it is refused | REQ-USER-15 | boundary-value | medium | published | specs/user.spec.ts | |
 | TC-USER-15 | A null in an optional field never causes a server error or a stored text null | REQ-USER-14 | error-guessing | low | approved | | |
 | TC-USER-16 | Unreadable JSON is refused and nothing is stored | REQ-USER-12 | error-guessing | medium | approved | | |
 | TC-USER-17 | A create sent as text/plain is refused and nothing is stored | REQ-USER-12 | error-guessing | medium | approved | | |
