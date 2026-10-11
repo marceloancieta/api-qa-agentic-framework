@@ -26,7 +26,8 @@
     }
   },
   "test_management": {
-    "provider": "allure-report"
+    "provider": "local",
+    "options": { "dir": "reports/tm/local" }
   },
   "tracker": {
     "provider": "local",

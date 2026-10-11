@@ -9,7 +9,7 @@ vendor.
 ```sh
 npm test                 # the run records results in allure-results/, each case with its identity
 npm run tm:manifest      # optional: write reports/tm/manifest.json and list what cannot be attributed
-npm run tm:publish       # send the definitions of approved, automated and published cases
+npm run tm:publish       # send the definitions of automated and published cases
 npm run tm:report        # start a run, report the latest results, close the run
 ```
 
@@ -29,7 +29,7 @@ The provider is set in `qa-config` `test_management.provider` and configured in 
 | Provider | Model | Status |
 |---|---|---|
 | `allure-report` (default) | results only: an HTML report generated with Allure 3 (`npm run tm:open` serves it) | implemented |
-| `local` | definitions-first, JSON files under `reports/tm/local`; the reference implementation and template | implemented |
+| `local` | definitions-first, JSON files under `reports/tm/local`; the reference implementation and template, and the provider of the example configuration | implemented |
 | `allure-testops` | results-first: a launch per run; TestOps creates a case the first time an identity arrives | implemented, checked against TestOps 26.3 |
 | `testrail` | definitions-first | documented only (below) |
 

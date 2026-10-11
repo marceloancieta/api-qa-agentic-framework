@@ -51,8 +51,8 @@ gate run on demand. See [`docs/quality-gates.md`](docs/quality-gates.md).
 
 ## Test management and trackers
 
-Results and case definitions reach the test-management tool through adapters (`allure-report` by
-default, `local`, and others behind the same contract); issues are read and filed through a tracker
+Results and case definitions reach the test-management tool through adapters (`local` in the example
+configuration, `allure-report` when none is set, and others behind the same contract); issues are read and filed through a tracker
 interface (GitHub, Jira). See [`docs/test-management.md`](docs/test-management.md).
 
 ## Agentic process

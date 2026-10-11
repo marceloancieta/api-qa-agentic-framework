@@ -7,9 +7,10 @@
  *   node scripts/tm/run.mjs publish [--service x] [--dry-run]
  *   node scripts/tm/run.mjs report  [--service x] [--results dir] [--name text]
  *
- * publish   sends the definitions of cases whose registry status is approved, automated or
- *           published (drafts and blocked cases stay out); a tool without definitions skips the
- *           phase with a notice
+ * publish   sends the definitions of cases whose registry status is automated or published: a
+ *           case is published after a reviewed spec proves it (lifecycle in
+ *           .claude/rules/registry.md), so drafts, approved and blocked cases stay out; a tool
+ *           without definitions skips the phase with a notice
  * report    starts a run, reports the latest results of the packs' specs, and closes the run even
  *           when reporting failed; results that cannot be attributed are listed, never dropped
  *
@@ -26,7 +27,7 @@ import { createLogger, RUN_ID_VARIABLE } from '../lib/log.mjs';
 import { loadAdapter } from './adapters/index.mjs';
 import { buildManifest } from './manifest.mjs';
 
-export const PUBLISHABLE = ['approved', 'automated', 'published'];
+export const PUBLISHABLE = ['automated', 'published'];
 
 export function testManagementConfig(root = REPO_ROOT) {
   const file = ['qa-config.json', 'qa-config.example.json'].find((name) =>

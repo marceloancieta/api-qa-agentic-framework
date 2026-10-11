@@ -36,7 +36,7 @@ function manifestWith(results) {
 const localAdapter = () =>
   loadAdapter('local', { dir: 'store' }, { root: mkdtempSync(join(tmpdir(), 'tm-run-')) });
 
-test('publish sends approved, automated and published cases only, and is idempotent', async () => {
+test('publish sends automated and published cases only, and is idempotent', async () => {
   const adapter = await localAdapter();
   const manifest = manifestWith([]);
   const log = quietLog();
@@ -44,10 +44,9 @@ test('publish sends approved, automated and published cases only, and is idempot
   const statuses = new Map(manifest.cases.map((c) => [c.identity, c.status]));
   assert.ok(first.published.length > 0);
   assert.ok(
-    first.published.every((p) =>
-      ['approved', 'automated', 'published'].includes(statuses.get(p.identity)),
-    ),
+    first.published.every((p) => ['automated', 'published'].includes(statuses.get(p.identity))),
   );
+  assert.ok(first.heldBack.some((h) => h.reason === 'status approved'));
   assert.ok(first.heldBack.some((h) => h.reason === 'status draft'));
   assert.ok(first.heldBack.some((h) => h.reason === 'not in a registry'));
 
