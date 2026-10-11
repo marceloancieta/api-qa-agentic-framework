@@ -117,7 +117,8 @@ None are required for the Petstore.
 | `API_KEY` | secret, optional | `e2e`, `drift` | The API key of a real API. Without it, each run generates a random value (`openssl rand -hex 12`) and masks it. The Petstore accepts any non-empty value. A literal value is never written in a workflow. |
 | `QA_DRIFT_CONTRACT_ENV` | variable, optional | `drift` | The qa-config environment whose contract the digest step compares. Empty: the default environment. |
 | `contract_env` | `workflow_dispatch` input | `drift` | The same, for one manual run. It takes precedence over the variable. |
-| `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID`, `ALLURE_TOKEN` | secrets, optional | `e2e` | Report the run to Allure TestOps ([below](#reporting-to-allure-testops)). |
+| `ALLURE_TOKEN` | secret, optional | `e2e` | Report the run to Allure TestOps ([below](#reporting-to-allure-testops)). |
+| `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID` | variables, with `ALLURE_TOKEN` | `e2e` | The TestOps instance and project. |
 
 Secrets are not passed to workflows triggered by pull requests from forks. Those runs fall back to
 the generated key. That works for the Petstore, and against a real API it fails loudly with `401`
@@ -132,13 +133,16 @@ is (L-42). The configuration keeps a trace of each failed test (`QA_TRACE`, defa
 ### Reporting to Allure TestOps
 
 By default `e2e` reports the run to the tool in qa-config (the example's `local` store). To send it
-to Allure TestOps instead, add three repository secrets:
+to Allure TestOps instead, add one repository secret and two repository variables:
 
-| Secret | Value |
-|---|---|
-| `ALLURE_ENDPOINT` | the instance URL, for example `https://<instance>.testops.cloud` |
-| `ALLURE_PROJECT_ID` | the numeric project id |
-| `ALLURE_TOKEN` | an API token from your TestOps profile |
+| Name | Kind | Value |
+|---|---|---|
+| `ALLURE_TOKEN` | secret | an API token from your TestOps profile |
+| `ALLURE_ENDPOINT` | variable | the instance URL, for example `https://<instance>.testops.cloud` |
+| `ALLURE_PROJECT_ID` | variable | the numeric project id |
+
+Only the token is secret. GitHub masks a secret's value wherever it appears in a log, so a project
+id such as `1` stored as a secret would hide every `1` in the output.
 
 When `ALLURE_TOKEN` is set, the job sets `QA_TM_PROVIDER=allure-testops`, which replaces the
 configured provider for that run ([test management](test-management.md#test-management-providers)),

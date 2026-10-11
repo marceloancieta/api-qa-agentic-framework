@@ -122,8 +122,10 @@ jobs:
       - name: Report the run to test management
         if: ${{ !cancelled() && steps.suite.outcome != 'skipped' }}
         env:
-          ALLURE_ENDPOINT: ${{ secrets.ALLURE_ENDPOINT }}
-          ALLURE_PROJECT_ID: ${{ secrets.ALLURE_PROJECT_ID }}
+          # Endpoint and project id are not secret: as variables they stay readable in the log (a
+          # secret is masked everywhere it appears, and a project id like 1 would hide every 1).
+          ALLURE_ENDPOINT: ${{ vars.ALLURE_ENDPOINT }}
+          ALLURE_PROJECT_ID: ${{ vars.ALLURE_PROJECT_ID }}
           ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
         run: npm run tm:report -- --service petstore
 
