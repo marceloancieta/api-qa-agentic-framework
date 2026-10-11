@@ -155,7 +155,7 @@ test('UserPromptSubmit: a prompt with a credential is blocked', async () => {
 test('UserPromptSubmit: an ordinary prompt passes', async () => {
   const r = await runHook('secret-guard.mjs', {
     hook_event_name: 'UserPromptSubmit',
-    prompt: 'empecemos E0, set the api key later',
+    prompt: 'start the scaffold, set the api key later',
   });
   assert.equal(r.verdict, 'allow');
 });

@@ -42,7 +42,7 @@ test('reports DOWN with the docker hint when a local API is not running', async 
   const dir = tempProject({ config: configFor(`http://localhost:${port}/api/v3`) });
   const text = context(await runHook('session-probe.mjs', {}, { projectDir: dir }));
   assert.match(text, /: DOWN/);
-  assert.match(text, /docker compose up -d petstore/);
+  assert.match(text, /docker compose up -d <service>/);
 });
 
 test('QA_ENV selects the environment and API_BASE_URL overrides it', async () => {

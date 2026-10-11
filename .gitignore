@@ -17,7 +17,6 @@ npm-debug.log*
 /playwright-report/
 /test-results/
 /blob-report/
-/drift-results/
 /playwright/.cache/
 
 # Allure
@@ -25,14 +24,6 @@ npm-debug.log*
 /allure-report/
 /.allure/
 /allure-results.lock
-
-# Spec discovery cache is regenerable; the small generated digest IS tracked so a contract change
-# shows up as a reviewable diff.
-/docs/discovery/*.json
-!/docs/discovery/*-digest*.json
-
-# Downloaded tool binaries
-/tools/
 
 # Editors and operating systems
 .vscode/
@@ -46,5 +37,5 @@ Thumbs.db
 # Git worktrees created for parallel agent work
 .claude/worktrees/
 
-# Quality gate and mutation report output
+# Mutation testing (Stryker) and quality gate output
 /reports/

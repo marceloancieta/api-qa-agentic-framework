@@ -12,7 +12,6 @@ export default tseslint.config(
       'allure-report/',
       'test-results/',
       'playwright-report/',
-      'tools/',
       'scripts/__fixtures__/',
       '.claude/worktrees/',
       'reports/',

@@ -101,6 +101,7 @@ export const RULES = [
   'module-scope-io',
   'unnormalized-comparison',
   'tag-taxonomy',
+  'destructive-isolation',
 ];
 
 const RESPONSE_READERS = new Set(['json', 'text', 'body', 'headers', 'status', 'statusText', 'ok']);

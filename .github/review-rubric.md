@@ -22,7 +22,7 @@ A comment that restates one of these is noise; when one fails, CI already says s
 - **`.github/workflows/secret-scan.yml`**: gitleaks over the full history.
 - **`.github/dependabot.yml`**: outdated npm packages and actions.
 
-Not enforced anywhere in CI: the private denylist scan (it runs only on the maintainer's machine),
+Not enforced anywhere in CI: the private denylist scan (it runs only on contributors' machines, each with their own list),
 the commit and pull-request title convention (`git-policy` checks it only in local Claude Code
 sessions), and everything below.
 

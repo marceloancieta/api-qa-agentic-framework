@@ -88,7 +88,7 @@ report.push(`API [${env.name || 'no environment'}] ${env.baseUrl || '(no host)'}
 if (status === 'DOWN') {
   report.push(
     LOCAL_HOST.test(env.baseUrl)
-      ? 'Hint: the local API is not running. Start it with `docker compose up -d petstore` before running suites or fetching the spec.'
+      ? 'Hint: the local API is not running. Start its container (`docker compose up -d <service>`; for the example pack, `npm run petstore:up`) before running suites or fetching the spec.'
       : 'Hint: the API host does not accept connections. Check the network or VPN first; a timeout here is not an application defect.',
   );
 }

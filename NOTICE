@@ -2,3 +2,8 @@ API QA Agentic Framework
 Copyright 2026 Marcelo Ancieta
 
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The example service pack and the contract fixtures include the Swagger Petstore OpenAPI
+documents (services/petstore/openapi.json and scripts/__fixtures__/openapi/petstore-v2.json,
+petstore-v3.json), from the swagger-api Petstore sample, licensed under the Apache License,
+Version 2.0.

@@ -4,7 +4,6 @@ allure-results/
 allure-report/
 test-results/
 playwright-report/
-tools/
 *.md
 .claude/worktrees/
 reports/

@@ -31,11 +31,6 @@ export function groupRuns(results, gapMs = RUN_GAP_MINUTES * 60_000) {
   return runs;
 }
 
-/** The results of the latest run in `dir` (an empty list when there are none). */
-export function latestRun(dir) {
-  return groupRuns(readResultFiles(dir)).at(-1) ?? [];
-}
-
 /**
  * One entry per key: the last attempt (by stop time) wins and `attempts` counts them all.
  * `keyOf` returns null for results that cannot be keyed; those are returned in `unkeyed`.

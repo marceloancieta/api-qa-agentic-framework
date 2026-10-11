@@ -1,6 +1,6 @@
 # Normalize every text file to LF in the repository and the working tree. Generators write LF and
 # their `--check` modes compare byte for byte, so a CRLF checkout would report a stale file nothing
-# changed. Shell hooks and Jenkinsfiles run on Linux agents, where a stray \r breaks them.
+# changed. Shell hooks run on Linux CI runners, where a stray \r breaks them.
 * text=auto eol=lf
 
 *.png binary
