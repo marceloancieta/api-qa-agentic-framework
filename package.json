@@ -65,6 +65,7 @@
     "tm:open": "allure open reports/allure-report",
     "tracker": "node scripts/tracker/cli.mjs",
     "cited:status": "node scripts/cited-status.mjs",
+    "commit:title": "node scripts/commit-title.mjs",
     "changelog": "node scripts/changelog.mjs --next",
     "changelog:write": "node scripts/changelog.mjs --next --write"
   },

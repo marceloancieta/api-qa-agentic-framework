@@ -23,8 +23,7 @@ Every other item of the first release is in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| DOC-04 | Release gate, before the first push: (1) a history without earlier wording or file versions: the first commits are squashed into one, every later commit keeps its tree, author and date, and the closing commits cited here are mapped to the new hashes; (2) full-history gitleaks and denylist scans and a wording review of every commit message; (3) create the GitHub repository and push `main` only with explicit approval. | plan, ADR 0001 | in-progress |
-| DOC-05 | Right after the first push, switch to GitHub Flow: protect `main` (required CI checks, pull requests only, squash merge, linear history), add a pull-request template linking the backlog item, enable the matching `git-policy` rules (backlog-id key pattern, Conventional Commits, protected `main`), and turn on private vulnerability reporting, which CONTRIBUTING points security reports to. | ADR 0008 | todo |
+| DOC-05 | Right after the first push, switch to GitHub Flow: protect `main` (required CI checks, pull requests only, squash merge, linear history), add a pull-request template linking the backlog item, enable the matching `git-policy` rules (backlog-id key pattern, Conventional Commits, protected `main`), and turn on private vulnerability reporting, which CONTRIBUTING points security reports to. | ADR 0008 | in-progress |
 
 ## Later (after v0.1.0)
 
@@ -123,5 +122,6 @@ Every other item of the first release is in **Done**.
 | DOC-01 | README (first ten minutes, adoption levels, spec-version compatibility, optional pieces), `docs/onboarding.md`, `CONTRIBUTING.md`, `docs/references/README.md`, and `docs/architecture.md` with Mermaid diagrams of the building blocks, layers, phases and a run, plus the patterns in use; unused files and project-internal wording removed. | `714c39b`, `f96ca81` |
 | DOC-02 | Guides: add a test case (with the phase skills or by hand) and add a service pack. | `f96ca81` |
 | DOC-03 | `npm run changelog` and `changelog:write` (`scripts/changelog.mjs`): a Keep a Changelog section per version from the Conventional Commits since the last tag, with the backlog ids and short hashes; release steps in CONTRIBUTING. `CHANGELOG.md` starts at 0.1.0, tagged `v0.1.0`. | `d18e7f5`, `61a7336` |
+| DOC-04 | Release gate: the first commits squashed into one and every later commit replayed with its tree, author and date, cited closing commits mapped to the new hashes; full-history gitleaks, denylist and wording scans clean; the public repository created and `main` with `v0.1.0` pushed with the owner's approval. | `5ebb5a4`, `87981db` |
 | FUT-08 | Mutation testing back in v0.1.0: `npm run mutation` (Stryker over the shared libraries, on demand), with `qs` pinned by an override. | `b2f77cb` |
 | CI-03 | `Jenkinsfile` and `Jenkinsfile.drift`: the CI and drift runs as declarative pipelines for Linux (`sh`) and Windows (`bat`) agents, with `PETSTORE_PORT` for a Jenkins that holds 8080; both ran green on a Jenkins with a Windows agent, checked out through SCM.  Empty parameters fall back to Jenkins environment variables, so a scheduled build gets the machine's setup. | `dd69c2e`, `b33f513`, `63a521a`, `3523d6e`, `930fa07` |

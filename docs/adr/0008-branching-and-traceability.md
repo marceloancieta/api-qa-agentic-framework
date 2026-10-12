@@ -37,10 +37,9 @@ protected and always green.
 backlog ids, `policies.commit.conventional_commits: true` and `policies.commit.protected_branches:
 ["main"]`.
 
-**Adoption timing.** Until the first push the repository is local and its history is rewritten into
-clean commits before publication (backlog DOC-04). Branches and pull requests start right after that
-first push. Until then, commits go to `main` directly, one or a few per backlog item, already following
-the commit convention above.
+**Adoption timing.** Until the first push the repository was local: commits went to `main` directly,
+following the commit convention above, and the history was cleaned before publication (backlog
+DOC-04). Branches and pull requests started right after that first push (DOC-05).
 
 ## Consequences
 

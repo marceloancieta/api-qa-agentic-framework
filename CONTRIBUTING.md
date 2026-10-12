@@ -91,9 +91,12 @@ The project follows GitHub Flow ([ADR 0008](docs/adr/0008-branching-and-traceabi
 - a squash merge into `main`, so the history keeps one commit per backlog item;
 - releases are tags `vX.Y.Z` on `main`.
 
-Protecting `main` (required checks, pull requests only, squash merges, linear history), a
-pull-request template and the matching `git-policy` rules are backlog item DOC-05. Until it is done,
-treat the list above as the intended flow, not as something the repository enforces.
+The repository enforces it. `main` accepts changes only through pull requests, squash merges
+only, with a linear history. A pull request merges when the `title`, `gates` and `e2e (petstore)`
+checks pass. The `title` check reads the pull-request title with the same parser as the changelog
+(`npm run commit:title -- "<title>"` runs it locally), because the title becomes the commit subject
+on `main`. Opening a pull request fills in its template. Locally, the `git-policy` hook asks
+before a commit straight onto `main` and checks the subject's shape (qa-config `policies`).
 
 ### Releases
 
