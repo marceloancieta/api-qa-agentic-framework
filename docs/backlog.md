@@ -1,57 +1,31 @@
 # Backlog
 
-Open work for the framework, grouped by build stage (see the roadmap in
-[`docs/adr/`](adr/README.md) and the stage list below). This file holds **active work only**: a row
-that is finished goes to the **Done** section at the end with its closing commit, and keeps its id
-forever, so references in commits and docs stay valid.
+Open work for the framework. This file holds **active work only**: a row that is finished goes to
+the **Done** section at the end with its closing commit, and keeps its id forever, so references in
+commits and docs stay valid.
 
-- Until the first push, commits go straight to `main` using the ADR 0008 message convention
-  (`type(scope): ID summary`); branches and pull requests start with DOC-05.
+- Commits follow the ADR 0008 message convention (`type(scope): ID summary`); from the first push
+  on, changes reach `main` through pull requests (DOC-05).
 - **Status** is one of `todo` · `in-progress` · `blocked` · `wont-do`.
-- **Origin**: `L-NN` = a lesson in [`lessons-learned.md`](lessons-learned.md); `exp` = an established practice from
-  field experience; `practice` = an established industry
-  practice (ISTQB, OWASP, testing literature); `ADR NNNN` = a recorded decision.
-
-**Stages:** E1 execution core · E2 contract tooling · E3 linters and gates · E4 test management ·
-E5 agentic process · E6 Petstore phases 0-1 · E7 agents · E8 Petstore phases 2-4 and CI ·
-E9 docs and release · Later (after v0.1.0).
+- **Origin**: `L-NN` = a lesson in [`lessons-learned.md`](lessons-learned.md); `exp` = an established
+  practice from field experience; `practice` = an established industry practice (ISTQB, OWASP,
+  testing literature); `plan` = the framework's own roadmap; `ADR NNNN` = a recorded decision.
+- **Prefixes**: `REPO` repository setup · `CORE` execution core · `CON` contract tooling ·
+  `GATE` linters, gates and lanes · `TM` test management and trackers · `PROC` agentic process ·
+  `PET` the example pack · `AGT` agents · `CI` continuous integration · `DOC` documentation and
+  release · `FUT` later work.
 
 ---
 
-## E1 - Execution core
+## v0.1.0
 
-Complete: CORE-01 to CORE-18 are in **Done**.
-
-## E2 - Contract tooling
-
-Complete: CON-01 to CON-09 are in **Done**.
-
-## E3 - Linters and gates
-
-The stage is complete; its items are in **Done** (GATE-07 closed in E4, once the tracker existed).
-GATE-12 came out of the E6 intake and is listed under E6 / E7 / E8.
-
-## E4 - Test management
-
-Complete: TM-01 to TM-08 are in **Done** (TM-07, tracker search, came out of E7; TM-08, CI reporting
-to TestOps, out of the CI trial).
-
-## E5 - Agentic process
-
-Complete: PROC-01 to PROC-14 are in **Done**.
-
-## E6 / E7 / E8 - Petstore, agents, CI
-
-Complete: PET-01, PET-02, AGT-01, AGT-02, GATE-12, GATE-13, TM-07 and CI-01, CI-02, CI-04 to
-CI-06 and CI-03 are in **Done**.
-
-## E9 - Docs and release
+Every other item of the first release is in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| DOC-03 | CHANGELOG built from Conventional Commits and semantic versioning; tag `v0.1.0`. | plan, ADR 0008 | todo |
-| DOC-04 | Release gate, before the first push: (1) rewrite the local history into clean commits (one per stage, neutral messages) so no earlier wording or file version reaches the public history; (2) full-history gitleaks + denylist scan and a wording review of every commit message; (3) create the GitHub repository and push only with explicit approval. | roadmap, ADR 0001 | todo |
-| DOC-05 | Right after the first push, switch to GitHub Flow: protect `main` (required CI checks, pull requests only, squash merge, linear history), add a pull-request template linking the backlog item, and enable the matching `git-policy` rules (backlog-id key pattern, Conventional Commits, protected `main`), and turn on private vulnerability reporting, which CONTRIBUTING points security reports to. | ADR 0008 | todo |
+| DOC-03 | CHANGELOG built from Conventional Commits and semantic versioning (`npm run changelog`); version `0.1.0` and tag `v0.1.0`. | plan, ADR 0008 | in-progress |
+| DOC-04 | Release gate, before the first push: (1) a history without earlier wording or file versions: the first commits are squashed into one, every later commit keeps its tree, author and date, and the closing commits cited here are mapped to the new hashes; (2) full-history gitleaks and denylist scans and a wording review of every commit message; (3) create the GitHub repository and push `main` only with explicit approval. | plan, ADR 0001 | in-progress |
+| DOC-05 | Right after the first push, switch to GitHub Flow: protect `main` (required CI checks, pull requests only, squash merge, linear history), add a pull-request template linking the backlog item, enable the matching `git-policy` rules (backlog-id key pattern, Conventional Commits, protected `main`), and turn on private vulnerability reporting, which CONTRIBUTING points security reports to. | ADR 0008 | todo |
 
 ## Later (after v0.1.0)
 
@@ -73,8 +47,8 @@ CI-06 and CI-03 are in **Done**.
 
 | Id | Item | Closed by |
 |---|---|---|
-| E0 | Scaffold and safety gates: hooks, secret scan, denylist, config schema, Petstore compose, ADRs 0001-0005. | `5ebb5a4`, `5ebb5a4` |
-| E0.5-a | Relicense under Apache-2.0; ADR 0006 and ADR 0007. | `5ebb5a4` |
+| REPO-01 | Scaffold and safety gates: hooks, secret scan, denylist, config schema, Petstore compose, ADRs 0001-0005. | `5ebb5a4` |
+| REPO-02 | Relicense under Apache-2.0; ADR 0006 and ADR 0007. | `5ebb5a4` |
 | CORE-01 | Service-pack layout `services/<name>/`; Petstore is the first pack (`services/petstore/README.md`). | `db2296d` |
 | CORE-02 | `BaseClient` over `APIRequestContext` with redacted request/response evidence on every call; Petstore `pet` and `store` clients. | `db2296d` |
 | CORE-03 | Auth strategies `none`, `api_key` (header/query), `bearer` selected by `api.auth`; secrets read by variable name. | `db2296d` |
