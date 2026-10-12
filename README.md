@@ -230,6 +230,7 @@ None of these is needed for a green run. Turn on what your project uses.
 | [Lessons learned](docs/lessons-learned.md) | the failure modes the checks guard against |
 | [ADRs](docs/adr/README.md) | the decisions behind the structure |
 | [Backlog](docs/backlog.md) | open work |
+| [Changelog](CHANGELOG.md) | what each release contains |
 | [CONTRIBUTING](CONTRIBUTING.md) | how to propose a change |
 
 ## License
