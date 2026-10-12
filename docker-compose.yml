@@ -5,6 +5,29 @@
 # PETSTORE_PORT moves the host port when 8080 is taken (point QA_PETSTORE_BASE_URL and
 # QA_PETSTORE_SPEC_URL at it).
 # The tag is pinned so a new upstream image cannot silently change the contract under test.
+#
+# Second pack: VAmPI (OpenAPI 3.0), the same image run in its two modes.
+#   docker compose up -d vampi-secure vampi-vulnerable
+#   vampi-secure      (vulnerable=0)  -> http://localhost:5001
+#   vampi-vulnerable  (vulnerable=1)  -> http://localhost:5002
+# The image only publishes `latest`, so it is pinned by digest (upstream commit f16052d).
+# tokentimetolive is the JWT lifetime in seconds. Ports are bound to 127.0.0.1: the vulnerable
+# mode is deliberately insecure and must not be reachable from the network.
+# VAMPI_SECURE_PORT and VAMPI_VULNERABLE_PORT move the host ports when 5001 or 5002 are taken.
+x-vampi: &vampi
+  image: erev0s/vampi@sha256:0a5a224b6e14ae7da6a6ea265178ff71286ff903aec74adee98f660bb0e4ca12
+  healthcheck:
+    test:
+      [
+        'CMD',
+        'python',
+        '-c',
+        "import urllib.request; urllib.request.urlopen('http://localhost:5000/')",
+      ]
+    interval: 5s
+    timeout: 3s
+    retries: 20
+
 services:
   petstore:
     image: swaggerapi/petstore3:1.0.28
@@ -16,3 +39,17 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+  vampi-secure:
+    <<: *vampi
+    environment:
+      vulnerable: '0'
+      tokentimetolive: '60'
+    ports:
+      - '127.0.0.1:${VAMPI_SECURE_PORT:-5001}:5000'
+  vampi-vulnerable:
+    <<: *vampi
+    environment:
+      vulnerable: '1'
+      tokentimetolive: '60'
+    ports:
+      - '127.0.0.1:${VAMPI_VULNERABLE_PORT:-5002}:5000'

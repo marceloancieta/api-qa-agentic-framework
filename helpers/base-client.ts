@@ -17,6 +17,12 @@ export interface RequestOptions {
   data?: unknown;
   /** `false` sends the request without credentials (unauthenticated cases). Default `true`. */
   auth?: boolean;
+  /**
+   * A bearer value of the caller's own, sent as `Authorization: Bearer <value>` instead of the auth
+   * strategy's credential (negative cases: a malformed, expired or forged token). The strategy never
+   * replaces or renews it.
+   */
+  bearer?: string;
   /** Per-request timeout in milliseconds. */
   timeout?: number;
 }
@@ -60,7 +66,8 @@ export class BaseClient {
 
   /**
    * Send one request and record it. Any HTTP status resolves normally; deciding whether a 4xx is a
-   * bug or the expected answer belongs to the spec.
+   * bug or the expected answer belongs to the spec. A 401 to a credential the auth strategy can
+   * renew (an expired login token) is sent once more with the new one; both exchanges are recorded.
    */
   protected async send(
     method: HttpMethod,
@@ -68,32 +75,46 @@ export class BaseClient {
     options: RequestOptions = {},
   ): Promise<APIResponse> {
     const outgoing = { headers: { ...options.headers }, params: { ...options.params } };
+    if (options.bearer !== undefined)
+      outgoing.headers['Authorization'] = `Bearer ${options.bearer}`;
     const useAuth = options.auth ?? true;
-    if (useAuth) this.auth.apply(outgoing);
+    if (useAuth) await this.auth.apply(outgoing, this.context);
 
     const path = typeof target === 'string' ? target : expand(target, (value) => value);
     const data =
       typeof options.data === 'string' ? Buffer.from(options.data, 'utf8') : options.data;
-    const response = await this.context.fetch(path, {
-      method,
-      headers: outgoing.headers,
-      params: outgoing.params,
-      data,
-      timeout: options.timeout,
-    });
-    await attachExchange(
-      {
+    const exchange = async (): Promise<APIResponse> => {
+      const response = await this.context.fetch(path, {
         method,
-        url: this.recordedUrl(response.url(), path, target),
         headers: outgoing.headers,
-        body: data,
-      },
-      response,
-      {
-        secretKeys: [...this.auth.secretKeys, ...(this.redaction.secretKeys ?? [])],
-        identityFields: this.redaction.identityFields,
-      },
-    );
+        params: outgoing.params,
+        data,
+        timeout: options.timeout,
+      });
+      await attachExchange(
+        {
+          method,
+          url: this.recordedUrl(response.url(), path, target),
+          headers: outgoing.headers,
+          body: data,
+        },
+        response,
+        {
+          secretKeys: [...this.auth.secretKeys, ...(this.redaction.secretKeys ?? [])],
+          identityFields: this.redaction.identityFields,
+        },
+      );
+      return response;
+    };
+    const response = await exchange();
+    if (
+      useAuth &&
+      response.status() === 401 &&
+      this.auth.refresh &&
+      (await this.auth.refresh(outgoing, this.context))
+    ) {
+      return exchange();
+    }
     return response;
   }
 

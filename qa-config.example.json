@@ -14,6 +14,60 @@
             "allow_writes": true,
             "recovery": { "command": "docker compose restart petstore" },
             "auth": { "type": "api_key", "in": "header", "name": "api_key", "env": "API_KEY" }
+          },
+          "vampi": {
+            "base_url": "http://localhost:5001",
+            "spec_url": "http://localhost:5001/openapi.json",
+            "allow_writes": true,
+            "auth": {
+              "type": "login",
+              "path": "users/v1/login",
+              "username_env": "VAMPI_USER_A_NAME",
+              "password_env": "VAMPI_USER_A_PASSWORD"
+            },
+            "actors": {
+              "user-a": {
+                "type": "login",
+                "path": "users/v1/login",
+                "username_env": "VAMPI_USER_A_NAME",
+                "password_env": "VAMPI_USER_A_PASSWORD"
+              },
+              "user-b": {
+                "type": "login",
+                "path": "users/v1/login",
+                "username_env": "VAMPI_USER_B_NAME",
+                "password_env": "VAMPI_USER_B_PASSWORD"
+              }
+            }
+          }
+        }
+      },
+      "local-vulnerable": {
+        "packs": {
+          "vampi": {
+            "base_url": "http://localhost:5002",
+            "spec_url": "http://localhost:5002/openapi.json",
+            "allow_writes": true,
+            "auth": {
+              "type": "login",
+              "path": "users/v1/login",
+              "username_env": "VAMPI_USER_A_NAME",
+              "password_env": "VAMPI_USER_A_PASSWORD"
+            },
+            "actors": {
+              "user-a": {
+                "type": "login",
+                "path": "users/v1/login",
+                "username_env": "VAMPI_USER_A_NAME",
+                "password_env": "VAMPI_USER_A_PASSWORD"
+              },
+              "user-b": {
+                "type": "login",
+                "path": "users/v1/login",
+                "username_env": "VAMPI_USER_B_NAME",
+                "password_env": "VAMPI_USER_B_PASSWORD"
+              }
+            }
           }
         }
       },

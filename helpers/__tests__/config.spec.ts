@@ -159,6 +159,9 @@ test.describe('environment variables', () => {
   test('required names come from the auth config', () => {
     expect(requiredEnvVars({ type: 'none' })).toEqual([]);
     expect(requiredEnvVars({ type: 'bearer', env: 'TOKEN' })).toEqual(['TOKEN']);
+    expect(
+      requiredEnvVars({ type: 'login', path: 'login', username_env: 'U', password_env: 'P' }),
+    ).toEqual(['U', 'P']);
   });
 
   test('blank values count as missing', () => {

@@ -103,17 +103,17 @@ pipeline {
               shell 'npm run petstore:up'
             }
 
-            // Each pack's preflight project runs first; when it fails, none of that pack's cases
-            // runs. A failing suite marks the build failed but the steps below still run, as in the
-            // GitHub workflow. The quotes keep sh from globbing `api-*`; cmd drops them.
+            // Only the pack whose service this build starts; its preflight project runs first and,
+            // when it fails, none of its cases runs. A failing suite marks the build failed but the
+            // steps below still run, as in the GitHub workflow.
             suiteRan = true
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              shell 'npx playwright test "--project=api-*"'
+              shell 'npx playwright test --project=api-petstore'
             }
 
             // Last, and only after the shared run: each @destructive case alone, then the recovery.
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              shell 'npm run lanes:destructive'
+              shell 'npm run lanes:destructive -- --service petstore'
             }
 
             // The `local` tool keeps its definitions in reports/tm/local, which is not tracked, so a

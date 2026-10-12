@@ -13,7 +13,16 @@ export const REPO_ROOT = resolve(__dirname, '..');
 export type AuthConfig =
   | { type: 'none' }
   | { type: 'api_key'; in: 'header' | 'query'; name: string; env: string }
-  | { type: 'bearer'; env: string };
+  | { type: 'bearer'; env: string }
+  | {
+      type: 'login';
+      /** The login operation, relative to the pack's base URL (no leading slash). */
+      path: string;
+      username_env: string;
+      password_env: string;
+      /** The field of the login answer that holds the token; `auth_token` when omitted. */
+      token_field?: string;
+    };
 
 export interface RecoveryConfig {
   command: string;
@@ -180,7 +189,8 @@ export function actorAuth(qa: QaRuntime, name: string): AuthConfig {
 
 /** Environment variable names the active auth needs. Names only: values never leave the process. */
 export function requiredEnvVars(auth: AuthConfig): string[] {
-  return auth.type === 'none' ? [] : [auth.env];
+  if (auth.type === 'none') return [];
+  return auth.type === 'login' ? [auth.username_env, auth.password_env] : [auth.env];
 }
 
 /** Names from `names` that are unset or blank. A blank value is a broken binding, not a value. */

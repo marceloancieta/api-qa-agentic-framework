@@ -1,0 +1,6 @@
+# Reviewed gitleaks false positives (docs/ci-security.md, "A false positive"). One fingerprint per
+# line: file:rule:line. Each entry says why it is not a secret.
+
+# The contract digest keys each operation by its path; the value is a hash of the operation, not a
+# credential, but `PUT /users/v1/{username}/password` matches the generic-api-key rule.
+docs/discovery/vampi-digest.json:generic-api-key:16

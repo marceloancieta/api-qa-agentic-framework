@@ -35,6 +35,8 @@ pack fails a check; then per-pack configuration; then the pack itself.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
+| CI-08 | The VAmPI pack in CI: the e2e job (and Jenkins) starts `vampi-secure` with `npm run vampi:up`, provides the `VAMPI_USER_*` variables (throwaway values per run) and runs `--project=api-vampi`. Until then the e2e job runs only `--project=api-petstore`. | plan | todo |
+| PROC-15 | The scaffolder: its `service.json` description carries the `--spec` path (a local file leaks a machine path); its smoke spec assumes every parameterless GET is safe (VAmPI's `GET /createdb` resets the database and `GET /users/v1/_debug` returns passwords), so a pack must be able to leave operations out; its `contract` fixture parses the document as JSON even when it is `openapi.yaml`. | exp | todo |
 | FUT-01 | DAST lane: OWASP ZAP API scan importing the OpenAPI document, rule policy IGNORE / WARN / FAIL, feeding the quality gate. | practice | todo |
 | FUT-02 | Performance smoke generated from the OpenAPI model (GET operations), k6 through its Docker image, thresholds feeding the quality gate; latency judged on percentiles across many requests, never on a single timing. | practice, exp | todo |
 | FUT-03 | Consumer-driven contract testing (Pact) documented as a complementary extension. | practice | todo |

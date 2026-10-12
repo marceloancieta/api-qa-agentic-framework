@@ -1,0 +1,41 @@
+{
+  "envelopes": {
+    "fail": {
+      "description": "Handler-level refusal: {status: 'fail', message}. Measured for 401 on a bearer token that cannot be decoded (2026-10-12, both modes); the spec declares the same shape for 400 and 404. The body is built by string concatenation in the service, and no key names the offending field.",
+      "status": [400, 401, 404],
+      "content_type": "application/json",
+      "schema": {
+        "type": "object",
+        "required": ["status", "message"],
+        "properties": {
+          "status": { "const": "fail" },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      },
+      "field_paths": []
+    },
+    "problem": {
+      "description": "Framework-level refusal (connexion), as RFC 7807 problem details: a missing token or a non-Bearer Authorization header (401, detail 'No authorization token provided') and an unknown path (404). Measured 2026-10-12, both modes. The spec declares no such body (contract notes VN-03, VN-04).",
+      "status": [401, 404],
+      "content_type": "application/problem+json",
+      "schema": {
+        "type": "object",
+        "required": ["type", "title", "status", "detail"],
+        "properties": {
+          "type": { "type": "string" },
+          "title": { "type": "string", "minLength": 1 },
+          "status": { "type": "integer" },
+          "detail": { "type": "string", "minLength": 1 }
+        }
+      },
+      "field_paths": []
+    },
+    "server-error": {
+      "description": "Unhandled exception, answered with the Werkzeug interactive debugger page (HTML with the stack trace and the failing SQL). Measured 2026-10-12 for every database read on a fresh container, before GET /createdb (contract notes VN-01, VN-02).",
+      "status": [500],
+      "content_type": "text/html",
+      "schema": { "type": "string", "minLength": 1 },
+      "field_paths": []
+    }
+  }
+}
