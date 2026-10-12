@@ -1,0 +1,7 @@
+{
+  "name": "TC-ITEM-13 armed but passing",
+  "status": "failed",
+  "testCaseId": "shop-v1-TC-ITEM-13",
+  "start": 1100000000020,
+  "stop": 1100000000120
+}

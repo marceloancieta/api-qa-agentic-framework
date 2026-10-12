@@ -1,4 +1,5 @@
-// Where every designed case stands, checked against the specs and the latest run (GATE-04).
+// Where every designed case stands, checked against the specs and the latest run of each spec
+// (GATE-04, GATE-14).
 //
 // A registry row is a claim ("TC-PET-03 is automated in specs/pet.spec.ts"); the spec corpus and the
 // results are the evidence. Claims maintained by hand drift from the evidence without anybody
@@ -16,11 +17,12 @@
 //                 test whose title starts with the case id, and that test is not disabled
 //                 (test.skip / test.fixme on the declaration or an enclosing describe, or an
 //                 unconditional test.skip() / test.fixme() in its body)
-//   published     everything automated needs, and the case has a result in the latest run
+//   published     everything automated needs, and the case has a result in the latest run of its
+//                 spec (below)
 //   blocked       the Defect column holds a tracker key (matching qa-config tracker.key_pattern when
 //                 one is configured); a spec test for the case, if there is one, is either armed
 //                 with knownGap('<key>') or skipped with the key in the skip call; and the latest
-//                 run must not show it passing. "Blocked only when the case cannot run" is checked
+//                 run of its spec must not show it passing. "Blocked only when the case cannot run" is checked
 //                 through that last point: a blocked case that passes has lost its reason. Whether a
 //                 failing case should rather be `automated` with a knownGap arm is a review question
 //                 the script cannot answer.
@@ -31,11 +33,17 @@
 // Coverage per registry: cases by status, the automated ratio, and the floor (derive-floor) summed
 // over the registry's endpoints; fewer cases than the floor is a finding that quotes both numbers.
 //
-// The latest run is the last group of `*-result.json` files in the results directory (grouped as in
-// declared-codes), counting only results that carry a case identity `<service>-<version>-<TC id>`
-// (the testCaseId set by helpers/case-meta.ts, L-22): a unit-test run has none, so it never hides the
-// last API run. A case is found there by that identity. Without such results the run-based checks
-// are skipped and the report says so (L-05).
+// Runs are groups of `*-result.json` files in the results directory (grouped as in declared-codes),
+// counting only results that carry a case identity `<service>-<version>-<TC id>` (the testCaseId set
+// by helpers/case-meta.ts, L-22): a unit-test run has none, so it never hides the last API run. A
+// case is found in a run by that identity. The latest run of a spec is the last run in which a row
+// naming that spec in its Spec column has a result, so a run of one spec or one pack leaves the
+// other specs to their own last run (GATE-14); a row without a usable Spec cell is judged against
+// the latest run. Global setup clears the directory before each run unless QA_KEEP_RESULTS=1, so
+// usually only the specs of the last run are judged. Run-based checks that could not be made are
+// never silent (L-05): without results the report says so, and published cases whose spec is in no
+// run are counted in a note. A selection inside a spec (`--grep`) is not visible in the results: the
+// spec's published cases outside it are reported.
 //
 // Usage:
 //   node scripts/coverage-status.mjs [--service <pack>] [--results <dir>] [--root <dir>]
@@ -87,27 +95,10 @@ export function trackerPattern(root) {
   return null;
 }
 
-/**
- * The latest run in a results directory: `{ dir, found, files, run, byIdentity }`, where
- * `byIdentity` maps a testCaseId to its last result `{ status, name, stop }` (retries collapse to
- * the attempt that finished last). Only results with a case identity count; `found` is false when
- * there is none: Allure gives every result a hashed testCaseId, while a designed case carries
- * `<service>-<version>-<TC id>`.
- */
-export function readLatestRun(dir) {
-  const files = existsSync(dir)
-    ? readdirSync(dir)
-        .filter((name) => name.endsWith('-result.json'))
-        .sort()
-    : [];
-  const results = files
-    .map((name) => JSON.parse(readFileSync(join(dir, name), 'utf8')))
-    .filter((result) => CASE_IDENTITY.test(result.testCaseId ?? ''));
-  const runs = groupRuns(results);
-  const run = runs.at(-1) ?? [];
+/** One run as `{ size, byIdentity }`; retries collapse to the attempt that finished last. */
+function collapseRun(run) {
   const byIdentity = new Map();
   for (const result of run) {
-    if (!result.testCaseId) continue;
     const previous = byIdentity.get(result.testCaseId);
     if (!previous || (result.stop ?? 0) >= previous.stop) {
       byIdentity.set(result.testCaseId, {
@@ -117,7 +108,34 @@ export function readLatestRun(dir) {
       });
     }
   }
-  return { dir, found: results.length > 0, files: files.length, run: run.length, byIdentity };
+  return { size: run.length, byIdentity };
+}
+
+/**
+ * The runs in a results directory, oldest first: `{ dir, found, files, runs }`, each run
+ * `{ size, byIdentity }` where `byIdentity` maps a testCaseId to its last result
+ * `{ status, name, stop }`. Only results with a case identity count; `found` is false when there is
+ * none: Allure gives every result a hashed testCaseId, while a designed case carries
+ * `<service>-<version>-<TC id>`.
+ */
+export function readRuns(dir) {
+  const files = existsSync(dir)
+    ? readdirSync(dir)
+        .filter((name) => name.endsWith('-result.json'))
+        .sort()
+    : [];
+  const results = files
+    .map((name) => JSON.parse(readFileSync(join(dir, name), 'utf8')))
+    .filter((result) => CASE_IDENTITY.test(result.testCaseId ?? ''));
+  const runs = groupRuns(results).map(collapseRun);
+  return { dir, found: results.length > 0, files: files.length, runs };
+}
+
+/** The latest run in a results directory: `{ dir, found, files, run, byIdentity }` (readRuns). */
+export function readLatestRun(dir) {
+  const { runs, ...read } = readRuns(dir);
+  const latest = runs.at(-1) ?? collapseRun([]);
+  return { ...read, run: latest.size, byIdentity: latest.byIdentity };
 }
 
 const argumentText = (call, sourceFile) =>
@@ -232,11 +250,14 @@ function registryFloor(model, endpoints) {
 export async function coverageStatus(root, { pack = null, resultsDir = null } = {}) {
   const packs = pack ? [pack] : servicePacks(root);
   const tracker = trackerPattern(root);
-  const results = readLatestRun(resultsDir ?? join(root, 'allure-results'));
+  const results = readRuns(resultsDir ?? join(root, 'allure-results'));
+  const latestRun = results.runs.at(-1) ?? collapseRun([]);
   const resultsLabel = toPosix(relative(root, results.dir)) || '.';
   const findings = [];
   const notes = [];
   const report = [];
+  // Published rows whose spec took part in no run, by spec: not judged, and said so in a note.
+  const notRun = new Map();
   const add = (rule, packName, file, line, caseId, message) =>
     findings.push({ rule, pack: packName, file, line, case: caseId, message });
 
@@ -251,6 +272,19 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
     );
     const packReport = { pack: name, registries: [] };
     report.push(packReport);
+
+    // Each spec is judged against the latest run it took part in (GATE-14), so a run of one spec
+    // or one pack leaves the other specs to their own last run, or unjudged when they had none. A
+    // spec took part in a run when a row naming it in its Spec column has a result there. A row
+    // without a usable Spec cell is judged against the latest run.
+    const specOf = (row) => (row.spec ? specPath(row.spec, name) : null);
+    const runOfSpec = new Map();
+    for (const run of results.runs) {
+      for (const row of rows.values()) {
+        const spec = specOf(row);
+        if (spec && run.byIdentity.has(identity(row.id))) runOfSpec.set(spec, run);
+      }
+    }
 
     let model = null;
     if (registries.length > 0) {
@@ -309,7 +343,10 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
         const at = (rule, message) => add(rule, name, registry.file, row.line, row.id, message);
         const tests = index.get(row.id) ?? [];
         const where = (list) => list.map((entry) => `${entry.file}:${entry.line}`).join(', ');
-        const latest = results.byIdentity.get(identity(row.id));
+        const spec = specOf(row);
+        const run = spec ? runOfSpec.get(spec) : latestRun;
+        const latest = run?.byIdentity.get(identity(row.id));
+        const ofSpec = spec ? ` of ${spec}` : '';
 
         if (row.status === 'draft' || row.status === 'approved') {
           if (tests.length > 0) {
@@ -360,11 +397,14 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
               }
             }
           }
-          if (row.status === 'published' && results.found && !latest) {
-            at(
-              'not-in-results',
-              `${row.id} is published but the latest run in ${resultsLabel} has no result for ${identity(row.id)}`,
-            );
+          if (row.status === 'published' && results.found) {
+            if (!run) notRun.set(spec, (notRun.get(spec) ?? 0) + 1);
+            else if (!latest) {
+              at(
+                'not-in-results',
+                `${row.id} is published but the latest run${ofSpec} in ${resultsLabel} has no result for ${identity(row.id)}`,
+              );
+            }
           }
         } else if (row.status === 'blocked') {
           const keyOk = row.defect && (!tracker || tracker.regex.test(row.defect));
@@ -392,7 +432,7 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
           if (latest?.status === 'passed') {
             at(
               'blocked-but-passing',
-              `${row.id} is blocked but passed in the latest run; check whether ${row.defect || 'the defect'} is fixed before changing the status (L-14)`,
+              `${row.id} is blocked but passed in the latest run${ofSpec}; check whether ${row.defect || 'the defect'} is fixed before changing the status (L-14)`,
             );
           }
         }
@@ -447,6 +487,11 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
     notes.push(
       `No results of designed cases in ${resultsLabel}: "published in the latest run" and "blocked but passing" were not checked. Run the suite, or point --results at a results directory.`,
     );
+  } else if (notRun.size > 0) {
+    const count = [...notRun.values()].reduce((sum, n) => sum + n, 0);
+    notes.push(
+      `${count} published case(s) not checked for a result: no run in ${resultsLabel} includes ${[...notRun.keys()].sort().join(', ')}. Run those specs to check them.`,
+    );
   }
   const order = (finding) => RULES.indexOf(finding.rule);
   findings.sort(
@@ -460,7 +505,7 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
     packs: report,
     findings,
     notes,
-    results: { dir: resultsLabel, found: results.found, files: results.files, run: results.run },
+    results: { dir: resultsLabel, found: results.found, files: results.files, run: latestRun.size },
     tracker: tracker ? tracker.source : null,
   };
 }

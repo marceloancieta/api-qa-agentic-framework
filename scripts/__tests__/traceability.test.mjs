@@ -69,7 +69,9 @@ test('uncovered requirements and cases without a requirement are listed apart', 
   );
   assert.deepEqual(
     items['unlinked'].map((r) => r['case']),
-    ['02', '04', '05', '06', '07', '10', '11', '12', '13', '14', '15'].map((n) => `TC-ITEM-${n}`),
+    ['02', '04', '05', '06', '07', '10', '11', '12', '13', '14', '15', '16'].map(
+      (n) => `TC-ITEM-${n}`,
+    ),
   );
   const blocked = items['unlinked'].find((r) => r['case'] === 'TC-ITEM-10');
   assert.deepEqual([blocked['lastResult'], blocked['defect']], ['skipped', 'BUG-10']);

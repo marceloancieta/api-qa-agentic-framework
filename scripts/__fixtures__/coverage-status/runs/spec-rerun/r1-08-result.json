@@ -1,0 +1,7 @@
+{
+  "name": "TC-ITEM-08 reads an item back",
+  "status": "passed",
+  "testCaseId": "shop-v1-TC-ITEM-08",
+  "start": 1100000000000,
+  "stop": 1100000000100
+}

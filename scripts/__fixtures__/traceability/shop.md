@@ -3,7 +3,7 @@
 
 # Traceability matrix: Shop (fixture)
 
-Last results: the latest run in `allure-results` (5 of 6 result files).
+Last results: the latest run in `allure-results` (6 of 7 result files).
 
 ## Items (`ITEM`)
 
@@ -43,6 +43,7 @@ Registry: `services/shop/registry/items.md`
 | TC-ITEM-13 Blocked but passing in the run | pairwise | `services/shop/specs/items.spec.ts:26` | blocked | passed | BUG-13 |
 | TC-ITEM-14 Automated without a spec | boundary-value | - | automated | not run | - |
 | TC-ITEM-15 Automated with a tracked known gap | boundary-value | `services/shop/specs/items.spec.ts:30`<br>`services/shop/specs/other.spec.ts:11` | automated | not run | BUG-15 |
+| TC-ITEM-16 Published in a second spec | use-case | `services/shop/specs/other.spec.ts:15` | published | passed | - |
 
 ## Stock (`STK`)
 

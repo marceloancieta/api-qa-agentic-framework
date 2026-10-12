@@ -70,19 +70,19 @@ test('coverage numbers per registry are computed, with the floor from derive-flo
     draft: 1,
     approved: 1,
     automated: 7,
-    published: 2,
+    published: 3,
     blocked: 4,
   });
-  assert.equal(items['cases'], 15);
-  assert.equal(items['automated'], 9);
-  assert.equal(items['automatedPercent'], 60);
+  assert.equal(items['cases'], 16);
+  assert.equal(items['automated'], 10);
+  assert.equal(items['automatedPercent'], 62.5);
   assert.deepEqual(items['floorByEndpoint'], [
     { key: 'POST /items', floor: 5 },
     { key: 'GET /items/{itemId}', floor: 3 },
   ]);
   assert.equal(items['floor'], 8);
   assert.equal(items['gap'], 0);
-  assert.deepEqual([items['floorAxisCases'], items['beyondFloor']], [13, 2]);
+  assert.deepEqual([items['floorAxisCases'], items['beyondFloor']], [14, 2]);
   assert.equal(stock['floor'], 3);
   assert.equal(stock['gap'], 2);
 });
@@ -100,12 +100,46 @@ test('without results the run-based checks are skipped visibly, not silently', a
   );
 });
 
-test('only the latest run counts, and a retried case keeps its last attempt', async () => {
-  // TC-ITEM-09 passed in an earlier run only; TC-ITEM-08 failed, then passed on retry.
+test('a spec is judged by its latest run, and a retried case keeps its last attempt', async () => {
+  // TC-ITEM-09 passed in an earlier run only, and its spec ran again without it; TC-ITEM-08
+  // failed, then passed on retry.
   const status = await coverageStatus(ROOT);
-  assert.deepEqual(status['results'], { dir: 'allure-results', found: true, files: 6, run: 5 });
-  assert.ok(status['findings'].some((f) => f['case'] === 'TC-ITEM-09'));
+  assert.deepEqual(status['results'], { dir: 'allure-results', found: true, files: 7, run: 6 });
+  const missing = status['findings'].find((f) => f['case'] === 'TC-ITEM-09');
+  assert.equal(
+    missing['message'],
+    'TC-ITEM-09 is published but the latest run of services/shop/specs/items.spec.ts in allure-results has no result for shop-v1-TC-ITEM-09',
+  );
   assert.ok(!status['findings'].some((f) => f['case'] === 'TC-ITEM-08'));
+});
+
+// GATE-14: runs of part of the suite, from scripts/__fixtures__/coverage-status/runs/.
+const RUNS = join(ROOT, 'runs');
+const runBased = (status) =>
+  status['findings'].filter((f) => ['not-in-results', 'blocked-but-passing'].includes(f['rule']));
+
+test('a later run of one spec leaves the other spec to its own last run', async () => {
+  // Run 1: both specs (TC-ITEM-08, 09, 13 failing, 16). Run 2, an hour later: TC-ITEM-16 alone.
+  // Judged against run 2 only, TC-ITEM-08 and 09 would be missing.
+  const status = await coverageStatus(ROOT, { resultsDir: join(RUNS, 'spec-rerun') });
+  assert.deepEqual(runBased(status), []);
+  assert.deepEqual(status['notes'], []);
+  assert.deepEqual(status['results'], {
+    dir: 'runs/spec-rerun',
+    found: true,
+    files: 5,
+    run: 1,
+  });
+});
+
+test('published cases of a spec in no run are counted in a note, not reported', async () => {
+  const status = await coverageStatus(ROOT, { resultsDir: join(RUNS, 'one-spec') });
+  assert.deepEqual(runBased(status), []);
+  assert.deepEqual(status['notes'], [
+    '2 published case(s) not checked for a result: no run in runs/one-spec includes services/shop/specs/items.spec.ts. Run those specs to check them.',
+  ]);
+  // The structural findings do not depend on the run.
+  assert.equal(status['findings'].length, EXPECTED.length - 2);
 });
 
 test('a test is read for its knownGap keys and every way it can be skipped', () => {
@@ -144,7 +178,7 @@ test('cli: exit 1 on findings, 0 with --report-only, JSON on demand', () => {
   const failing = run('--root', ROOT);
   assert.equal(failing.status, 1, failing.stderr);
   assert.match(failing.stdout, /16 finding\(s\):/);
-  assert.match(failing.stdout, /automated 9\/15 \(60%\), floor 8, gap 0/);
+  assert.match(failing.stdout, /automated 10\/16 \(62\.5%\), floor 8, gap 0/);
   assert.equal(run('--root', ROOT, '--report-only').status, 0);
   const json = run('--root', ROOT, '--json', '--report-only');
   assert.equal(JSON.parse(json.stdout)['findings'].length, EXPECTED.length);
@@ -184,6 +218,6 @@ test('a later run without case identities (unit tests) never becomes the latest 
   const status = await coverageStatus(ROOT, { resultsDir: dir });
   assert.deepEqual(
     { found: status['results'].found, run: status['results'].run },
-    { found: true, run: 5 },
+    { found: true, run: 6 },
   );
 });

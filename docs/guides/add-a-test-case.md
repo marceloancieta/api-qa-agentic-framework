@@ -270,15 +270,16 @@ what `npm run gates` runs. These are the findings a new case usually meets:
 | `npm run lint:docs` (dead-path, dead-link) | a path or link in the case details that does not exist | prose must point at real files |
 | `npm run lint:harness` | a tag outside the taxonomy or not exactly one layer tag; `operation` after a skip; an assertion only reached when the response looks right; a write to a seed record outside a resource guard; I/O at import time; `@known-gap` without its `knownGap()` arm; a `@destructive` case next to other cases | each pattern makes a case pass, skip or report itself wrongly while the API is not really checked |
 | `npm run lint:suite` | a real-looking e-mail, host, IP, phone number, UUID, token or long digit run in a spec, registry or doc | nothing real or personal is committed; use builders and `<PLACEHOLDERS>` |
-| `npm run coverage:status` | a `draft` or `approved` row whose id a spec already carries; an `automated` row whose Spec file lacks exactly one enabled test with the id; a `published` row with no result in the latest run; a spec test whose id no registry lists; fewer cases than the floor | the registry is a claim and the specs and results are the evidence; the floor comes from `scripts/derive-floor.mjs` |
+| `npm run coverage:status` | a `draft` or `approved` row whose id a spec already carries; an `automated` row whose Spec file lacks exactly one enabled test with the id; a `published` row with no result in the latest run of its spec; a spec test whose id no registry lists; fewer cases than the floor | the registry is a claim and the specs and results are the evidence; the floor comes from `scripts/derive-floor.mjs` |
 | `npm run contract:check` | the probe matrix is out of date | a `probe:<id>` was added or removed without `npm run contract:probes:write` |
 
 Two consequences of how results are kept:
 
 - Every Playwright run starts by clearing `allure-results/`, including the unit run inside
   `npm run gates`. `coverage:status` and `tm:report` read whatever run is there, so run the pack's
-  suite last before reporting, and expect `published` rows outside a single-spec run to be reported
-  as missing from it.
+  suite last before reporting. After a single-spec run, `coverage:status` judges the `published`
+  rows of that spec only and counts the others in a note; a `--grep` selection inside a spec still
+  reports the spec's `published` rows it left out.
 - A `draft` or `approved` row must not have a spec test yet. Write the test, then move the row to
   `automated` in the same change.
 
