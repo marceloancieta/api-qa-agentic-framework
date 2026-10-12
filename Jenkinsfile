@@ -139,6 +139,26 @@ pipeline {
         }
       }
     }
+
+    // The second pack (CI-08) on VAmPI's secure mode. Its results join the Petstore run above
+    // (QA_KEEP_RESULTS), so the archived report covers both packs. The BOLA detection on the
+    // vulnerable mode runs in the GitHub workflow.
+    stage('e2e (vampi)') {
+      steps {
+        script {
+          withVampiUsers {
+            timeout(time: 5, unit: 'MINUTES') {
+              shell 'npm run vampi:up'
+            }
+            withEnv(['QA_KEEP_RESULTS=1']) {
+              catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                shell 'npx playwright test --project=api-vampi'
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   post {
@@ -167,12 +187,14 @@ pipeline {
     failure {
       script {
         shell(returnStatus: true, "docker compose logs --no-color petstore > ${nativePath('reports/petstore.log')} 2>&1")
-        archiveArtifacts(artifacts: 'reports/petstore.log', allowEmptyArchive: true)
+        shell(returnStatus: true, "docker compose logs --no-color vampi-secure vampi-vulnerable > ${nativePath('reports/vampi.log')} 2>&1")
+        archiveArtifacts(artifacts: 'reports/petstore.log, reports/vampi.log', allowEmptyArchive: true)
       }
     }
     cleanup {
       script {
         shell(returnStatus: true, 'npm run petstore:down')
+        shell(returnStatus: true, 'npm run vampi:down')
       }
     }
   }
@@ -227,5 +249,20 @@ def withTestManagement(Closure body) {
     withCredentials([string(credentialsId: tokenCredential, variable: 'ALLURE_TOKEN')]) {
       body()
     }
+  }
+}
+
+// The users behind VAmPI's actors user-a and user-b (qa-config, `login` auth): throwaway values
+// per build, because the pack registers them on a fresh container. No step prints them, and they
+// open nothing outside this build's own containers.
+def withVampiUsers(Closure body) {
+  Closure word = { UUID.randomUUID().toString().replace('-', '').take(12) }
+  withEnv([
+    "VAMPI_USER_A_NAME=qa-a-${word()}",
+    "VAMPI_USER_A_PASSWORD=${word()}${word()}",
+    "VAMPI_USER_B_NAME=qa-b-${word()}",
+    "VAMPI_USER_B_PASSWORD=${word()}${word()}",
+  ]) {
+    body()
   }
 }
