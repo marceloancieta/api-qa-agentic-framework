@@ -15,7 +15,7 @@ Runs before every push (pre-push hook) and needs no API:
 | `test:hooks`, `test:scripts` | the Claude Code hooks and every script and library |
 | `contract:check` | tracked digest, probe matrix and value sets are current ([contract tooling](contract-tooling.md)) |
 | `lint:qa` | `lint-harness`, `lint-suite`, `lint-docs` on the repository, then each linter's self-test |
-| `coverage:status` | every registry row against the specs and the latest results |
+| `coverage:status` | every registry row against the specs and the latest run of its spec |
 | `test:unit` | offline unit tests of helpers and packs |
 | `scan:denylist:self-test` | the denylist scanner itself |
 

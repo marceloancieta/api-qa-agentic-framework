@@ -1,0 +1,14 @@
+{
+  "name": "TC-ITEM-16 lists the items",
+  "status": "passed",
+  "testCaseId": "shop-v1-TC-ITEM-16",
+  "start": 1000001000040,
+  "stop": 1000001000050,
+  "labels": [
+    {
+      "name": "parentSuite",
+      "value": "Shop (fixture)"
+    }
+  ],
+  "links": []
+}

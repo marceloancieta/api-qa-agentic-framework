@@ -11,3 +11,5 @@ test('a check without a case id', async () => {
 test('TC-ITEM-15 second home with another key', async () => {
   test.fail(true, await knownGap('BUG-16', 'not the row defect'));
 });
+
+test('TC-ITEM-16 lists the items', async () => {});

@@ -31,3 +31,4 @@ Fixture registry: one row per lifecycle situation the coverage report must recog
 | TC-ITEM-13 | Blocked but passing in the run | | pairwise | low | blocked | specs/items.spec.ts | BUG-13 |
 | TC-ITEM-14 | Automated without a spec | | boundary-value | low | automated | | |
 | TC-ITEM-15 | Automated with a tracked known gap | | boundary-value | medium | automated | specs/items.spec.ts | BUG-15 |
+| TC-ITEM-16 | Published in a second spec | | use-case | medium | published | specs/other.spec.ts | |
