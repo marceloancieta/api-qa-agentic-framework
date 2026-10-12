@@ -5,6 +5,42 @@ All notable changes to this project are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and each section is generated from the
 commit history by `scripts/changelog.mjs`.
 
+## [0.2.0] - 2026-10-12
+
+### Breaking changes
+
+- **feat(config):** configuration per service pack (#11) (FUT-09) `0ced424`
+  - BREAKING CHANGE: move api.auth, api.actors and the environment's base_url, spec_url, allow_writes and recovery under api.environments.<env>.packs.<pack>; rename API_BASE_URL / API_SPEC_URL to QA_<PACK>_BASE_URL / QA_<PACK>_SPEC_URL and --project=api to --project=api-*.
+
+### Features
+
+- **coverage:** judge each spec against its own latest run (#7) (GATE-14) `0b06361`
+- **gates:** lint-docs checks closing commits against the history (#6) (GATE-15) `1b46c39`
+- **gates:** lint-layers checks the ADR 0007 boundaries (#9) (GATE-16) `8ccbcd1`
+- **vampi:** second service pack with a login strategy and a BOLA matrix (#13) (FUT-07) `2dc1677`
+
+### Fixes
+
+- **scripts:** resolve the CodeQL findings of the first public scan (#3) (CI-07) `4ee7eea`
+
+### Other
+
+- **chore(vampi):** healthcheck asserts a 200 through http.client (#15) (FUT-07) `cd30696`
+- **ci(github):** GitHub Flow: pull-request title check, template and policies (#2) (DOC-05) `12c3007`
+- **docs(backlog):** record their closing commits; v0.1.0 complete (#4) (DOC-05, CI-07) `67c9069`
+- **docs(backlog):** plan v0.2.0 around a second service pack (#5) (GATE-16) `fff210f`
+- **docs(backlog):** record their closing commits (#8) (GATE-14, GATE-15) `e43ebba`
+- **docs(backlog):** records its closing commit (#10) (GATE-16) `3dd7e5b`
+- **docs(backlog):** records its closing commit (#12) (FUT-09) `7b08310`
+- **docs(backlog):** records its closing commit; v0.2.0 complete (#14) (FUT-07) `7ed59dd`
+
+### Not conventional
+
+- ci(deps): Bump anthropics/claude-code-action from 1.0.235 to 1.0.236 in the actions-minor-patch group (#1) `eb9cd5c` (no backlog id after the colon)
+
+A Dependabot update: its titles carry no backlog id, so its pull requests skip the `title` check
+([CI](docs/ci.md)). The update is a pinned patch release of the action used by the advisory review.
+
 ## [0.1.0] - 2026-10-11
 
 ### Features

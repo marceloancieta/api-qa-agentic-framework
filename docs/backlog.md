@@ -24,13 +24,14 @@ Released: every item of the first release is in **Done**.
 ## v0.2.0
 
 A second service pack proves that the core is generic. Every item is in **Done**: GATE-15, GATE-14
-and GATE-16 for the gates, FUT-09 for per-pack configuration, FUT-07 for the pack itself. The
-release is not tagged yet.
+and GATE-16 for the gates, FUT-09 for per-pack configuration, FUT-07 for the pack itself.
+Released as `v0.2.0`.
 
 ## Later (after v0.2.0)
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
+| PET-03 | Intermittent Petstore e2e failure, four times on 2026-10-12, always around a pet the case had just created: TC-PET-60 twice (`findByTags` with the pet's unique tag answered `[]`; the e2e runs of #5 and #15), TC-PET-01 once (`POST` answered `200`, the `GET` right after it `404`; #10), and TC-PET-60 with TC-PET-63 once more, `findByTags` answering `500` (#16). Each passed on a re-run; the seeds are in those runs' logs. Triage it (`qa-report-bug`, `contract-investigator` with read-only calls against a local Petstore): find out whether data that other spec files create at the same time breaks `findByTags` or loses writes, and then decide between a contract note, a known gap and a filed defect. | exp | todo |
 | CI-08 | The VAmPI pack in CI: the e2e job (and Jenkins) starts `vampi-secure` with `npm run vampi:up`, provides the `VAMPI_USER_*` variables (throwaway values per run) and runs `--project=api-vampi`. Until then the e2e job runs only `--project=api-petstore`. | plan | todo |
 | PROC-15 | The scaffolder: its `service.json` description carries the `--spec` path (a local file leaks a machine path); its smoke spec assumes every parameterless GET is safe (VAmPI's `GET /createdb` resets the database and `GET /users/v1/_debug` returns passwords), so a pack must be able to leave operations out; its `contract` fixture parses the document as JSON even when it is `openapi.yaml`. | exp | todo |
 | FUT-01 | DAST lane: OWASP ZAP API scan importing the OpenAPI document, rule policy IGNORE / WARN / FAIL, feeding the quality gate. | practice | todo |

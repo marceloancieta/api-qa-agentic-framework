@@ -1,6 +1,6 @@
 {
   "name": "api-qa-agentic-framework",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Agentic API QA framework: OpenAPI-driven test design, Playwright + TypeScript execution, pluggable test-management adapters, Claude Code skills and guardrails.",
   "license": "Apache-2.0",
   "author": "Marcelo Ancieta",
