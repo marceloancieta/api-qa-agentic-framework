@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
+import { join } from 'node:path';
 import { runHook, tempProject } from './harness.mjs';
 
 const AUTH = { type: 'api_key', in: 'header', name: 'api_key', env: 'API_KEY' };
@@ -61,6 +63,52 @@ test('reports DOWN with the docker hint naming the pack when a local API is not 
   assert.match(text, /API \[local\] petstore \S+: DOWN/);
   assert.match(text, /local API of petstore is not running/);
   assert.match(text, /docker compose up -d <service>/);
+});
+
+test('the hint names the npm script that starts the pack when package.json has one', async () => {
+  const port = await closedPort();
+  const dir = tempProject({
+    config: configFor({ shop: `http://localhost:${port}/api` }),
+    files: { 'package.json': JSON.stringify({ scripts: { 'shop:up': 'docker compose up -d' } }) },
+  });
+  const text = context(await runHook('session-probe.mjs', {}, { projectDir: dir }));
+  assert.match(text, /local API of shop is not running\. Start it \(`npm run shop:up`\)/);
+});
+
+/** A project whose scripts/coverage-status.mjs runs `body` (the real script is not copied). */
+function withCoverageScript(body) {
+  const dir = tempProject({ config: configFor({ petstore: 'http://127.0.0.1:1/api' }) });
+  mkdirSync(join(dir, 'scripts'));
+  writeFileSync(join(dir, 'scripts', 'coverage-status.mjs'), body);
+  return dir;
+}
+
+test('the coverage line sums the registries of coverage-status --json --report-only', async () => {
+  const status = {
+    packs: [
+      { registries: [{ cases: 10, automated: 6, byStatus: { published: 4 } }] },
+      { registries: [{ cases: 5, automated: 5, byStatus: { published: 0 } }] },
+    ],
+    findings: [{ rule: 'below-floor' }],
+  };
+  const dir = withCoverageScript(
+    `if (!process.argv.includes('--json') || !process.argv.includes('--report-only')) process.exit(2);\n` +
+      `console.log(${JSON.stringify(JSON.stringify(status))});\n`,
+  );
+  const text = context(await runHook('session-probe.mjs', {}, { projectDir: dir }));
+  assert.match(
+    text,
+    /Coverage \(scripts\/coverage-status\.mjs\): 15 designed, 11 automated, 4 published in 2 registries; 1 finding\(s\)/,
+  );
+});
+
+test('a coverage-status that fails is reported as unknown, never left out', async () => {
+  const dir = withCoverageScript('process.exit(2);\n');
+  const text = context(await runHook('session-probe.mjs', {}, { projectDir: dir }));
+  assert.match(
+    text,
+    /Coverage \(scripts\/coverage-status\.mjs\): unknown \(coverage-status failed\)/,
+  );
 });
 
 test('reports one line per pack of the environment', async () => {
