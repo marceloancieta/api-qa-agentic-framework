@@ -40,8 +40,8 @@
     "commit": {
       "require_tracker_key": false,
       "max_tracker_keys": 1,
-      "conventional_commits": false,
-      "protected_branches": []
+      "conventional_commits": true,
+      "protected_branches": ["main"]
     },
     "pull_request": {
       "required_labels": []

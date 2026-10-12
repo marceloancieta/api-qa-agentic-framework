@@ -9,10 +9,18 @@ exist as Jenkins pipelines ([Jenkins](#jenkins)).
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `gates`, then `e2e` |
+| `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift` |
 
 ## `ci.yml`
+
+### `title`
+
+On a pull request only: the title has to follow ADR 0008 (`type(scope): <BACKLOG-ID> summary`),
+because `main` takes squash merges and the title becomes the commit subject there. It runs
+`scripts/commit-title.mjs`, which uses the changelog's parser, with the title passed through an
+environment variable so a title cannot inject shell code. Dependabot's pull requests skip it: their
+titles cannot carry a backlog id.
 
 ### `gates`
 
