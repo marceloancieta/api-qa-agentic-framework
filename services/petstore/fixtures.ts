@@ -35,7 +35,7 @@ interface PetstoreFixtures {
   pets: PetClient;
   store: StoreClient;
   users: UserClient;
-  /** The pack's clients bound to a named credential: `default`, `anonymous` or one of `api.actors`. */
+  /** The pack's clients bound to a named credential: `default`, `anonymous` or one of its actors. */
   actor: (name: string) => Promise<Actor>;
   caseMeta: void;
 }

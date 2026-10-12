@@ -6,6 +6,13 @@ import { join } from 'node:path';
 import { REPO_ROOT } from '../lib/cli.mjs';
 import { parseSpecFile } from '../lib/corpus.mjs';
 import {
+  ALL_PACKS_PROJECT,
+  caseProject,
+  laneProject,
+  packOfSpec,
+  projectMatches,
+} from '../lib/playwright-lane.mjs';
+import {
   caseArgs,
   classifyGap,
   findKnownGaps,
@@ -24,7 +31,7 @@ const record = (overrides) => ({
   titlePath: ['t'],
   file: 'demo/specs/gaps.spec.ts',
   line: 10,
-  project: 'api',
+  project: 'api-demo',
   tags: [],
   annotations: [],
   expectedStatus: 'failed',
@@ -56,17 +63,40 @@ test('a repository without known gaps selects nothing', (t) => {
   assert.deepEqual(findKnownGaps(empty), []);
 });
 
-test('records are matched by project, line and file suffix', () => {
+test('records are matched by project filter, line and file suffix', () => {
   const gap = { file: `${PROJECT}/services/demo/specs/gaps.spec.ts`, line: 10 };
   const records = [
     record({}),
-    record({ project: 'preflight' }),
+    record({ project: 'preflight-demo' }),
     record({ line: 16 }),
     record({ file: 'other/specs/gaps.spec.ts' }),
   ];
-  assert.equal(recordsFor(gap, records, 'api').length, 1);
+  assert.equal(recordsFor(gap, records, 'api-demo').length, 1);
+  assert.equal(
+    recordsFor(gap, records, 'api-*').length,
+    1,
+    'a wildcard filter matches like --project',
+  );
+  assert.equal(recordsFor(gap, records, 'API-DEMO').length, 1, 'without regard to case');
+  assert.equal(recordsFor(gap, records, 'api-other').length, 0);
   assert.ok(sameFile('a/b/c.spec.ts', 'b/c.spec.ts'));
   assert.ok(!sameFile('a/xb/c.spec.ts', 'b/c.spec.ts'));
+});
+
+test('the lane project: an explicit --project, else --service, else every pack; a case runs in its own pack', () => {
+  assert.equal(laneProject({}), ALL_PACKS_PROJECT);
+  assert.equal(ALL_PACKS_PROJECT, 'api-*');
+  assert.equal(laneProject({ service: 'shop' }), 'api-shop');
+  assert.equal(laneProject({ service: 'shop', project: 'unit' }), 'unit');
+  assert.equal(packOfSpec('x\\services\\shop\\specs\\a.spec.ts'), 'shop');
+  assert.equal(packOfSpec('specs/a.spec.ts'), null);
+  assert.equal(caseProject('services/shop/specs/a.spec.ts'), 'api-shop');
+  assert.equal(caseProject('services/shop/specs/a.spec.ts', 'custom'), 'custom');
+  assert.equal(caseProject('specs/a.spec.ts'), 'api-*');
+  assert.ok(projectMatches('api-*', 'api-my-pack'));
+  assert.ok(!projectMatches('api-*', 'preflight-my-pack'));
+  assert.ok(!projectMatches('api', 'api-shop'), 'a plain name matches only itself');
+  assert.ok(projectMatches('a.b', 'a.b') && !projectMatches('a.b', 'axb'));
 });
 
 test('each record shape maps to one verdict', () => {
@@ -92,7 +122,7 @@ test('each record shape maps to one verdict', () => {
   assert.equal(before.detail, 'failed before the arm: Error: boom');
 });
 
-test('every gap gets its own Playwright process, selected by file and line', () => {
+test('every gap gets its own Playwright process in its pack project, selected by file and line', () => {
   const calls = [];
   const run = (root, args, env) => {
     calls.push({ root, args, env });
@@ -100,21 +130,31 @@ test('every gap gets its own Playwright process, selected by file and line', () 
   };
   const gaps = [
     { file: 'services/demo/specs/a.spec.ts', line: 3 },
-    { file: 'services/demo/specs/b.spec.ts', line: 7 },
+    { file: 'services/shop/specs/b.spec.ts', line: 7 },
   ];
   const results = runKnownGaps(gaps, {
     scanRoot: join(REPO_ROOT, 'x'),
     runRoot: REPO_ROOT,
-    project: 'api',
     run,
   });
   assert.deepEqual(
     calls.map((c) => c.args),
     [
-      caseArgs('x/services/demo/specs/a.spec.ts', 3, 'api'),
-      caseArgs('x/services/demo/specs/b.spec.ts', 7, 'api'),
+      caseArgs('x/services/demo/specs/a.spec.ts', 3, 'api-demo'),
+      caseArgs('x/services/shop/specs/b.spec.ts', 7, 'api-shop'),
     ],
   );
+  const explicit = [];
+  runKnownGaps(gaps.slice(0, 1), {
+    scanRoot: REPO_ROOT,
+    runRoot: REPO_ROOT,
+    project: 'custom',
+    run: (root, args) => {
+      explicit.push(args);
+      return { exitCode: 0, records: [] };
+    },
+  });
+  assert.deepEqual(explicit, [caseArgs('services/demo/specs/a.spec.ts', 3, 'custom')]);
   assert.ok(calls.every((c) => c.env.QA_RETRIES === '0'));
   assert.deepEqual(
     results.map((r) => r.verdict),
@@ -124,7 +164,7 @@ test('every gap gets its own Playwright process, selected by file and line', () 
 });
 
 test('a Playwright failure the verdict does not show turns the case into errored (L-49)', () => {
-  const gap = { file: 'demo/specs/gaps.spec.ts', line: 10 };
+  const gap = { file: 'services/demo/specs/gaps.spec.ts', line: 10 };
   const lane = (overrides) => () => ({
     exitCode: 0,
     runnerError: null,
@@ -134,7 +174,7 @@ test('a Playwright failure the verdict does not show turns the case into errored
     ...overrides,
   });
   const verdictOf = (run) =>
-    runKnownGaps([gap], { scanRoot: REPO_ROOT, runRoot: REPO_ROOT, project: 'api', run })[0];
+    runKnownGaps([gap], { scanRoot: REPO_ROOT, runRoot: REPO_ROOT, run })[0];
 
   assert.equal(verdictOf(lane({})).verdict, 'open', 'exit 0 and a failing arm: the gap is open');
   const teardown = verdictOf(lane({ exitCode: 1, stderr: 'Error in global teardown' }));
@@ -162,7 +202,6 @@ test('a retried case stops the lane', () => {
       runKnownGaps([{ file: 'f.spec.ts', line: 1 }], {
         scanRoot: REPO_ROOT,
         runRoot: REPO_ROOT,
-        project: 'api',
         run,
       }),
     /retried/,
@@ -179,7 +218,6 @@ test('end to end: open, passing and broken gaps of an offline project', () => {
   const results = runKnownGaps(gaps, {
     scanRoot,
     runRoot: REPO_ROOT,
-    project: 'api',
     config: `${PROJECT}/playwright.config.mjs`,
   });
   assert.deepEqual(

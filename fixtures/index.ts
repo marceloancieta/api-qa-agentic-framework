@@ -1,7 +1,12 @@
 // Core fixtures every service pack builds on. A pack extends this `test` with its own clients
 // (see services/<name>/fixtures.ts); the core never imports from a pack.
 
-import { test as base, expect as baseExpect, type APIRequestContext } from '@playwright/test';
+import {
+  test as base,
+  expect as baseExpect,
+  type APIRequestContext,
+  type FullProject,
+} from '@playwright/test';
 import { Faker, en } from '@faker-js/faker';
 import { createAuth, type AuthStrategy } from '../helpers/auth';
 import { clockFromEnv, type Clock } from '../helpers/clock';
@@ -16,8 +21,23 @@ export interface ActorSession {
   request: APIRequestContext;
 }
 
+/**
+ * The service pack a Playwright project runs, from its `metadata.pack` (set per pack in
+ * playwright.config.ts). A project without one, such as `unit`, cannot resolve a pack's config.
+ */
+export function projectPack(project: Pick<FullProject, 'name' | 'metadata'>): string {
+  const pack: unknown = project.metadata?.pack;
+  if (typeof pack !== 'string' || !pack) {
+    throw new Error(
+      `Project "${project.name}" has no service pack (metadata.pack), so the qa-config of a pack ` +
+        'cannot be resolved. Fixtures that need `qa` run only in the api-<pack> projects.',
+    );
+  }
+  return pack;
+}
+
 export interface CoreTestFixtures {
-  /** Opens (once per name and test) the session for a credential from `api.actors`. */
+  /** Opens (once per name and test) the session for a credential from the pack's `actors`. */
   actorSession: (name: string) => Promise<ActorSession>;
   /** Seeded generator for this test; its seed is recorded on the test. */
   rng: Rng;
@@ -28,17 +48,17 @@ export interface CoreTestFixtures {
 }
 
 export interface CoreWorkerFixtures {
-  /** The resolved qa-config for this run: environment, base URL, write permission, auth. */
+  /** The project's pack in the active environment: base URL, write permission, auth, actors. */
   qa: QaRuntime;
-  /** The default credential (`api.auth`), ready to decorate requests. */
+  /** The default credential (the pack's `auth`), ready to decorate requests. */
   auth: AuthStrategy;
 }
 
 export const test = base.extend<CoreTestFixtures, CoreWorkerFixtures>({
   qa: [
     // eslint-disable-next-line no-empty-pattern -- Playwright requires the destructuring form.
-    async ({}, use) => {
-      await use(loadRuntime());
+    async ({}, use, workerInfo) => {
+      await use(loadRuntime(projectPack(workerInfo.project)));
     },
     { scope: 'worker' },
   ],

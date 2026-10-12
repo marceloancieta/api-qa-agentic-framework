@@ -16,8 +16,12 @@
  *   - Quarantine is temporary: this lane keeps running the quarantined tests, and a quarantined test
  *     that passes every one of its N repeats is reported as a candidate for release.
  *
- *   node scripts/flake-lane.mjs [files...] [--project api] [--grep re] [--grep-invert re]
- *                               [--repeat-each 5] [--quarantine-report] [--config file] [--json]
+ *   node scripts/flake-lane.mjs [files...] [--service pack] [--project name] [--grep re]
+ *                               [--grep-invert re] [--repeat-each 5] [--quarantine-report]
+ *                               [--config file] [--json]
+ *
+ * The selection runs in every pack's project (`api-*`), or in one pack's (`api-<pack>`) with
+ * `--service`; an explicit `--project` replaces either.
  *
  * Exit codes: 0 every non-quarantined test was stable; 1 a non-quarantined test was flaky or failed
  * in every repeat, or Playwright exited non-zero although no repeat failed (L-49); 2 the lane could
@@ -36,6 +40,7 @@ import {
   formatTable,
   errorLine,
   normalizeTags,
+  laneProject,
   runLane,
   unexplainedExit,
 } from './lib/playwright-lane.mjs';
@@ -223,7 +228,8 @@ function main(argv = process.argv.slice(2)) {
     args: argv,
     allowPositionals: true,
     options: {
-      project: { type: 'string', default: 'api' },
+      service: { type: 'string' },
+      project: { type: 'string' },
       grep: { type: 'string' },
       'grep-invert': { type: 'string' },
       'repeat-each': { type: 'string', default: String(DEFAULT_REPEATS) },
@@ -234,7 +240,7 @@ function main(argv = process.argv.slice(2)) {
   });
   const { code, report } = flakeLane({
     files: positionals,
-    project: values.project,
+    project: laneProject(values),
     grep: values.grep,
     grepInvert: values['grep-invert'],
     repeats: parseRepeats(values['repeat-each']),

@@ -13,6 +13,8 @@ import {
   findDestructive,
   laneProblems,
   latestRunId,
+  packRecoveries,
+  recoverByPack,
   recoveryOf,
   runDestructive,
   runRecoveryCommand,
@@ -28,7 +30,7 @@ const record = (overrides) => ({
   titlePath: ['t'],
   file: 'demo/specs/breaks-search.spec.ts',
   line: 6,
-  project: 'api',
+  project: 'api-demo',
   tags: [],
   annotations: [],
   expectedStatus: 'passed',
@@ -39,13 +41,15 @@ const record = (overrides) => ({
 
 test('selection takes @destructive tests only, tagged in the title or through a describe', () => {
   assert.deepEqual(
-    findDestructive(FIXTURES).map((c) => [c.file, c.line, c.caseId]),
+    findDestructive(FIXTURES).map((c) => [c.file, c.pack, c.line, c.caseId]),
     [
-      ['services/demo/specs/breaks-search.spec.ts', 6, 'TC-DEMO-01'],
-      ['services/demo/specs/breaks-search.spec.ts', 9, 'TC-DEMO-02'],
-      ['services/demo/specs/breaks-search.spec.ts', 14, 'TC-DEMO-04'],
+      ['services/demo/specs/breaks-search.spec.ts', 'demo', 6, 'TC-DEMO-01'],
+      ['services/demo/specs/breaks-search.spec.ts', 'demo', 9, 'TC-DEMO-02'],
+      ['services/demo/specs/breaks-search.spec.ts', 'demo', 14, 'TC-DEMO-04'],
     ],
   );
+  assert.equal(findDestructive(FIXTURES, 'demo').length, 3, '--service keeps its own pack');
+  assert.deepEqual(findDestructive(FIXTURES, 'other'), []);
 });
 
 test('each record shape maps to one verdict', () => {
@@ -68,7 +72,7 @@ test('each record shape maps to one verdict', () => {
   );
 });
 
-test('every case runs in its own process with QA_DESTRUCTIVE=1, each followed by the recovery', async () => {
+test('every case runs in its own process, in its pack project with QA_DESTRUCTIVE=1, each followed by the recovery', async () => {
   const cases = findDestructive(FIXTURES);
   const calls = [];
   const run = (root, args, env) => {
@@ -84,7 +88,6 @@ test('every case runs in its own process with QA_DESTRUCTIVE=1, each followed by
   const results = await runDestructive(cases, {
     scanRoot: FIXTURES,
     runRoot: FIXTURES,
-    project: 'api',
     recover,
     run,
   });
@@ -92,9 +95,9 @@ test('every case runs in its own process with QA_DESTRUCTIVE=1, each followed by
   assert.deepEqual(
     calls.map((c) => c.args),
     [
-      caseArgs('services/demo/specs/breaks-search.spec.ts', 6, 'api'),
-      caseArgs('services/demo/specs/breaks-search.spec.ts', 9, 'api'),
-      caseArgs('services/demo/specs/breaks-search.spec.ts', 14, 'api'),
+      caseArgs('services/demo/specs/breaks-search.spec.ts', 6, 'api-demo'),
+      caseArgs('services/demo/specs/breaks-search.spec.ts', 9, 'api-demo'),
+      caseArgs('services/demo/specs/breaks-search.spec.ts', 14, 'api-demo'),
     ],
   );
   assert.deepEqual(
@@ -124,7 +127,6 @@ test('a failed recovery stops the lane: later cases are not run against a broken
   const results = await runDestructive(cases, {
     scanRoot: FIXTURES,
     runRoot: FIXTURES,
-    project: 'api',
     run: () => {
       runs += 1;
       return { exitCode: 0, records: [record({})], stdout: '', stderr: '' };
@@ -155,7 +157,6 @@ test('a Playwright failure the verdict does not show fails the case, and the rec
     const [result] = await runDestructive([first], {
       scanRoot: FIXTURES,
       runRoot: FIXTURES,
-      project: 'api',
       run: () => ({ records: [record({})], stdout: '', ...outcome }),
       recover: async () => {
         recoveries += 1;
@@ -193,7 +194,6 @@ test('a retried case stops the lane', async () => {
     runDestructive(findDestructive(FIXTURES), {
       scanRoot: FIXTURES,
       runRoot: FIXTURES,
-      project: 'api',
       run: () => ({ exitCode: 0, records: [retried], stdout: '', stderr: '' }),
       recover: async () => ({ ok: true, outcome: 'recovered', detail: '' }),
     }),
@@ -219,29 +219,158 @@ test('readiness waits through refused connections and 5xx answers until a status
   assert.match(never.detail, /did not answer below 500 within 0s \(answered 500\)/);
 });
 
-test('recovery settings come from the environment, with a default readiness timeout', () => {
-  assert.deepEqual(recoveryOf({ config: EXAMPLE.api.environments.local }), {
+test('recovery settings come from the pack entry, with a default readiness timeout', () => {
+  assert.deepEqual(recoveryOf({ config: EXAMPLE.api.environments.local.packs.petstore }), {
     command: 'docker compose restart petstore',
     readyTimeoutS: 60,
   });
-  assert.equal(recoveryOf({ config: EXAMPLE.api.environments.public }), null);
+  assert.equal(recoveryOf({ config: EXAMPLE.api.environments.public.packs.petstore }), null);
   assert.deepEqual(recoveryOf({ config: { recovery: { command: 'x', ready_timeout_s: 5 } } }), {
     command: 'x',
     readyTimeoutS: 5,
   });
 });
 
-test('config: a recovery needs a command and an environment that allows writes', () => {
+/** A repository root whose qa-config example holds `packs` in the environment `local`. */
+function rootWith(packs) {
+  const root = mkdtempSync(join(tmpdir(), 'destructive-config-'));
+  const config = { api: { default_environment: 'local', environments: { local: { packs } } } };
+  writeFileSync(join(root, 'qa-config.example.json'), JSON.stringify(config));
+  return root;
+}
+
+const AUTH = { type: 'none' };
+const TWO_PACKS = {
+  shop: {
+    base_url: 'http://shop.test/api/',
+    auth: AUTH,
+    allow_writes: true,
+    recovery: { command: 'restart shop' },
+  },
+  bank: {
+    base_url: 'http://bank.test',
+    auth: AUTH,
+    allow_writes: true,
+    recovery: { command: 'restart bank', ready_timeout_s: 5 },
+  },
+  readonly: { base_url: 'http://ro.test', auth: AUTH, recovery: { command: 'restart ro' } },
+  norecovery: { base_url: 'http://nr.test', auth: AUTH, allow_writes: true },
+};
+
+const caseOf = (pack, line, caseId) => ({
+  file: `services/${pack}/specs/breaks.spec.ts`,
+  pack,
+  line,
+  title: caseId,
+  caseId,
+});
+
+test('each case is recovered by its own pack: its command and its base URL (with the override)', async (t) => {
+  const root = rootWith(TWO_PACKS);
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const cases = [caseOf('shop', 3, 'TC-SHOP-01'), caseOf('bank', 4, 'TC-BANK-01')];
+  const recoveries = packRecoveries(cases, root, { QA_BANK_BASE_URL: 'http://override.test/' });
+  assert.deepEqual(
+    [...recoveries].map(([pack, r]) => [pack, r.recovery, r.baseUrl, r.environment.name]),
+    [
+      ['shop', { command: 'restart shop', readyTimeoutS: 60 }, 'http://shop.test/api', 'local'],
+      ['bank', { command: 'restart bank', readyTimeoutS: 5 }, 'http://override.test', 'local'],
+    ],
+  );
+
+  const steps = [];
+  const step = (recovery, baseUrl) => async () => {
+    steps.push([recovery.command, baseUrl]);
+    return { ok: true, outcome: 'recovered', detail: '' };
+  };
+  const calls = [];
+  const results = await runDestructive(cases, {
+    scanRoot: root,
+    runRoot: root,
+    recover: recoverByPack(recoveries, root, step),
+    run: (_root, args) => {
+      calls.push(args);
+      const project = args.find((a) => a.startsWith('--project=')).slice('--project='.length);
+      return {
+        exitCode: 0,
+        records: [
+          record({
+            project,
+            file: args.at(-1).split(':')[0],
+            line: Number(args.at(-1).split(':')[1]),
+          }),
+        ],
+        stdout: '',
+        stderr: '',
+      };
+    },
+  });
+  assert.deepEqual(calls, [
+    caseArgs('services/shop/specs/breaks.spec.ts', 3, 'api-shop'),
+    caseArgs('services/bank/specs/breaks.spec.ts', 4, 'api-bank'),
+  ]);
+  assert.deepEqual(steps, [
+    ['restart shop', 'http://shop.test/api'],
+    ['restart bank', 'http://override.test'],
+  ]);
+  assert.deepEqual(
+    results.map((r) => [r.caseId, r.verdict, r.recovery]),
+    [
+      ['TC-SHOP-01', 'passed', 'recovered'],
+      ['TC-BANK-01', 'passed', 'recovered'],
+    ],
+  );
+});
+
+test('an explicit --project replaces the pack project of every case', async () => {
+  const calls = [];
+  await runDestructive([caseOf('shop', 3, 'TC-SHOP-01')], {
+    scanRoot: REPO_ROOT,
+    runRoot: REPO_ROOT,
+    project: 'custom',
+    recover: async () => ({ ok: true, outcome: 'recovered', detail: '' }),
+    run: (_root, args) => {
+      calls.push(args);
+      return { exitCode: 0, records: [], stdout: '', stderr: '' };
+    },
+  });
+  assert.deepEqual(calls, [caseArgs('services/shop/specs/breaks.spec.ts', 3, 'custom')]);
+});
+
+test('a pack that is not configured, allows no writes or names no recovery is refused before any case runs', (t) => {
+  const root = rootWith(TWO_PACKS);
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const refused = (pack) => () =>
+    packRecoveries([caseOf('shop', 1, 'a'), caseOf(pack, 2, 'b')], root, {});
+  assert.throws(
+    refused('missing'),
+    /environment "local" has no entry for pack "missing" \(api\.environments\.local\.packs\.missing\)\. Configured packs: shop, bank, readonly, norecovery\./,
+  );
+  assert.throws(
+    refused('readonly'),
+    /pack "readonly" has allow_writes false in environment "local" \(api\.environments\.local\.packs\.readonly in qa-config\.example\.json\)/,
+  );
+  assert.throws(
+    refused('norecovery'),
+    /pack "norecovery" names no recovery in environment "local" \(api\.environments\.local\.packs\.norecovery\.recovery in qa-config\.example\.json\)/,
+  );
+  assert.throws(
+    () => packRecoveries([{ file: 'specs/loose.spec.ts', pack: null }], root, {}),
+    /specs\/loose\.spec\.ts is not under services\/<pack>\//,
+  );
+});
+
+test('config: a recovery needs a command and a pack entry that allows writes', () => {
   assert.deepEqual(configErrors(EXAMPLE), []);
   const withPublic = (recovery, allowWrites = false) => {
     const config = structuredClone(EXAMPLE);
-    config.api.environments.public.recovery = recovery;
-    config.api.environments.public.allow_writes = allowWrites;
+    config.api.environments.public.packs.petstore.recovery = recovery;
+    config.api.environments.public.packs.petstore.allow_writes = allowWrites;
     return configErrors(config).join('\n');
   };
   assert.match(
     withPublic({ command: 'restart' }),
-    /public\.recovery is set but allow_writes is false/,
+    /public\.packs\.petstore\.recovery is set but allow_writes is false/,
   );
   assert.equal(withPublic({ command: 'restart' }, true), '');
   assert.match(withPublic({}, true), /required property 'command'/);

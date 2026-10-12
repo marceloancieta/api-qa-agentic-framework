@@ -236,7 +236,7 @@ and its contract note follow, so a case can be designed as a known gap.
   header is accepted with any value. The login session cannot be presented anywhere: no header,
   cookie or parameter is declared for it, and login sets no cookie (M-11, M-14).
 - **Actors.** Only `default` and `anonymous` exist for this pack, and for the user operations they
-  behave the same (PN-05, M-07). No named actor in `api.actors` would change that.
+  behave the same (PN-05, M-07). No named actor in the pack's `actors` would change that.
 - **Object-level authorization (BOLA).** The only object identifier is the path `username`; the
   `id` and `username` in a `PUT` body are identity fields as well. Can one caller read, update or
   delete another user by name?

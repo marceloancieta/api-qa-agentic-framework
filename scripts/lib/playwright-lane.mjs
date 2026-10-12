@@ -131,6 +131,48 @@ export function assertZeroRetries(env = process.env) {
 /** The environment every gate lane hands to Playwright. */
 export const GATE_ENV = Object.freeze({ QA_RETRIES: '0' });
 
+// Each pack runs in a project of its own, `api-<pack>` (playwright.config.ts), after its
+// `preflight-<pack>` setup project; `api-*` selects every pack.
+export const ALL_PACKS_PROJECT = 'api-*';
+
+/** The Playwright project that runs one pack's specs. */
+export const packProject = (pack) => `api-${pack}`;
+
+/** The pack a spec belongs to, from its path (`services/<pack>/...`), or null. */
+export function packOfSpec(file) {
+  return /(?:^|\/)services\/([^/]+)\//.exec(String(file).replace(/\\/g, '/'))?.[1] ?? null;
+}
+
+/**
+ * The project a lane runs: an explicit `--project` wins, then the pack named with `--service`, then
+ * every pack.
+ */
+export function laneProject({ project, service } = {}) {
+  return project ?? (service ? packProject(service) : ALL_PACKS_PROJECT);
+}
+
+/**
+ * The project that runs one case alone: an explicit `--project` wins, else the project of the pack
+ * the spec belongs to, so a case never waits on the preflight of a pack it does not touch.
+ */
+export function caseProject(file, project = null) {
+  if (project) return project;
+  const pack = packOfSpec(file);
+  return pack ? packProject(pack) : ALL_PACKS_PROJECT;
+}
+
+/**
+ * True when a `--project` filter selects the project `name`. Playwright compares names without
+ * regard to case and lets `*` stand for any run of characters; the lanes read records the same way.
+ */
+export function projectMatches(filter, name) {
+  const pattern = String(filter)
+    .split('*')
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('.*');
+  return new RegExp(`^${pattern}$`, 'i').test(String(name ?? ''));
+}
+
 /** Records that were attempted more than once: proof that retries were on despite the guard. */
 export function retriedRecords(records) {
   return records.filter((record) => record.attempts.length > 1);

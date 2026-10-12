@@ -1,7 +1,7 @@
 // Destructive store case (registry/store.md, L-59). An order without a status makes the inventory
 // answer 500 to every caller while it exists (PN-17, LOCAL-2), so this file holds only destructive
 // cases: every other run leaves them out and `npm run lanes:destructive` runs each alone, followed
-// by the environment's recovery. The case itself deletes its orders in `finally`.
+// by the pack's recovery. The case itself deletes its orders in `finally`.
 
 import { test, expect } from '../fixtures';
 import { caseDescription, knownGap, operation } from '../../../helpers/case-meta';

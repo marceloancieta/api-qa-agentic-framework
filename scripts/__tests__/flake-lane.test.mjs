@@ -14,6 +14,7 @@ import {
   parseRepeats,
   quarantineReport,
 } from '../flake-lane.mjs';
+import { laneProject } from '../lib/playwright-lane.mjs';
 
 const FIXTURES = join(REPO_ROOT, 'scripts', '__fixtures__', 'flake-lane');
 const records = JSON.parse(readFileSync(join(FIXTURES, 'records.json'), 'utf8'));
@@ -73,13 +74,13 @@ test('arguments, repeat counts, errors and tables', () => {
   assert.deepEqual(
     laneArgs({
       files: ['a.spec.ts'],
-      project: 'api',
+      project: laneProject({}),
       grep: '@smoke',
       grepInvert: '@quarantine',
       repeats: 5,
     }),
     [
-      '--project=api',
+      '--project=api-*',
       '--grep',
       '@smoke',
       '--grep-invert',
@@ -87,6 +88,14 @@ test('arguments, repeat counts, errors and tables', () => {
       '--repeat-each=5',
       'a.spec.ts',
     ],
+  );
+  assert.deepEqual(laneArgs({ project: laneProject({ service: 'shop' }), repeats: 2 }), [
+    '--project=api-shop',
+    '--repeat-each=2',
+  ]);
+  assert.deepEqual(
+    laneArgs({ project: laneProject({ service: 'shop', project: 'x' }), repeats: 2 }),
+    ['--project=x', '--repeat-each=2'],
   );
   assert.equal(parseRepeats('3'), 3);
   assert.throws(() => parseRepeats('1'), /at least 2/);

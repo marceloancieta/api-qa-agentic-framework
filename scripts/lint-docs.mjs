@@ -53,7 +53,7 @@
 //   registry-shape     problems reported by `loadRegistries` for services/<pack>/registry/*.md.
 //   destructive-recovery  a case whose details tag it `@destructive` has no `**Recovery**` bullet
 //                      saying how the service gets back to a usable state (L-59). The destructive
-//                      lane runs the environment's recovery after it; the bullet says what that
+//                      lane runs its pack's recovery after it; the bullet says what that
 //                      recovery must restore and how the case confirms it.
 //
 // "Planned" (dead-path and lesson-guard): a name that an open backlog row mentions in a code span (or,

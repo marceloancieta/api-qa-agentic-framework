@@ -100,8 +100,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # The variable named by qa-config api.auth.env. A real API takes it from the API_KEY secret;
-      # the Petstore accepts any non-empty value, so without the secret one is generated per run.
+      # The variable named by qa-config api.environments.local.packs.petstore.auth.env. A real API
+      # takes it from the API_KEY secret; the Petstore accepts any non-empty value, so without the
+      # secret one is generated per run.
       - name: Provide API_KEY
         env:
           PROVIDED_API_KEY: ${{ secrets.API_KEY }}
@@ -115,16 +116,17 @@ jobs:
           echo "API_KEY=$key" >> "$GITHUB_ENV"
 
       # docker compose rather than a service container: the destructive lane's recovery is
-      # `docker compose restart petstore` (qa-config api.environments.local.recovery).
+      # `docker compose restart petstore` (qa-config
+      # api.environments.local.packs.petstore.recovery).
       - name: Start the Petstore
         id: petstore
         timeout-minutes: 5
         run: npm run petstore:up
 
-      # The preflight project runs first; when it fails, no API case runs.
+      # Each pack's preflight project runs first; when it fails, none of that pack's cases runs.
       - name: Suite (preflight, then api)
         id: suite
-        run: npx playwright test --project=api
+        run: npx playwright test '--project=api-*'
 
       # Last, and only after the shared run: each @destructive case alone, then the recovery.
       # Its results join the run above (same run id), so the report below covers both.

@@ -53,10 +53,29 @@ export function trackerKeyRegex(config) {
   }
 }
 
-/** The active environment: QA_ENV overrides api.default_environment. */
+/**
+ * The variable that overrides one of a pack's URLs: `QA_PETSTORE_BASE_URL` for `petstore`, hyphens
+ * become underscores. The same rule as `packVariable` in helpers/config.ts, kept here because hooks
+ * import nothing from the core.
+ */
+export function packVariable(pack, setting) {
+  return `QA_${pack.toUpperCase().replace(/-/g, '_')}_${setting}`;
+}
+
+/**
+ * The active environment (QA_ENV overrides api.default_environment) and the packs it configures,
+ * each with its base URL after the QA_<PACK>_BASE_URL override.
+ * @returns {{ name: string, packs: { name: string, baseUrl: string }[] }}
+ */
 export function activeEnvironment(config) {
   const api = config?.api ?? {};
   const name = process.env.QA_ENV || api.default_environment || '';
-  const env = api.environments?.[name] ?? null;
-  return { name, baseUrl: process.env.API_BASE_URL || env?.base_url || '' };
+  const packs = api.environments?.[name]?.packs ?? {};
+  return {
+    name,
+    packs: Object.entries(packs).map(([pack, settings]) => ({
+      name: pack,
+      baseUrl: process.env[packVariable(pack, 'BASE_URL')] || settings?.base_url || '',
+    })),
+  };
 }

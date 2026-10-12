@@ -18,7 +18,7 @@ export function runHook(script, payload, { projectDir, env = {} } = {}) {
       env: {
         ...process.env,
         QA_ENV: '',
-        API_BASE_URL: '',
+        QA_PETSTORE_BASE_URL: '',
         ...(projectDir ? { CLAUDE_PROJECT_DIR: projectDir } : {}),
         ...env,
       },

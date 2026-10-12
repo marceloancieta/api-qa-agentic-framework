@@ -44,7 +44,7 @@ together. Moving a case to another file changes neither its code nor its number.
 | `title` | yes | the feature name |
 | `endpoints` | yes | `METHOD /path` per line, as the contract writes them; the floor is computed from these |
 | `contract` | no | the feature contract doc, relative to the pack |
-| `auth` | no | the actors the cases call as (`default`, `anonymous`, names from `api.actors`) |
+| `auth` | no | the actors the cases call as (`default`, `anonymous`, names from the pack's `actors` in qa-config) |
 | `test_data` | no | each `<PLACEHOLDER>` the cases use and what it stands for (L-41) |
 | `requirements` | no | `{ id: REQ-<FEATURE>-NN, text }`; the Requirement column cites these |
 | `beyond_floor` | no | ids of cases that come from the implementation, equivalence or risk rather than the contract (L-55) |

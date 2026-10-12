@@ -12,8 +12,8 @@ description: >-
 # qa-automate: write and prove the specs
 
 **Mode: design** (`.claude/rules/modes.md`). Running the specs being written is allowed. Their writes
-go to data they create, or to shared data under a resource guard, in an environment whose
-`allow_writes` is true.
+go to data they create, or to shared data under a resource guard, in an environment whose entry for
+the pack has `allow_writes` true.
 
 ## Inputs
 
@@ -51,10 +51,10 @@ go to data they create, or to shared data under a resource guard, in an environm
    out of every run and listing; add `QA_DESTRUCTIVE=1` to list them.
 5. **Run** the new specs together against the environment
    (`npx playwright test services/<pack>/specs/<file> ...`), then the `@destructive` ones with
-   `npm run lanes:destructive`, which runs each alone and follows it with the environment's
-   recovery. Authors' runs replace each other's results, so this run is the one step 7 reads.
-   Data-backed cases pass, or fail as armed known gaps. Data-gated cases skip with a reason. Anything
-   else is a test error to fix, or a finding for `qa-report-bug`.
+   `npm run lanes:destructive -- --service <pack>`, which runs each alone and follows it with the
+   pack's `recovery` in the environment. Authors' runs replace each other's results, so this run is
+   the one step 7 reads. Data-backed cases pass, or fail as armed known gaps. Data-gated cases skip
+   with a reason. Anything else is a test error to fix, or a finding for `qa-report-bug`.
 6. **Review**: launch the `api-spec-reviewer` agent on every new or changed spec, as a fresh agent
    and never the author, whose context carries its own assumptions. Fix every `blocker` and `major`
    (resume the author with the report, or fix here), run again and re-review until the verdict is

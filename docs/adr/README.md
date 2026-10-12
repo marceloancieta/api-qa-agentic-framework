@@ -13,3 +13,4 @@ A decision is changed by a new ADR that supersedes the old one, never by editing
 | [0006](0006-apache-2-license.md) | Apache License 2.0 | Accepted |
 | [0007](0007-layered-test-architecture.md) | Layered test architecture and service packs | Accepted |
 | [0008](0008-branching-and-traceability.md) | Branching model and change traceability | Accepted |
+| [0009](0009-per-pack-configuration.md) | Configuration per service pack | Accepted |

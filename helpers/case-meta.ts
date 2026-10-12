@@ -10,7 +10,7 @@
 
 import { test, type TestInfo } from '@playwright/test';
 import * as allure from 'allure-js-commons';
-import { loadRuntime, type QaRuntime } from './config';
+import { loadSettings, type QaSettings } from './config';
 import type { ServicePack } from './service';
 import { codeSpanPlaceholders } from '../scripts/lib/text.mjs';
 
@@ -76,14 +76,18 @@ export async function caseDescription(markdown: string): Promise<void> {
  * key reads as tracked when it is not.
  */
 export async function knownGap(key: string, why: string): Promise<string> {
-  const { tracker, source } = loadRuntime();
+  const { tracker, source } = loadSettings();
   await allure.issue(issueUrl(tracker, key, source), key);
   test.info().annotations.push({ type: 'issue', description: key });
   return `${key}: ${why}`;
 }
 
 /** The link to issue `key`, after checking the key against the tracker configuration. */
-export function issueUrl(tracker: QaRuntime['tracker'], key: string, source = 'qa-config'): string {
+export function issueUrl(
+  tracker: QaSettings['tracker'],
+  key: string,
+  source = 'qa-config',
+): string {
   if (!tracker.keyPattern || !tracker.issueUrl) {
     throw new Error(
       `knownGap('${key}') needs tracker.key_pattern and tracker.issue_url in ${source}. ` +

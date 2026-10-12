@@ -41,10 +41,10 @@ Runs only when `gates` passed. Every step fails the job when its command fails. 
 
 | Step | Why |
 |---|---|
-| Provide `API_KEY` | The variable named by qa-config `api.auth.env`. See [secrets and variables](#secrets-and-variables). |
+| Provide `API_KEY` | The variable that the `petstore` pack's `auth.env` names in qa-config. See [secrets and variables](#secrets-and-variables). |
 | `npm run petstore:up` | Starts the pinned Petstore image and waits for its healthcheck. |
-| `npx playwright test --project=api` | The `preflight` project runs first. When the API is not answering, it fails once with the reason and no API case runs. `@destructive` cases are left out. |
-| `npm run lanes:destructive` | Last. Each `@destructive` case runs alone and is followed by the environment's recovery, a restart of the container, and a wait until the API answers (L-59). Its results join the run above under the same run id. |
+| `npx playwright test '--project=api-*'` | Every pack's `api-<pack>` project, each after its `preflight-<pack>` project. When a pack's API is not answering, its preflight fails once with the reason and none of that pack's cases run. `@destructive` cases are left out. |
+| `npm run lanes:destructive` | Last. Each `@destructive` case runs alone and is followed by its pack's recovery, a restart of the container, and a wait until the API answers (L-59). Its results join the run above under the same run id. |
 | Rebuild the local tool's definitions | Only for the example's `local` tool: its store (`reports/tm/local`) is not tracked, so a fresh runner starts empty, and `npm run tm:publish` rebuilds the definitions from the registries. A real definitions-first tool is published by `qa-publish` after its review gate, never by CI; a results-first tool (Allure TestOps) needs no definitions. |
 | `npm run tm:report -- --service petstore` | Reports the suite and the destructive lane as one run to the configured tool. |
 | `npm run coverage:status` | The gates ran it without results. Here it also checks that every published case has a result in this run and that no blocked case passed. |
@@ -62,11 +62,12 @@ needed).
 ### Why docker compose and not a service container
 
 The backlog item asked for a service container. The workflow starts the Petstore with
-`docker compose` instead. The destructive lane recovers the service with the environment's
-`recovery.command`, which for the local environment is `docker compose restart petstore`. That
-command only works on a container started by compose from `docker-compose.yml`. A service container
-is created by the runner under a generated name, and compose cannot restart it. Compose also keeps
-the image tag in one place, the file a contributor uses locally.
+`docker compose` instead. The destructive lane recovers the service with the `recovery.command` of
+the pack's entry in the environment, which for `petstore` in `local` is
+`docker compose restart petstore`. That command only works on a container started by compose from
+`docker-compose.yml`. A service container is created by the runner under a generated name, and
+compose cannot restart it. Compose also keeps the image tag in one place, the file a contributor
+uses locally.
 
 Each workflow sets its own `COMPOSE_PROJECT_NAME`. Stopping and restarting then touch only the
 container that run started, even where the Docker daemon is shared, as under `act`.
@@ -84,7 +85,7 @@ periodically even when it does not (L-31).
 | Step | Exit and effect |
 |---|---|
 | `npm run petstore:up` | The lanes run against it. |
-| `npm run contract:digest:live` | Compares the contract the environment serves with `docs/discovery/<pack>-digest.json`. 0: no structural drift. 1: drift, recorded; the job fails in the last step, after both lanes. 2: could not compare (no digest, contract not reachable); the step fails at once. |
+| `npm run contract:digest:live -- --service petstore` | Compares the contract the pack's `spec_url` serves with `docs/discovery/<pack>-digest.json`. 0: no structural drift. 1: drift, recorded; the job fails in the last step, after both lanes. 2: could not compare (no digest, contract not reachable); the step fails at once. |
 | `npm run lanes:known-gap` | Each armed known gap alone. A gap that starts passing fails the job, for investigation before the arm is removed. |
 | `npm run lanes:published:changed:live` | Only when the digest moved: the published cases whose operations changed in the compared contract, first, so their results name what the move broke. |
 | `npm run lanes:published` | Every published case, zero retries. |
@@ -101,13 +102,13 @@ before any case changes.
 
 ### Which contract is compared
 
-By default, the active environment's `spec_url` is compared. For the example pack that is the local
-container, whose image tag is pinned, so its contract changes only when the tag in
-`docker-compose.yml` changes. To watch a deployed contract, set the repository variable
-`QA_DRIFT_CONTRACT_ENV`, or the `contract_env` input of a manual run, to another qa-config
-environment, such as `public`. The digest step and the changed-cases lane read it; the selected cases
-then run on that environment, where an environment whose `allow_writes` is false skips the write
-cases with their reason. The known-gap lane and the full published lane stay on the default
+By default, the `spec_url` of the pack's entry in the active environment is compared. For the
+example pack that is the local container, whose image tag is pinned, so its contract changes only
+when the tag in `docker-compose.yml` changes. To watch a deployed contract, set the repository
+variable `QA_DRIFT_CONTRACT_ENV`, or the `contract_env` input of a manual run, to another qa-config
+environment, such as `public`. The digest step and the changed-cases lane read it; the selected
+cases then run on that environment, where a pack whose `allow_writes` is false there skips the
+write cases with their reason. The known-gap lane and the full published lane stay on the default
 environment, which allows writes.
 
 ### Changed cases versus all published cases
@@ -115,8 +116,8 @@ environment, which allows writes.
 When the digest moves, the cases that touch a changed operation must run. `--changed-from-digest`
 alone compares the tracked digest with the pack's tracked contract file, which the gates keep in step
 (`contract:check`), so in CI it would always select nothing. The workflow uses
-`lanes:published:changed:live` (`--live`), which compares with the environment's `spec_url`, and then
-runs the full published lane as the daily re-run.
+`lanes:published:changed:live` (`--live`), which compares with each pack's `spec_url` in the
+environment, and then runs the full published lane as the daily re-run.
 
 ## Secrets and variables
 
@@ -175,20 +176,21 @@ Each run uploads one artifact, even when a step failed, and keeps it for 14 days
 
 ## Adapting to a new pack or environment
 
-- **Another pack against a containerised API.** Add its service to `docker-compose.yml` and its
-  environment to qa-config, with a `recovery.command` if it has `@destructive` cases. Then change
-  the start step and `--service` in the report step. The suite and the lanes collect every pack in
-  `services/`, but qa-config has one `base_url`, one `api.auth` and one set of actors per
-  environment, so packs on different hosts need one job per pack, each running its own
-  `services/<pack>/specs` folder with its `QA_ENV` (backlog FUT-09).
+- **Another pack against a containerised API.** Add its service to `docker-compose.yml` and an
+  entry for the pack under each qa-config environment that serves it
+  (`api.environments.<env>.packs.<pack>`), with a `recovery.command` if it has `@destructive`
+  cases. Then change the start step and `--service` in the report step. `--project=api-*` and the
+  lanes collect every pack in `services/`, each against its own base URL and credentials
+  ([ADR 0009](adr/0009-per-pack-configuration.md)); `--project=api-<pack>` and a lane's
+  `--service <pack>` narrow a step to one pack.
 - **A deployed environment.** Drop the start and stop steps, and set `QA_ENV` on the job to the
-  qa-config environment. That environment has a `base_url`, a `spec_url` and the credentials its
-  `api.auth` names, supplied as secrets. `qa-config.json` is per machine and not tracked, so CI
-  reads `qa-config.example.json` unless a step writes one. The destructive lane refuses an
-  environment with `allow_writes` false or no recovery, and that refusal fails the job, so remove
+  qa-config environment. Each pack's entry there has a `base_url`, a `spec_url` and the credentials
+  its `auth` names, supplied as secrets. `qa-config.json` is per machine and not tracked, so CI
+  reads `qa-config.example.json` unless a step writes one. The destructive lane refuses a pack
+  whose entry has `allow_writes` false or no recovery, and that refusal fails the job, so remove
   the step rather than let it fail. Never point a workflow at production.
-- **Different credentials.** Provide every variable that `api.auth` and `api.actors` name, from
-  secrets, in the same step as `API_KEY`. The preflight names any variable that is missing.
+- **Different credentials.** Provide every variable that each pack's `auth` and `actors` name, from
+  secrets, in the same step as `API_KEY`. The pack's preflight names any variable that is missing.
 - **A real test-management tool.** Set `test_management` in the configuration the job reads, and
   pass the adapter's token variable from a secret to the report step only.
 
@@ -199,10 +201,10 @@ The actions are pinned by full commit SHA, with the release in a trailing commen
 
 `act` (the `nektos/act` project) runs the jobs in Docker on your machine, so a workflow change
 can be tried before it is pushed. `.actrc` at the repository root holds the settings every command
-below needs: the runner image for `ubuntu-24.04` and `ubuntu-latest`, and `API_BASE_URL` and
-`API_SPEC_URL` pointing at `host.docker.internal`. A job runs in its own container, while the
-Petstore that `docker compose` starts runs on the host's Docker, so `localhost:8080` inside the job
-would not reach it.
+below needs: the runner image for `ubuntu-24.04` and `ubuntu-latest`, and `QA_PETSTORE_BASE_URL`
+and `QA_PETSTORE_SPEC_URL` pointing at `host.docker.internal`. A job runs in its own container,
+while the Petstore that `docker compose` starts runs on the host's Docker, so `localhost:8080`
+inside the job would not reach it.
 
 Stop your own Petstore first (`npm run petstore:down`): the job's container takes port 8080.
 
@@ -258,7 +260,7 @@ variable named exactly like a parameter would be hidden.
 | `AGENT_LABEL` | the agent label to run on; empty means any agent |
 | `API_KEY_CREDENTIALS_ID` | a secret-text credential with the API key; empty generates one per build, which the Petstore accepts |
 | `PETSTORE_PORT` | host port for the Petstore container when 8080 is taken, for example by Jenkins itself on the same machine; the API URLs follow it |
-| `API_BASE_URL`, `API_SPEC_URL` | explicit URLs, for an agent that runs in a container and reaches the Petstore through `host.docker.internal` |
+| `PETSTORE_BASE_URL`, `PETSTORE_SPEC_URL` | explicit URLs of the `petstore` pack, exported as `QA_PETSTORE_BASE_URL` and `QA_PETSTORE_SPEC_URL`, for an agent that runs in a container and reaches the Petstore through `host.docker.internal` |
 | `CONTRACT_ENV` | drift only: the qa-config environment whose contract is compared |
 | `PUBLISH_ALLURE` | CI only, on by default: publish `allure-results` with the Allure plugin, which shows the report on the build page. On a Jenkins without the plugin the build prints a notice and carries on; set it to `false` to drop the notice. The single-file report is archived either way |
 | `ALLURE_TOKEN_CREDENTIALS_ID`, `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID` | CI only: report the run to Allure TestOps ([reporting to Allure TestOps](#reporting-to-allure-testops)) |

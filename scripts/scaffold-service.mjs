@@ -29,7 +29,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
-import { REPO_ROOT } from './lib/cli.mjs';
+import { packVariable, REPO_ROOT } from './lib/cli.mjs';
 import { normalize, parseDocument } from './lib/openapi.mjs';
 import { describeExit, exitCodeOf } from './lib/spawn.mjs';
 
@@ -98,7 +98,7 @@ export function suggestCode(resource, taken) {
   return code;
 }
 
-/** The qa-config `api.auth` entry for the scheme most operations accept. */
+/** The qa-config `auth` of the pack's entry, for the scheme most operations accept. */
 export function suggestAuth(model, pack) {
   const prefix = pack.toUpperCase().replace(/-/g, '_');
   const uses = new Map(Object.keys(model.securitySchemes).map((name) => [name, 0]));
@@ -122,6 +122,17 @@ export function suggestAuth(model, pack) {
     }
   }
   return { type: 'none' };
+}
+
+/**
+ * The qa-config entry suggested for the pack in each environment that runs it
+ * (`api.environments.<env>.packs.<pack>`): its two required fields. `base_url` is the first absolute
+ * server of the contract; a relative one, or none, leaves the host to fill in.
+ */
+export function suggestPackEntry(model, auth) {
+  const absolute = model.servers.find((url) => /^https?:\/\//i.test(url));
+  const relative = model.servers.find((url) => url.startsWith('/')) ?? '';
+  return { base_url: absolute ?? `https://<host>${relative}`, auth };
 }
 
 const successCodes = (operation) =>
@@ -270,7 +281,7 @@ export type Actor = ${typeName}Clients & { name: string };
 
 interface ${typeName}Fixtures {
 ${fields}
-  /** The pack's clients bound to a named credential: \`default\`, \`anonymous\` or one of \`api.actors\`. */
+  /** The pack's clients bound to a named credential: \`default\`, \`anonymous\` or one of the pack's qa-config \`actors\`. */
   actor: (name: string) => Promise<Actor>;
   caseMeta: void;
 }
@@ -365,9 +376,17 @@ Suggested codes are confirmed at the first design gate and are permanent once a 
 
 ## Next steps
 
-1. Add an environment for this API to \`qa-config.json\` (\`api.environments\`) and set \`api.auth\`.
-   The contract suggests: \`${JSON.stringify(plan.auth)}\`.
-2. Run \`npx playwright test services/${plan.name}/specs\` to check configuration and credentials.
+1. Add this pack to every environment it runs in: \`api.environments.<env>.packs.${plan.name}\` in
+   \`qa-config.json\`. \`base_url\` and \`auth\` are required; \`spec_url\`, \`allow_writes\`, \`recovery\`
+   and \`actors\` are optional. A pack without an entry cannot run in that environment. The contract
+   suggests:
+
+   \`\`\`json
+   ${JSON.stringify(plan.packEntry)}
+   \`\`\`
+
+   \`${packVariable(plan.name, 'BASE_URL')}\` and \`${packVariable(plan.name, 'SPEC_URL')}\` override the URLs for one run.
+2. Run \`npx playwright test --project=api-${plan.name}\` to check configuration and credentials.
 3. Start the phases with \`qa-intake\` for the first feature. Its contract goes in
    \`docs/features/<feature>.md\`.
 
@@ -457,6 +476,7 @@ export async function planPack({ name, spec, version, title, root = REPO_ROOT, n
     packDir: join(root, 'services', name),
     skillFile: join(root, '.claude', 'skills', `${name}-api`, 'SKILL.md'),
   };
+  plan.packEntry = suggestPackEntry(model, plan.auth);
   plan.files = filesFor(plan, root);
   return plan;
 }
@@ -495,7 +515,8 @@ export function describePlan(plan) {
     `Pack ${plan.name} ${plan.version}: ${plan.title}`,
     `Contract: ${plan.spec} (${plan.model.format}, ${plan.model.operations.length} operations, ${Object.keys(plan.model.schemas).length} schemas)`,
     `Servers: ${plan.model.servers.join(', ') || 'none declared'}`,
-    `Security: ${Object.keys(plan.model.securitySchemes).join(', ') || 'none'}; suggested api.auth ${JSON.stringify(plan.auth)}`,
+    `Security: ${Object.keys(plan.model.securitySchemes).join(', ') || 'none'}`,
+    `Suggested qa-config entry api.environments.<env>.packs.${plan.name}: ${JSON.stringify(plan.packEntry)}`,
     '',
     'Resources:',
     ...plan.resources.map(
@@ -603,7 +624,8 @@ Wrote ${skill}. Fill in its pending facts from the pack's docs.`);
   generateContractFiles(plan.name);
   console.log(`\nWrote ${written.length} files and the generated contract files.`);
   console.log(
-    `Next: add an environment and api.auth to qa-config, then read services/${plan.name}/README.md.`,
+    `Next: add api.environments.<env>.packs.${plan.name} (base_url and auth) to qa-config for every ` +
+      `environment that runs it, then read services/${plan.name}/README.md.`,
   );
 }
 

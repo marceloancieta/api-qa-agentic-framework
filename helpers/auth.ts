@@ -1,6 +1,6 @@
-// Authentication strategies, selected by qa-config `api.auth.type` (Strategy pattern). A strategy
-// only decorates an outgoing request; clients never know which scheme is in use. A new scheme is a
-// new entry in `factories`, plus its branch in the qa-config schema.
+// Authentication strategies, selected by a pack's `auth.type` in qa-config (Strategy pattern). A
+// strategy only decorates an outgoing request; clients never know which scheme is in use. A new
+// scheme is a new entry in `factories`, plus its branch in the qa-config schema.
 
 import type { AuthConfig } from './config';
 import { missingEnvVars } from './config';

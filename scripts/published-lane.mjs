@@ -16,19 +16,23 @@
  *     so does changed operation text, since prose can announce a behaviour change.
  *   - Tests tagged `@quarantine` are left out (gate lanes run with `--grep-invert @quarantine`).
  *   - Tests tagged `@destructive` are left out: they run only in the destructive lane, each alone
- *     and followed by the environment's recovery (scripts/destructive-lane.mjs).
+ *     and followed by its pack's recovery (scripts/destructive-lane.mjs).
  *
  * All selected cases run in one Playwright process with zero retries, selected with a `--grep`
  * built from their ids. Each case gets a verdict: passed, known-gap (an armed expected failure that
  * still fails), failed, skipped, not-run (no result), missing (no test carries the id) or
  * quarantined or destructive (not run here on purpose).
  *
- *   node scripts/published-lane.mjs [--changed-from-digest [--live]] [--pack name] [--project api]
- *                                   [--list] [--json] [--root dir] [--config file]
+ *   node scripts/published-lane.mjs [--changed-from-digest [--live]] [--service pack]
+ *                                   [--project name] [--list] [--json] [--root dir] [--config file]
  *
- * `--live` diffs the tracked digest against the active environment's spec_url (QA_ENV) instead of
- * the pack's contract file. Without it, the selection follows edits to the tracked contract; with it,
- * a scheduled run selects the cases whose operations moved in the deployed contract.
+ * `--service` keeps the registries and specs of one pack and runs its project (`api-<pack>`);
+ * without it the run covers every pack (`api-*`). An explicit `--project` replaces either.
+ *
+ * `--live` diffs the tracked digest against each pack's spec_url in the active environment (QA_ENV;
+ * QA_<PACK>_SPEC_URL overrides it) instead of the pack's contract file. Without it, the selection
+ * follows edits to the tracked contract; with it, a scheduled run selects the cases whose operations
+ * moved in the deployed contract.
  *
  * Exit codes: 0 every selected case passed or was not selected (including when there is none);
  * 1 a case failed, did not run or has no test, or Playwright exited non-zero although no case
@@ -51,6 +55,8 @@ import {
   assertZeroRetries,
   errorLine,
   formatTable,
+  laneProject,
+  projectMatches,
   retriedRecords,
   runLane,
   unexplainedExit,
@@ -260,7 +266,7 @@ export function runPublished(selected, { scanRoot, runRoot, project, config, run
     if (retriedRecords(lane.records).length > 0) {
       throw new Error('a case was retried although QA_RETRIES=0; gate lanes run without retries');
     }
-    records = lane.records.filter((r) => r.project === project);
+    records = lane.records.filter((r) => projectMatches(project, r.project));
     if (records.length === 0 && lane.exitCode !== 0) {
       throw new Error(
         `Playwright produced no results (exit ${lane.exitCode}).\n${lane.stderr || lane.stdout}`,
@@ -311,8 +317,8 @@ async function main(argv = process.argv.slice(2)) {
     options: {
       'changed-from-digest': { type: 'boolean', default: false },
       live: { type: 'boolean', default: false },
-      pack: { type: 'string' },
-      project: { type: 'string', default: 'api' },
+      service: { type: 'string' },
+      project: { type: 'string' },
       list: { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
       root: { type: 'string' },
@@ -320,7 +326,7 @@ async function main(argv = process.argv.slice(2)) {
     },
   });
   const scanRoot = values.root ? resolve(values.root) : REPO_ROOT;
-  const { registries, corpusByPack } = loadInputs(scanRoot, values.pack ?? null);
+  const { registries, corpusByPack } = loadInputs(scanRoot, values.service ?? null);
   for (const registry of registries) {
     for (const p of registry.problems) {
       console.error(`published-lane: warning: ${p.file}:${p.line}: ${p.message}`);
@@ -362,7 +368,7 @@ async function main(argv = process.argv.slice(2)) {
   const { results, failure } = runPublished(selected, {
     scanRoot,
     runRoot: REPO_ROOT,
-    project: values.project,
+    project: laneProject(values),
     config: values.config,
   });
   const problems = results.filter((r) => PROBLEM_VERDICTS.has(r.verdict));

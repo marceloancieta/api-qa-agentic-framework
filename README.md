@@ -59,7 +59,7 @@ npm run gates
 
 ```sh
 npm run petstore:up      # http://localhost:8080/api/v3; waits for the container's healthcheck
-npm test                 # unit tests, the preflight, then every API spec
+npm test                 # unit tests, each pack's preflight, then every API spec
 ```
 
 **5. Read the results.** The terminal lists every case. `playwright-report/` holds the HTML report,
@@ -74,8 +74,8 @@ What "green" means here:
 - Cases tagged `@destructive` are left out of every normal run, because they leave the service
   broken for other callers. `npm run lanes:destructive` runs each one alone and restarts the
   container after it.
-- If the `preflight` project fails, no API case ran. Its message names the missing variable or the
-  host that did not answer.
+- If a pack's `preflight-<pack>` project fails, none of that pack's API cases ran. Its message
+  names the missing variable or the host that did not answer.
 
 Next: the [onboarding tour](docs/onboarding.md), then the guides to
 [add a test case](docs/guides/add-a-test-case.md) and
@@ -85,15 +85,20 @@ Next: the [onboarding tour](docs/onboarding.md), then the guides to
 
 | Command | Runs |
 |---|---|
-| `npm test` | Every Playwright project: `unit`, `preflight`, `api`. |
+| `npm test` | Every Playwright project: `unit`, then `preflight-<pack>` and `api-<pack>` for each pack in `services/`. |
+| `npx playwright test --project=api-<pack>` | One pack's specs, after its preflight. `--project=api-*` runs every pack. |
 | `npm run test:unit` | Core and pack unit tests only. No network; part of `npm run gates`. |
 | `npm run test:smoke` | Cases tagged `@smoke`, after the preflight. |
 | `npm run report:html` | The Allure report of the last run, as one `reports/allure-report/index.html` that opens from disk. |
 
-The `preflight` project checks the variables named by `api.auth` and that the API host answers,
-then the `api` project runs. When it fails, no API case runs. Add `--no-deps` to skip it.
-`QA_ENV` picks the environment, and `API_BASE_URL` and `API_SPEC_URL` override its URLs. Each API
-call is attached to its test as redacted evidence. Results go to `allure-results/` and
+Each pack runs in the entry the active environment gives it in qa-config
+(`api.environments.<env>.packs.<pack>`: its base URL, contract URL, credentials and actors). The
+`preflight-<pack>` project checks the variables that entry's `auth` and `actors` name and that the
+pack's base URL answers, then `api-<pack>` runs. When it fails, none of that pack's cases run; a
+pack you did not select never blocks the run. Add `--no-deps` to skip it. `QA_ENV` picks the
+environment, and `QA_<PACK>_BASE_URL` and `QA_<PACK>_SPEC_URL` (for example
+`QA_PETSTORE_BASE_URL`) override one pack's URLs for a run. Each API call is attached to its test
+as redacted evidence. Results go to `allure-results/` and
 `playwright-report/`. A Playwright run clears `allure-results/` when it starts (the destructive lane
 adds to the run before it instead). The optional runner switches (retries, extra reports, a fixed
 seed or clock) are listed in `.env.example`.

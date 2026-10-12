@@ -37,8 +37,8 @@ Given, when, then.
 ## Access and ownership
 
 Credentials required, roles per operation, and every path or body identifier that must be checked
-against the caller (BOLA). Which actors the cases need (`default`, `anonymous`, names from
-`api.actors`).
+against the caller (BOLA). Which actors the cases need (`default`, `anonymous`, names from the
+pack's `actors` in qa-config).
 
 ## Edge and negative cases
 

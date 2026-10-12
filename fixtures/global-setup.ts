@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FullConfig } from '@playwright/test';
-import { REPO_ROOT, loadRuntime } from '../helpers/config';
+import { REPO_ROOT, loadSettings } from '../helpers/config';
 import { SALT_VARIABLE } from '../helpers/redact';
 import { rootSeed, SEED_VARIABLE } from '../helpers/rng';
 import { acquireRunLock } from '../helpers/run-lock';
@@ -34,7 +34,7 @@ export function assertResultsReporter(config: FullConfig, provider: string): voi
 }
 
 export default function globalSetup(config: FullConfig): void {
-  assertResultsReporter(config, loadRuntime().testManagement);
+  assertResultsReporter(config, loadSettings().testManagement);
   acquireRunLock();
   if (process.env.QA_KEEP_RESULTS !== '1') rmSync(RESULTS_DIR, { recursive: true, force: true });
 

@@ -14,6 +14,7 @@ import {
   runPublished,
   selectPublished,
 } from '../published-lane.mjs';
+import { laneProject } from '../lib/playwright-lane.mjs';
 
 const FIXTURES = join(REPO_ROOT, 'scripts', '__fixtures__', 'published-lane');
 const PROJECT = join(FIXTURES, 'project');
@@ -119,7 +120,7 @@ test('a non-zero Playwright exit that no verdict explains fails the lane; a kill
   ];
   const passed = {
     title: 'TC-X-01 t',
-    project: 'api',
+    project: 'api-x',
     outcome: 'expected',
     expectedStatus: 'passed',
     attempts: [{ status: 'passed', errors: [] }],
@@ -132,7 +133,7 @@ test('a non-zero Playwright exit that no verdict explains fails the lane; a kill
     stderr: '',
     ...overrides,
   });
-  const options = { scanRoot: REPO_ROOT, runRoot: REPO_ROOT, project: 'api' };
+  const options = { scanRoot: REPO_ROOT, runRoot: REPO_ROOT, project: 'api-*' };
 
   assert.equal(runPublished(selected, { ...options, run: lane({}) }).failure, null);
   const teardown = runPublished(selected, {
@@ -157,12 +158,52 @@ test('a non-zero Playwright exit that no verdict explains fails the lane; a kill
   );
 });
 
+test('--service keeps one pack and runs its project; without it every pack runs (api-*)', () => {
+  assert.equal(loadInputs(PROJECT, 'shelf').registries.length, 1);
+  assert.deepEqual(loadInputs(PROJECT, 'other').registries, []);
+  const { registries, corpusByPack } = loadInputs(PROJECT, 'shelf');
+  const selected = selectPublished(registries, corpusByPack);
+  const record = (project) => ({
+    title: 'TC-BOOK-01 t',
+    project,
+    outcome: 'expected',
+    expectedStatus: 'passed',
+    attempts: [{ status: 'passed', errors: [] }],
+  });
+  for (const [values, project] of [
+    [{}, 'api-*'],
+    [{ service: 'shelf' }, 'api-shelf'],
+    [{ service: 'shelf', project: 'custom' }, 'custom'],
+  ]) {
+    const calls = [];
+    const { records } = runPublished(selected, {
+      scanRoot: PROJECT,
+      runRoot: REPO_ROOT,
+      project: laneProject(values),
+      run: (root, args) => {
+        calls.push(args);
+        return {
+          exitCode: 0,
+          runnerError: null,
+          records: [record('preflight-shelf'), record('api-shelf'), record('custom')],
+        };
+      },
+    });
+    assert.equal(calls[0][0], `--project=${project}`, JSON.stringify(values));
+    assert.deepEqual(
+      records.map((r) => r.project),
+      project === 'custom' ? ['custom'] : ['api-shelf'],
+      'only records of the selected projects count; a preflight record never does',
+    );
+  }
+});
+
 test('end to end: one zero-retry run over the published cases of an offline project', () => {
   const { registries, corpusByPack } = loadInputs(PROJECT);
   const { results, records } = runPublished(selectPublished(registries, corpusByPack), {
     scanRoot: PROJECT,
     runRoot: REPO_ROOT,
-    project: 'api',
+    project: laneProject({}),
     config: 'scripts/__fixtures__/published-lane/project/playwright.config.mjs',
   });
   assert.deepEqual(

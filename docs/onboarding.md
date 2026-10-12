@@ -10,12 +10,12 @@ that owns the detail.
 | Path | Holds | Changes when |
 |---|---|---|
 | `helpers/` | The execution core: the base client every pack client extends, evidence and redaction, schema validation, error envelopes, state comparison, resource guards, known gaps, seeded random data and clock, case metadata. | rarely; it never imports from a pack |
-| `fixtures/` | The core Playwright fixtures, the global setup and teardown, and the `preflight` project. | rarely |
-| `playwright.config.ts` | The `unit`, `preflight` and `api` projects, the reporters, and the switches read from the environment. | rarely |
+| `fixtures/` | The core Playwright fixtures, the global setup and teardown, and the preflight that each pack's `preflight-<pack>` project runs. | rarely |
+| `playwright.config.ts` | The `unit` project, one `preflight-<pack>` and one `api-<pack>` project per pack, the reporters, and the switches read from the environment. | rarely |
 | `scripts/` | Every command behind `package.json`: contract tooling, linters, lanes, the quality gate, the scaffolder, the test-management (`scripts/tm/`) and tracker (`scripts/tracker/`) adapters. Shared code is in `scripts/lib/`, tests in `scripts/__tests__/`, linter and contract fixtures in `scripts/__fixtures__/`. | when a check or a tool changes |
 | `services/<pack>/` | One API under test: its contract, clients, builders, flows, decision tables, registries, feature contracts, contract notes and specs. The pack's `README.md` is its map. | with every feature you test |
 | `schemas/` | The JSON schema of qa-config. | when a configuration key is added |
-| `qa-config.example.json` | The example configuration: environments, auth, test-management and tracker providers, policies, quality gate. A per-machine `qa-config.json` overrides it. | when a key is added |
+| `qa-config.example.json` | The example configuration: environments with one entry per pack (base URL, contract URL, auth, actors), test-management and tracker providers, policies, quality gate. A per-machine `qa-config.json` overrides it. | when a key is added |
 | `.claude/` | The agentic process: `rules/`, `skills/`, `agents/`, `hooks/` and their registration in `settings.json`. | when the process changes |
 | `.githooks/` | The git hooks: secret scan before a commit, gates before a push. | rarely |
 | `.github/` | The CI workflows, Dependabot and the review rubric. | when CI changes |
@@ -101,8 +101,8 @@ Two consequences you will meet early:
 **Setup**
 
 - **`API_KEY` must not be blank.** The preflight treats an empty variable as missing and stops the
-  run before any API case. The Petstore accepts any value; a real API needs a real key, read from
-  your local `.env` or the real environment, never from a file in the repository.
+  pack's run before any of its API cases. The Petstore accepts any value; a real API needs a real
+  key, read from your local `.env` or the real environment, never from a file in the repository.
 - **An agent cannot create or read the env file for you.** In Claude Code, the project settings deny
   reading and editing it, and the `secret-guard` hook refuses any shell command that names it, even
   a copy. Create and edit it yourself. Work with the hook rather than around it
@@ -126,7 +126,8 @@ Two consequences you will meet early:
 - **Retries are off.** A retry turns an intermittent failure into a pass, so the lanes refuse a
   non-zero `QA_RETRIES`. Use `npm run lanes:flake` to find a flaky case instead.
 - **A preflight failure means the API did not answer, not that cases failed.** Check that the
-  container runs (`npm run petstore:up`), then `QA_ENV` and the environment's URLs. Any HTTP status,
+  container runs (`npm run petstore:up`), then `QA_ENV` and the pack's URLs in that environment
+  (`api.environments.<env>.packs.<pack>`, or a `QA_<PACK>_BASE_URL` override). Any HTTP status,
   even an error, counts as an answer ([the reachability rule](../.claude/rules/reachability.md)).
 
 **The Petstore**
@@ -138,8 +139,8 @@ Two consequences you will meet early:
   and run by `npm run lanes:destructive`, which restarts the container after each one. If you
   reproduce such a defect by hand, `npm run petstore:down` and `npm run petstore:up` give you a
   fresh service.
-- **The `public` environment is read-only.** Its `allow_writes` is false, so cases that write skip
-  with their reason there. Write cases run against the local container.
+- **The `public` environment is read-only.** The `petstore` entry there has `allow_writes` false,
+  so cases that write skip with their reason there. Write cases run against the local container.
 - **Known gaps fail on purpose.** A case tagged `@known-gap` is armed to fail while its issue is
   open, and reported as passing while it does. When one starts passing, `npm run lanes:known-gap`
   reports it for investigation before anyone removes the arm.

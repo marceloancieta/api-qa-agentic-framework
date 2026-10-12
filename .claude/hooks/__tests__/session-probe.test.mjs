@@ -3,12 +3,20 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:net';
 import { runHook, tempProject } from './harness.mjs';
 
-const configFor = (baseUrl) => ({
+const AUTH = { type: 'api_key', in: 'header', name: 'api_key', env: 'API_KEY' };
+
+/** A qa-config whose `local` environment configures `packs` ({ name: baseUrl }). */
+const configFor = (packs) => ({
   project: { name: 'probe-test' },
   api: {
     default_environment: 'local',
-    environments: { local: { base_url: baseUrl } },
-    auth: { type: 'none' },
+    environments: {
+      local: {
+        packs: Object.fromEntries(
+          Object.entries(packs).map(([name, baseUrl]) => [name, { base_url: baseUrl, auth: AUTH }]),
+        ),
+      },
+    },
   },
   test_management: { provider: 'local' },
 });
@@ -19,42 +27,96 @@ function context(result) {
   return result.output.hookSpecificOutput.additionalContext;
 }
 
-test('reports UP when the API port accepts connections', async () => {
+async function listening() {
   const server = createServer().listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
+  return server;
+}
+
+async function closedPort() {
+  const server = await listening();
+  const port = server.address().port;
+  await new Promise((resolve) => server.close(resolve));
+  return port;
+}
+
+test('reports UP when the API port accepts connections', async () => {
+  const server = await listening();
   try {
     const dir = tempProject({
-      config: configFor(`http://127.0.0.1:${server.address().port}/api/v3`),
+      config: configFor({ petstore: `http://127.0.0.1:${server.address().port}/api/v3` }),
     });
     const text = context(await runHook('session-probe.mjs', {}, { projectDir: dir }));
-    assert.match(text, /API \[local\] \S+: UP/);
+    assert.match(text, /API \[local\] petstore \S+: UP/);
     assert.doesNotMatch(text, /qa-config\.json is missing/);
   } finally {
     server.close();
   }
 });
 
-test('reports DOWN with the docker hint when a local API is not running', async () => {
-  const server = createServer().listen(0, '127.0.0.1');
-  await new Promise((resolve) => server.once('listening', resolve));
-  const port = server.address().port;
-  await new Promise((resolve) => server.close(resolve));
-  const dir = tempProject({ config: configFor(`http://localhost:${port}/api/v3`) });
+test('reports DOWN with the docker hint naming the pack when a local API is not running', async () => {
+  const port = await closedPort();
+  const dir = tempProject({ config: configFor({ petstore: `http://localhost:${port}/api/v3` }) });
   const text = context(await runHook('session-probe.mjs', {}, { projectDir: dir }));
-  assert.match(text, /: DOWN/);
+  assert.match(text, /API \[local\] petstore \S+: DOWN/);
+  assert.match(text, /local API of petstore is not running/);
   assert.match(text, /docker compose up -d <service>/);
 });
 
-test('QA_ENV selects the environment and API_BASE_URL overrides it', async () => {
-  const dir = tempProject({ config: configFor('http://127.0.0.1:1/api') });
+test('reports one line per pack of the environment', async () => {
+  const server = await listening();
+  try {
+    const port = await closedPort();
+    const dir = tempProject({
+      config: configFor({
+        petstore: `http://127.0.0.1:${server.address().port}/api/v3`,
+        'order-api': `http://localhost:${port}/orders`,
+      }),
+    });
+    const text = context(await runHook('session-probe.mjs', {}, { projectDir: dir }));
+    assert.match(text, /API \[local\] petstore \S+: UP/);
+    assert.match(text, /API \[local\] order-api \S+: DOWN/);
+    assert.match(text, /local API of order-api is not running/);
+    assert.doesNotMatch(text, /local API of petstore/);
+  } finally {
+    server.close();
+  }
+});
+
+test('QA_<PACK>_BASE_URL overrides the base URL of that pack only', async () => {
+  const dir = tempProject({
+    config: configFor({ petstore: 'http://127.0.0.1:1/api', 'order-api': 'also not a url' }),
+  });
   const text = context(
     await runHook(
       'session-probe.mjs',
       {},
-      { projectDir: dir, env: { QA_ENV: 'other', API_BASE_URL: 'not a url' } },
+      { projectDir: dir, env: { QA_PETSTORE_BASE_URL: 'not a url' } },
     ),
   );
-  assert.match(text, /API \[other\] .*: UNKNOWN/);
+  assert.match(text, /API \[local\] petstore not a url: UNKNOWN \(base_url is not a valid URL\)/);
+  assert.match(text, /API \[local\] order-api also not a url: UNKNOWN/);
+});
+
+test('hyphens in a pack name become underscores in its override variable', async () => {
+  const dir = tempProject({ config: configFor({ 'order-api': 'http://127.0.0.1:1/orders' }) });
+  const text = context(
+    await runHook(
+      'session-probe.mjs',
+      {},
+      { projectDir: dir, env: { QA_ORDER_API_BASE_URL: 'not a url' } },
+    ),
+  );
+  assert.match(text, /API \[local\] order-api not a url: UNKNOWN/);
+});
+
+test('QA_ENV selects the environment; one without packs is reported', async () => {
+  const dir = tempProject({ config: configFor({ petstore: 'http://127.0.0.1:1/api' }) });
+  const text = context(
+    await runHook('session-probe.mjs', {}, { projectDir: dir, env: { QA_ENV: 'other' } }),
+  );
+  assert.match(text, /API \[other\]: UNKNOWN \(no packs configured for this environment\)/);
+  assert.doesNotMatch(text, /petstore/);
 });
 
 test('missing config and dependencies are reported, never fatal', async () => {
@@ -62,5 +124,5 @@ test('missing config and dependencies are reported, never fatal', async () => {
   const text = context(await runHook('session-probe.mjs', {}, { projectDir: dir }));
   assert.match(text, /no qa-config found/i);
   assert.match(text, /npm ci/);
-  assert.match(text, /UNKNOWN/);
+  assert.match(text, /API \[no environment\]: UNKNOWN/);
 });

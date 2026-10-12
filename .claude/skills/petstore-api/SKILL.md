@@ -24,8 +24,10 @@ and completed by hand from the pack. Facts the pack already owns are linked, not
 
 ## Environments and writes
 
-qa-config `api.environments` holds `local` (the Docker image started with `npm run petstore:up`, the
-system under test for every write) and the public demo, which is read-only for this suite. The
+qa-config gives the `petstore` pack an entry in two environments
+(`api.environments.<env>.packs.petstore`): `local` (the Docker image started with
+`npm run petstore:up`, the system under test for every write) and `public`, the demo, which is
+read-only for this suite. The
 seed pets 1 to 10 are shared data: a case that changes one runs inside `withResourceGuard` with
 `seedPet(pets, id)` (`services/petstore/guards.ts`).
 

@@ -9,6 +9,7 @@ import {
   packVersion,
   planPack,
   suggestCode,
+  suggestPackEntry,
   writePlan,
 } from '../scaffold-service.mjs';
 
@@ -29,6 +30,15 @@ test('the plan names resources, clients, codes and files, and writes nothing', a
   );
   // Most Petstore operations accept the OAuth2 scheme, so a bearer token is suggested.
   assert.deepEqual(plan.auth, { type: 'bearer', env: 'SHOP_TOKEN' });
+  // The server is relative, so the suggested qa-config entry leaves the host to fill in.
+  assert.deepEqual(plan.packEntry, {
+    base_url: 'https://<host>/api/v3',
+    auth: { type: 'bearer', env: 'SHOP_TOKEN' },
+  });
+  assert.match(
+    describePlan(plan),
+    /Suggested qa-config entry api\.environments\.<env>\.packs\.shop: \{"base_url":"https:\/\/<host>\/api\/v3","auth":\{"type":"bearer","env":"SHOP_TOKEN"\}\}/,
+  );
   assert.ok(plan.files.has('services/shop/clients/pet-client.ts'));
   assert.ok(plan.files.has('.claude/skills/shop-api/SKILL.md'));
   assert.match(describePlan(plan), /Resources:\n {2}pet/);
@@ -59,6 +69,19 @@ test('written files: clients per operation, fixtures, smoke for parameterless GE
     'operations with required parameters are left out',
   );
 
+  const readme = read('services/shop/README.md');
+  assert.match(
+    readme,
+    /`api\.environments\.<env>\.packs\.shop` in\s+`qa-config\.json`\. `base_url` and `auth` are required/,
+  );
+  assert.ok(
+    readme.includes(JSON.stringify(plan.packEntry)),
+    'the README shows the suggested entry',
+  );
+  assert.match(readme, /`QA_SHOP_BASE_URL` and `QA_SHOP_SPEC_URL` override the URLs for one run/);
+  assert.match(readme, /npx playwright test --project=api-shop/);
+  assert.doesNotMatch(readme, /api\.auth/, 'there is no global auth any more');
+
   const manifest = JSON.parse(read('services/shop/service.json'));
   assert.deepEqual(
     [manifest.name, manifest.version, manifest.spec],
@@ -73,6 +96,17 @@ test('written files: clients per operation, fixtures, smoke for parameterless GE
     () => writePlan(plan, root),
     /services\/shop already exists; a pack is never overwritten/,
   );
+});
+
+test('the suggested pack entry takes the first absolute server as base_url', () => {
+  const auth = { type: 'none' };
+  const entry = (servers) => suggestPackEntry({ servers }, auth);
+  assert.deepEqual(entry(['/v1', 'https://api.example/v1', 'http://b.example']), {
+    base_url: 'https://api.example/v1',
+    auth,
+  });
+  assert.deepEqual(entry(['/v1']), { base_url: 'https://<host>/v1', auth });
+  assert.deepEqual(entry([]), { base_url: 'https://<host>', auth });
 });
 
 test('names, versions and codes are derived safely', () => {

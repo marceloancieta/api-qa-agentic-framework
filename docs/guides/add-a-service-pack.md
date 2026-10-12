@@ -30,8 +30,8 @@ npm run scaffold:service -- --name <pack> --spec <file|url>
 
 The scaffolder (`scripts/scaffold-service.mjs`) reads the contract and prints a plan: the resources
 it found and their clients, a suggested feature code per resource, the security schemes and a
-suggested qa-config `api.auth`, any problems in the contract, and the files it would write. It
-writes nothing.
+suggested qa-config entry for the pack (`base_url` and `auth`), any problems in the contract, and
+the files it would write. It writes nothing.
 
 Options:
 
@@ -93,8 +93,11 @@ qa-config says where cases run and as whom. `qa-config.json` is per machine and 
 it, `qa-config.example.json` applies. The schema is `schemas/qa-config.schema.json`, and
 `npm run config:check` validates the file against it.
 
-Add an environment for the API under `api.environments`, and set `api.auth` and, for authorization
-cases, `api.actors`:
+Give the pack an entry in each environment where it runs, under
+`api.environments.<env>.packs.<pack>` (the key is the pack's folder name). The entry holds the
+pack's URLs, whether writes are allowed, its recovery and its credentials; each pack has its own,
+so packs on different hosts with different credentials share one environment
+([ADR 0009](../adr/0009-per-pack-configuration.md)):
 
 ```json
 {
@@ -102,44 +105,55 @@ cases, `api.actors`:
     "default_environment": "<env>",
     "environments": {
       "<env>": {
-        "base_url": "<API_BASE_URL>",
-        "spec_url": "<SPEC_URL>",
-        "allow_writes": true,
-        "recovery": { "command": "<command that restores the service>" }
+        "packs": {
+          "<pack>": {
+            "base_url": "<BASE_URL>",
+            "spec_url": "<SPEC_URL>",
+            "allow_writes": true,
+            "recovery": { "command": "<command that restores the service>" },
+            "auth": { "type": "bearer", "env": "<PACK>_TOKEN" },
+            "actors": {
+              "<actor>": { "type": "bearer", "env": "<PACK>_<ACTOR>_TOKEN" }
+            }
+          }
+        }
       }
-    },
-    "auth": { "type": "bearer", "env": "<PACK>_TOKEN" },
-    "actors": {
-      "<actor>": { "type": "bearer", "env": "<PACK>_<ACTOR>_TOKEN" }
     }
   }
 }
 ```
 
-- `base_url` is where the clients send requests; `spec_url` is the deployed contract that `--live`
-  compares with the tracked copy.
+- `base_url` and `auth` are required. `base_url` is where the clients send requests; `spec_url` is
+  the deployed contract that `--live` compares with the tracked copy.
 - `allow_writes: false` marks a shared environment: write cases skip there with a reason.
 - `recovery` is needed only for `@destructive` cases. The destructive lane runs it after each such
-  case and refuses an environment without it.
+  case and refuses a pack entry without it.
 - `env` names the variable that holds a secret, never the secret. The scaffolder printed a
-  suggested `api.auth` taken from the contract's security schemes.
-- `default` (the `api.auth` credential) and `anonymous` (no credential) are built-in actors; any
-  other name comes from `api.actors`.
+  suggested entry, with `base_url` from the contract's servers and `auth` from its security
+  schemes.
+- `default` (the pack's `auth` credential) and `anonymous` (no credential) are built-in actors; any
+  other name comes from the pack's `actors`.
+- `QA_<PACK>_BASE_URL` and `QA_<PACK>_SPEC_URL` (the pack name upper-cased, hyphens as underscores)
+  override the pack's URLs for one run without editing the file.
 
-In this version qa-config has one `api.auth`, one set of `api.actors` and one base URL per
-environment, shared by every pack, and the Playwright `api` project collects the specs of every
-pack. Run one pack at a time against its own environment, and name its folder:
+There is no global `api.auth`, `api.actors` or environment-wide `base_url`: a pack the active
+environment does not list cannot run there, and `npm run config:check` rejects the old shape by
+naming the removed keys.
+
+Playwright gets a `preflight-<pack>` and an `api-<pack>` project for every folder under `services/`
+that has a `service.json`, so the new pack needs no change to `playwright.config.ts`. Run one pack
+with its project:
 
 ```sh
-QA_ENV=<env> npx playwright test services/<pack>/specs
+QA_ENV=<env> npx playwright test --project=api-<pack>
 ```
 
-(In PowerShell, set `$env:QA_ENV` first.) When the new API authenticates differently from
-Petstore, your `qa-config.json` carries the new API's `api.auth` while you work on it.
+(In PowerShell, set `$env:QA_ENV` first.) `--project=api-*` runs every pack, each against its own
+entry.
 
 ## 4. Authentication strategies
 
-`api.auth` and each actor select a strategy in `helpers/auth.ts`. The core supports:
+A pack's `auth` and each of its actors select a strategy in `helpers/auth.ts`. The core supports:
 
 | `type` | Sends |
 |---|---|
@@ -171,13 +185,15 @@ has to log in and refresh a token needs more than a factory entry; that work is 
 Start the API (for a container, add its service to `docker-compose.yml`), then:
 
 ```sh
-QA_ENV=<env> npx playwright test services/<pack>/specs
+QA_ENV=<env> npx playwright test --project=api-<pack>
 ```
 
-The `preflight` project runs first. It stops the run with one readable failure when a variable that
-`api.auth` names is missing, or when the base URL does not answer. A `401` or `404` from the smoke
-spec is an answer from the API, not a reachability problem: check the credentials, the base URL path
-and `api.auth` ([reachability](../../.claude/rules/reachability.md)).
+The `preflight-<pack>` project runs first. It stops the pack's run with one readable failure when
+the environment has no entry for the pack, when a variable that the pack's `auth` or `actors` name
+is missing, or when the pack's base URL does not answer; other packs are not affected. A `401` or
+`404` from the smoke spec is an answer from the API, not a reachability problem: check the
+credentials, the base URL path and the pack's `auth`
+([reachability](../../.claude/rules/reachability.md)).
 
 ## 6. Run the contract tools
 
@@ -219,7 +235,7 @@ Code and by hand.
 | 1 design | `qa-design` | create `registry/<feature>.md` from [the registry template](../templates/registry.md) |
 | 2 automate | `qa-automate` | build `types.ts`, builders, flows, state models, guards and the `error-envelopes.json` catalogue before the specs; replace the smoke spec with designed cases |
 | 3 publish | `qa-publish` | check that the pack's name and version are final |
-| 4 run | `qa-run` | run the pack's folder with its `QA_ENV`, then `npm run tm:report -- --service <pack>` |
+| 4 run | `qa-run` | run `--project=api-<pack>` (or a lane with `--service <pack>`) with its `QA_ENV`, then `npm run tm:report -- --service <pack>` |
 
 The `<pack>-api` skill holds what an agent must know about this API that its contract does not say:
 environments and shared records, how it authenticates, its error formats, where it departs from its
@@ -243,8 +259,9 @@ them current. Link to the pack's files instead of copying their facts.
 - [ ] The plan was reviewed, and the name and version are final.
 - [ ] `--write` created the pack and its skill; `npm run contract:check` passes.
 - [ ] `service.json` lists the identity fields.
-- [ ] qa-config has the environment, `api.auth` and any actors; `npm run config:check` passes.
+- [ ] qa-config has an entry for the pack in each environment, with `base_url`, `auth` and any
+  actors; `npm run config:check` passes.
 - [ ] The credentials are set as environment variables, by name.
-- [ ] `QA_ENV=<env> npx playwright test services/<pack>/specs` passes its preflight and smoke spec.
+- [ ] `QA_ENV=<env> npx playwright test --project=api-<pack>` passes its preflight and smoke spec.
 - [ ] The digest, value sets, probe matrix and floor were read before design.
 - [ ] The first feature went through intake, with the `<pack>-api` skill's pending facts filled in.

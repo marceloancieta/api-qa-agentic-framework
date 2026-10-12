@@ -3,9 +3,9 @@
 //
 //   setup     whether qa-config.json exists (otherwise the example is used) and dependencies are
 //             installed
-//   api       whether the active environment's host accepts a TCP connection; a plain socket is
-//             enough to tell "host down" from "service answered with an error", and it is immune to
-//             TLS inspection proxies
+//   api       for each pack of the active environment, whether its host accepts a TCP connection; a
+//             plain socket is enough to tell "host down" from "service answered with an error", and
+//             it is immune to TLS inspection proxies
 //   coverage  the designed / automated / published totals, once scripts/coverage-status.mjs exists
 //
 // This event cannot block a session. Anything that cannot be determined is reported as unknown.
@@ -83,15 +83,21 @@ const { config, source } = loadConfig(root);
 const env = activeEnvironment(config);
 const report = setupNotes(root, source);
 
-const status = await reachability(env.baseUrl);
-report.push(`API [${env.name || 'no environment'}] ${env.baseUrl || '(no host)'}: ${status}`);
-if (status === 'DOWN') {
-  report.push(
-    LOCAL_HOST.test(env.baseUrl)
-      ? 'Hint: the local API is not running. Start its container (`docker compose up -d <service>`; for the example pack, `npm run petstore:up`) before running suites or fetching the spec.'
-      : 'Hint: the API host does not accept connections. Check the network or VPN first; a timeout here is not an application defect.',
-  );
+const envLabel = env.name || 'no environment';
+if (env.packs.length === 0) {
+  report.push(`API [${envLabel}]: UNKNOWN (no packs configured for this environment)`);
 }
+// Probed in parallel, so the whole check stays within one connect timeout.
+const statuses = await Promise.all(env.packs.map((pack) => reachability(pack.baseUrl)));
+env.packs.forEach((pack, i) => {
+  report.push(`API [${envLabel}] ${pack.name} ${pack.baseUrl || '(no host)'}: ${statuses[i]}`);
+  if (statuses[i] !== 'DOWN') return;
+  report.push(
+    LOCAL_HOST.test(pack.baseUrl)
+      ? `Hint: the local API of ${pack.name} is not running. Start its container (\`docker compose up -d <service>\`; for the example pack, \`npm run petstore:up\`) before running its suite or fetching its spec.`
+      : `Hint: the host of ${pack.name} does not accept connections. Check the network or VPN first; a timeout here is not an application defect.`,
+  );
+});
 
 const totals = coverageTotals(root);
 if (totals) report.push(`Coverage (scripts/coverage-status.mjs): ${totals}`);

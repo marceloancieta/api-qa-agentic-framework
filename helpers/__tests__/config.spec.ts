@@ -1,8 +1,18 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { test, expect } from '@playwright/test';
-import { actorAuth, loadRuntime, missingEnvVars, requiredEnvVars } from '../config';
+import {
+  REPO_ROOT,
+  actorAuth,
+  configuredPacks,
+  loadRuntime,
+  loadSettings,
+  missingEnvVars,
+  packVariable,
+  requiredEnvVars,
+} from '../config';
 
 function configDir(files: Record<string, unknown>): string {
   const dir = mkdtempSync(join(tmpdir(), 'qa-config-'));
@@ -12,50 +22,136 @@ function configDir(files: Record<string, unknown>): string {
   return dir;
 }
 
+const bearer = { type: 'bearer', env: 'TOKEN' };
+
 const sample = {
   api: {
     default_environment: 'local',
     environments: {
-      local: { base_url: 'http://localhost:1/api/', allow_writes: true },
-      shared: { base_url: 'https://shared.example/api' },
+      local: {
+        packs: {
+          shop: {
+            base_url: 'http://localhost:1/api/',
+            allow_writes: true,
+            auth: bearer,
+            actors: { user: { type: 'api_key', in: 'header', name: 'k', env: 'USER_KEY' } },
+          },
+          'order-desk': { base_url: 'http://localhost:2/', auth: { type: 'none' } },
+        },
+      },
+      shared: {
+        packs: {
+          shop: { base_url: 'https://shared.example/api', auth: bearer },
+        },
+      },
     },
-    auth: { type: 'bearer', env: 'TOKEN' },
-    actors: { user: { type: 'api_key', in: 'header', name: 'k', env: 'USER_KEY' } },
   },
+  test_management: { provider: 'local' },
+  tracker: { key_pattern: 'LOCAL-\\d+', issue_url: 'issues.json#{key}' },
 };
 
-test.describe('loadRuntime', () => {
-  test('uses the default environment and trims trailing slashes', () => {
-    const qa = loadRuntime({}, configDir({ 'qa-config.example.json': sample }));
-    expect(qa).toMatchObject({
+const example = () => configDir({ 'qa-config.example.json': sample });
+
+test.describe('loadSettings', () => {
+  test('reads the environment and the tools without naming a pack', () => {
+    expect(loadSettings({}, example())).toEqual({
       source: 'qa-config.example.json',
       environment: 'local',
-      baseUrl: 'http://localhost:1/api',
-      allowWrites: true,
-      testManagement: 'allure-report',
+      testManagement: 'local',
+      tracker: { keyPattern: 'LOCAL-\\d+', issueUrl: 'issues.json#{key}' },
     });
-  });
-
-  test('QA_ENV selects another environment, where writes default to off', () => {
-    const qa = loadRuntime({ QA_ENV: 'shared' }, configDir({ 'qa-config.example.json': sample }));
-    expect(qa.baseUrl).toBe('https://shared.example/api');
-    expect(qa.allowWrites).toBe(false);
-  });
-
-  test('API_BASE_URL overrides the base URL', () => {
-    const dir = configDir({ 'qa-config.example.json': sample });
-    expect(loadRuntime({ API_BASE_URL: 'http://other/' }, dir).baseUrl).toBe('http://other');
   });
 
   test('qa-config.json takes precedence over the example', () => {
     const local = { ...sample, api: { ...sample.api, default_environment: 'shared' } };
     const dir = configDir({ 'qa-config.example.json': sample, 'qa-config.json': local });
-    expect(loadRuntime({}, dir)).toMatchObject({ source: 'qa-config.json', environment: 'shared' });
+    expect(loadSettings({}, dir)).toMatchObject({
+      source: 'qa-config.json',
+      environment: 'shared',
+    });
   });
 
   test('an unknown environment fails and lists the known ones', () => {
-    const dir = configDir({ 'qa-config.example.json': sample });
-    expect(() => loadRuntime({ QA_ENV: 'prod' }, dir)).toThrow(/"prod".*local, shared/);
+    expect(() => loadSettings({ QA_ENV: 'prod' }, example())).toThrow(/"prod".*local, shared/);
+  });
+});
+
+test.describe('configuredPacks', () => {
+  test('lists the packs of the active environment', () => {
+    expect(configuredPacks({}, example())).toEqual(['shop', 'order-desk']);
+    expect(configuredPacks({ QA_ENV: 'shared' }, example())).toEqual(['shop']);
+  });
+});
+
+test.describe('loadRuntime', () => {
+  test("reads the pack's entry in the default environment and trims trailing slashes", () => {
+    expect(loadRuntime('shop', {}, example())).toMatchObject({
+      source: 'qa-config.example.json',
+      environment: 'local',
+      pack: 'shop',
+      baseUrl: 'http://localhost:1/api',
+      specUrl: null,
+      allowWrites: true,
+      recovery: null,
+      auth: bearer,
+      testManagement: 'local',
+    });
+  });
+
+  test('QA_ENV selects another environment, where writes default to off', () => {
+    const qa = loadRuntime('shop', { QA_ENV: 'shared' }, example());
+    expect(qa.baseUrl).toBe('https://shared.example/api');
+    expect(qa.allowWrites).toBe(false);
+    expect(qa.actors).toEqual({});
+  });
+
+  test('QA_<PACK>_BASE_URL and QA_<PACK>_SPEC_URL override only their own pack', () => {
+    const env = {
+      QA_ORDER_DESK_BASE_URL: 'http://other/',
+      QA_ORDER_DESK_SPEC_URL: 'http://other/openapi.json',
+    };
+    const dir = example();
+    expect(loadRuntime('order-desk', env, dir)).toMatchObject({
+      baseUrl: 'http://other',
+      specUrl: 'http://other/openapi.json',
+    });
+    expect(loadRuntime('shop', env, dir).baseUrl).toBe('http://localhost:1/api');
+  });
+
+  test('the old global API_BASE_URL is ignored', () => {
+    expect(loadRuntime('shop', { API_BASE_URL: 'http://other' }, example()).baseUrl).toBe(
+      'http://localhost:1/api',
+    );
+  });
+
+  test('a pack the environment does not configure fails with its path and the known packs', () => {
+    expect(() => loadRuntime('order-desk', { QA_ENV: 'shared' }, example())).toThrow(
+      'qa-config.example.json: environment "shared" has no entry for pack "order-desk" ' +
+        '(api.environments.shared.packs.order-desk). Configured packs: shop.',
+    );
+  });
+});
+
+test.describe('packVariable', () => {
+  const names: Array<[string, 'BASE_URL' | 'SPEC_URL', string]> = [
+    ['petstore', 'BASE_URL', 'QA_PETSTORE_BASE_URL'],
+    ['order-desk', 'SPEC_URL', 'QA_ORDER_DESK_SPEC_URL'],
+    ['a-b-c2', 'BASE_URL', 'QA_A_B_C2_BASE_URL'],
+  ];
+
+  test('upper-cases the pack and turns hyphens into underscores', () => {
+    for (const [pack, setting, expected] of names) {
+      expect(packVariable(pack, setting)).toBe(expected);
+    }
+  });
+
+  test('applies the same rule as the contract tools (scripts/lib/cli.mjs)', async () => {
+    // A computed specifier: cli.mjs ships no type declarations, so only its one export is typed here.
+    const cliUrl = pathToFileURL(join(REPO_ROOT, 'scripts', 'lib', 'cli.mjs')).href;
+    const cli = (await import(cliUrl)) as { packVariable: typeof packVariable };
+    for (const [pack, setting] of names) {
+      expect(cli.packVariable(pack, setting)).toBe(packVariable(pack, setting));
+    }
   });
 });
 
@@ -71,18 +167,21 @@ test.describe('environment variables', () => {
 });
 
 test.describe('actorAuth', () => {
-  const qa = () => loadRuntime({}, configDir({ 'qa-config.example.json': sample }));
+  const qa = () => loadRuntime('shop', {}, example());
 
-  test('default is api.auth and anonymous sends nothing', () => {
-    expect(actorAuth(qa(), 'default')).toEqual({ type: 'bearer', env: 'TOKEN' });
+  test("default is the pack's auth and anonymous sends nothing", () => {
+    expect(actorAuth(qa(), 'default')).toEqual(bearer);
     expect(actorAuth(qa(), 'anonymous')).toEqual({ type: 'none' });
   });
 
-  test('a named actor comes from api.actors', () => {
+  test("a named actor comes from the pack's actors", () => {
     expect(actorAuth(qa(), 'user')).toMatchObject({ type: 'api_key', env: 'USER_KEY' });
   });
 
-  test('an unknown actor fails and lists the known ones', () => {
-    expect(() => actorAuth(qa(), 'admin')).toThrow(/admin.*default, anonymous, user/);
+  test("an unknown actor fails with the pack's actors path and the known names", () => {
+    expect(() => actorAuth(qa(), 'admin')).toThrow(
+      'Actor "admin" is not defined in qa-config.example.json ' +
+        'api.environments.local.packs.shop.actors. Known: default, anonymous, user.',
+    );
   });
 });
