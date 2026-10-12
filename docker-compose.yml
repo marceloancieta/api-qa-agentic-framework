@@ -22,7 +22,7 @@ x-vampi: &vampi
         'CMD',
         'python',
         '-c',
-        "import urllib.request; urllib.request.urlopen('http://localhost:5000/')",
+        "from http.client import HTTPConnection as H; c = H('127.0.0.1', 5000, timeout=2); c.request('GET', '/'); assert c.getresponse().status == 200",
       ]
     interval: 5s
     timeout: 3s
