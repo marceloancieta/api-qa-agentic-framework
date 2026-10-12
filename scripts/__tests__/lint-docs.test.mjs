@@ -3,10 +3,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { compareWithMarkers } from '../lib/lint.mjs';
 import { REPO_ROOT } from '../lib/cli.mjs';
-import { FIXTURE_DIR, lintDocs, pathCandidate, slug } from '../lint-docs.mjs';
+import { FIXTURE_DIR, lintDocs, pathCandidate, slug, withFixtureHistory } from '../lint-docs.mjs';
 
 const SCRIPT = join(import.meta.dirname, '..', 'lint-docs.mjs');
 
@@ -14,11 +17,46 @@ const SCRIPT = join(import.meta.dirname, '..', 'lint-docs.mjs');
 // is fixed; the test then holds the repository to the shorter list.
 const KNOWN = [];
 
+const closingCommit = (findings) => findings.filter((f) => f.rule === 'closing-commit');
+
 test('self-test: the fixture tree yields exactly its marked findings', () => {
-  const { missed, unexpected } = compareWithMarkers(FIXTURE_DIR, lintDocs(FIXTURE_DIR));
+  const findings = withFixtureHistory((git) => lintDocs(FIXTURE_DIR, { git }));
+  const { missed, unexpected } = compareWithMarkers(FIXTURE_DIR, findings);
   assert.deepEqual({ missed, unexpected }, { missed: [], unexpected: [] });
   const output = execFileSync(process.execPath, [SCRIPT, '--self-test'], { encoding: 'utf8' });
   assert.match(output, /self-test: exact/);
+});
+
+test('closing-commit names every absent hash of a row', () => {
+  const findings = withFixtureHistory((git) => lintDocs(FIXTURE_DIR, { git }));
+  const messages = closingCommit(findings).map((f) => f.message);
+  assert.deepEqual(messages, [
+    'HIST-03: `f56536b` is not a commit in the history of HEAD',
+    'HIST-04: `0123456` is not a commit in the history of HEAD',
+    'HIST-05: `f56536b` is not a commit in the history of HEAD',
+  ]);
+});
+
+test('closing-commit is not checked when the root is not a git repository', () => {
+  assert.deepEqual(closingCommit(lintDocs(FIXTURE_DIR)), []);
+});
+
+test('closing-commit reports a shallow clone once instead of every hash', () => {
+  const clone = mkdtempSync(join(tmpdir(), 'lint-docs-shallow-'));
+  try {
+    withFixtureHistory((origin) => {
+      const env = Object.fromEntries(
+        Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('GIT_')),
+      );
+      const source = pathToFileURL(origin).href;
+      execFileSync('git', ['clone', '-q', '--depth', '1', source, clone], { env, stdio: 'pipe' });
+    });
+    const findings = closingCommit(lintDocs(FIXTURE_DIR, { git: clone }));
+    assert.equal(findings.length, 1);
+    assert.match(findings[0].message, /shallow/);
+  } finally {
+    rmSync(clone, { recursive: true, force: true });
+  }
 });
 
 test('--root runs the linter on another tree and exits 1 on findings', () => {

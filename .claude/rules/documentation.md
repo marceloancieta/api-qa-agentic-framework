@@ -50,7 +50,8 @@ A disagreement between two files about a fact missing from this table means the 
 5. **Statements about other systems carry their key** in a form `cited:status` can re-read
    ("until `<KEY>` ships", "waiting on `<KEY>`"). Statements about the past use the past tense, which the check ignores.
 6. **Backlog rows** keep one status from the enum in the backlog header. A finished row moves to
-   **Done** with its closing commit (`lint-docs` backlog-row-shape, L-12).
+   **Done** with its closing commit (`lint-docs` backlog-row-shape, L-12), a commit in the history
+   of the branch (`lint-docs` closing-commit).
 
 ## Propagation
 
