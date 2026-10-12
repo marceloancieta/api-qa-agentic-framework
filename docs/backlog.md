@@ -19,12 +19,7 @@ commits and docs stay valid.
 
 ## v0.1.0
 
-Every other item of the first release is in **Done**.
-
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| DOC-05 | Right after the first push, switch to GitHub Flow: protect `main` (required CI checks, pull requests only, squash merge, linear history), add a pull-request template linking the backlog item, enable the matching `git-policy` rules (backlog-id key pattern, Conventional Commits, protected `main`), and turn on private vulnerability reporting, which CONTRIBUTING points security reports to. | ADR 0008 | in-progress |
-| CI-07 | The first CodeQL scan of the public repository: eight alerts fixed (a file read with no gap between the existence check and the use, `readTextIfExists`; complete regex escaping, `escapeRegExp`; Markdown cells that escape backslashes before pipes; HTML tags removed until none is left) and two dismissed as intended (the contract and health URLs come from the project's own qa-config). | exp | in-progress |
+Released: every item of the first release is in **Done**.
 
 ## Later (after v0.1.0)
 
@@ -124,5 +119,7 @@ Every other item of the first release is in **Done**.
 | DOC-02 | Guides: add a test case (with the phase skills or by hand) and add a service pack. | `f96ca81` |
 | DOC-03 | `npm run changelog` and `changelog:write` (`scripts/changelog.mjs`): a Keep a Changelog section per version from the Conventional Commits since the last tag, with the backlog ids and short hashes; release steps in CONTRIBUTING. `CHANGELOG.md` starts at 0.1.0, tagged `v0.1.0`. | `d18e7f5`, `61a7336` |
 | DOC-04 | Release gate: the first commits squashed into one and every later commit replayed with its tree, author and date, cited closing commits mapped to the new hashes; full-history gitleaks, denylist and wording scans clean; the public repository created and `main` with `v0.1.0` pushed with the owner's approval. | `5ebb5a4`, `87981db` |
+| DOC-05 | GitHub Flow from the first push: `main` takes pull requests only, squash merges, linear history, no force push or deletion, and the required checks `title`, `gates` and `e2e (petstore)`; the `title` check (`scripts/commit-title.mjs`) holds pull-request titles to ADR 0008; a pull-request template; the `git-policy` rules for Conventional Commits and a protected `main`; private vulnerability reporting. | `12c3007` |
+| CI-07 | The first CodeQL scan of the public repository: eight alerts fixed (`readTextIfExists` for reads with no gap before the write, `escapeRegExp`, Markdown cells that escape backslashes before pipes, HTML tags removed until none is left) and two dismissed as intended (the contract and health URLs come from qa-config). | `4ee7eea` |
 | FUT-08 | Mutation testing back in v0.1.0: `npm run mutation` (Stryker over the shared libraries, on demand), with `qs` pinned by an override. | `b2f77cb` |
 | CI-03 | `Jenkinsfile` and `Jenkinsfile.drift`: the CI and drift runs as declarative pipelines for Linux (`sh`) and Windows (`bat`) agents, with `PETSTORE_PORT` for a Jenkins that holds 8080; both ran green on a Jenkins with a Windows agent, checked out through SCM.  Empty parameters fall back to Jenkins environment variables, so a scheduled build gets the machine's setup. | `dd69c2e`, `b33f513`, `63a521a`, `3523d6e`, `930fa07` |
