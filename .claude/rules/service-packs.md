@@ -8,7 +8,7 @@ paths:
 # Service packs
 
 Each API under test is a pack in `services/<name>/` (ADR 0007). The core (`helpers/`, `fixtures/`,
-`scripts/`) never imports from a pack.
+`scripts/`) never imports from a pack; `npm run lint:layers` reports an import that does.
 
 ## Which pack, which environment
 
