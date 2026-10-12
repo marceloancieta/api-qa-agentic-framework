@@ -129,6 +129,7 @@ test('the exit code has the last word over verdicts that look fine', () => {
 test('runLane runs a real lane and reads its report', () => {
   const lane = runLane(REPO_ROOT, ['--project=unit', 'helpers/__tests__/service.spec.ts']);
   assert.equal(lane.exitCode, 0, lane.stderr);
-  assert.equal(lane.records.length, 2);
+  // One record per test declared in helpers/__tests__/service.spec.ts.
+  assert.equal(lane.records.length, 3);
   assert.ok(lane.records.every((r) => r.project === 'unit' && r.outcome === 'expected'));
 });

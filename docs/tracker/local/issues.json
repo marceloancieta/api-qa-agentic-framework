@@ -1,5 +1,5 @@
 {
-  "next": 5,
+  "next": 8,
   "issues": {
     "LOCAL-1": {
       "title": "Petstore v3 /user [OpGroup]: after a user is created without a username, every lookup of an unknown username answers 500",
@@ -53,6 +53,41 @@
       "comments": [
         "Supporting detail: `services/petstore/docs/features/user.md` (Measurements and Write measurements, contract note PN-12). The X-Expires-After header is also Java date text, not date-time.\n"
       ]
+    },
+    "LOCAL-5": {
+      "title": "Petstore v3 /pet [OpGroup]: concurrent pet writes make pet searches answer 500 and can lose a pet that was just created",
+      "body": "## Error\n\nWhile requests that change pets run at the same time as other pet requests, a pet search answers\n`500`, and a pet that was just created with `200` can be missing from the next read.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `GET /pet/findByStatus?status=sold` | another caller deletes a pet in the same instant | `500` `{\"code\":500,\"message\":\"There was an error processing your request. It has been logged (ID: <LOG_ID>)\"}` | `200`, `400`, `default` |\n| `GET /pet/findByTags?tags=<TAG>` | other callers create and delete pets | `500`, or `200` with `[]` for a tag only a just-created pet carries | `200`, `400`, `default` |\n| `POST /pet` with a new `<PET_ID>`, then `GET /pet/<PET_ID>` | other callers write pets | `200`, then `404` | `200`, then `200` |\n\nEach request alone answers as declared; the failures need two callers at the same moment.\n\nOperations covered:\n\n- `POST /pet`\n- `PUT /pet`\n- `POST /pet/{petId}`\n- `DELETE /pet/{petId}`\n- `GET /pet/{petId}`\n- `GET /pet/findByStatus`\n- `GET /pet/findByTags`\n\n## Expected\n\nConcurrent requests behave as if they ran one after another: a search answers `200` with the pets\nstored at that moment, and a pet created with `200` reads back until it is deleted.\n\n## Suggested fix\n\n`PetData` keeps every pet in one `static List<Pet> pets = new ArrayList<>()` that `addPet`,\n`deletePetById` and the searches use without synchronisation. Use a thread-safe store (for example\na `ConcurrentHashMap` keyed by id, or synchronise every access) and let the searches iterate a\nsnapshot.\n\n## Reproduce\n\n1. Run two callers at once: one repeats `POST /pet` and `DELETE /pet/<PET_ID>` with its own ids,\n   the other repeats `GET /pet/findByStatus?status=sold`.\n2. Within some hundred iterations the search answers `500`, and occasionally a `GET /pet/<PET_ID>`\n   right after its `200` create answers `404`.\n\n## Environment\n\nLocal environment and CI, Petstore v3 image `swaggerapi/petstore3:1.0.28`, 2026-10-12. Observed by\nthe e2e runs of the suite (spec files in parallel workers, every case on its own data) and\nreproduced locally; contract note PN-26. Class `silent-write`: a create that answered `200` can be\nlost. Severity `S2`: one operation quietly loses data with a visible effect on later reads, and the\nsearches fail for every caller while it happens. Cause read in the code (`PetData.java` at\n`swagger-petstore-v3-1.0.28`) and consistent with the access log; the exception itself is not\nlogged by the image.\n",
+      "labels": [
+        "class:silent-write",
+        "severity:S2"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "## Evidence\n\n- **CI e2e runs** (each passed on a re-run): pull requests #5 and #15, `TC-PET-60` (`findByTags`\n  with the pet's unique tag answered `[]`); #10, `TC-PET-01` (`POST /pet` `200`, then\n  `GET /pet/<PET_ID>` `404`); #16, `TC-PET-60` and `TC-PET-63` (`findByTags` answered `500`). The\n  seeds are in those runs' logs.\n- **Local reproduction:** 12 full runs of `--project=api-petstore` with the default workers gave one\n  unexpected result, `TC-PET-55`: `GET /pet/findByStatus?status=sold` answered `500`. The image's\n  access log shows, in the same second and right before it, `DELETE /pet/<PET_ID>` `200` from\n  another worker, next to `POST /pet` and `PUT /pet` requests.\n- **Not a property of one case:** the flake lane (`--repeat-each 6`, 168 executions) was stable;\n  the race needs two workers on `/pet` at the same instant.\n\n## Cause in the code\n\n`io/swagger/petstore/data/PetData.java` at tag `swagger-petstore-v3-1.0.28`:\n\n- `private static List<Pet> pets = new ArrayList<>();`, shared by every request;\n- `findPetByStatus` and `findPetByTags` iterate it with for-each loops, so a concurrent\n  `deletePetById` (`removeIf`) or `addPet` (`remove`, then `add`) makes the iterator throw\n  `ConcurrentModificationException`, which the service answers as `500`;\n- two `ArrayList.add` calls at once can overwrite one another, which loses a stored pet.\n\n`UserData` and `OrderData` follow the same pattern; they are filed as unconfirmed findings of their\nown, because each has its own code to change.\n\n## Test-side mitigation\n\nUntil this ships, the Petstore pack runs its cases one worker at a time (`workers` in its\n`service.json`), so the suite does not trigger the race on every run. The defect stays recorded\nhere and in contract note PN-26.\n"
+      ]
+    },
+    "LOCAL-6": {
+      "title": "Petstore v3 /user [OpGroup]: concurrent user writes can lose a user or make user reads answer 500 (unconfirmed)",
+      "body": "## Error\n\nUnconfirmed finding, read in the code and not reproduced yet: users are kept in one shared list\nwithout synchronisation, so concurrent user writes can lose a user, and a read that iterates the\nlist while another request changes it can answer `500`.\n\nOperations covered:\n\n- `POST /user`\n- `POST /user/createWithList`\n- `PUT /user/{username}`\n- `DELETE /user/{username}`\n- `GET /user/{username}`\n- `GET /user/login`\n\n## Expected\n\nConcurrent user requests behave as if they ran one after another.\n\n## Suggested fix\n\n`UserData` keeps users in `private static List<User> users = new ArrayList<>()`; use a thread-safe\nstore or synchronise every access, as for pets (`LOCAL-5`).\n\n## Reproduce\n\nNot reproduced. To confirm: two callers at once, one creating and deleting users with their own\nusernames, the other reading them; look for a `500` on a read or a `404` right after a `200` create.\n\n## Environment\n\nPetstore v3 image `swaggerapi/petstore3:1.0.28`, 2026-10-12. Read in `UserData.java` at tag\n`swagger-petstore-v3-1.0.28`; same pattern as `LOCAL-5` on pets, with its own code. Proposed class\n`silent-write`, severity `S2` once reproduced, by the same criterion as `LOCAL-5`.\n",
+      "labels": [
+        "class:silent-write",
+        "type:unconfirmed-finding"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": []
+    },
+    "LOCAL-7": {
+      "title": "Petstore v3 /store [OpGroup]: concurrent order writes can lose an order or make the inventory answer 500 (unconfirmed)",
+      "body": "## Error\n\nUnconfirmed finding, read in the code and not reproduced yet: orders are kept in one shared list\nwithout synchronisation, so concurrent order writes can lose an order, and the inventory, which\niterates every order, can answer `500` while another request changes the list.\n\nOperations covered:\n\n- `POST /store/order`\n- `DELETE /store/order/{orderId}`\n- `GET /store/order/{orderId}`\n- `GET /store/inventory`\n\n## Expected\n\nConcurrent order requests behave as if they ran one after another; the inventory answers `200` with\nthe counts at that moment.\n\n## Suggested fix\n\n`OrderData` keeps orders in `private static List<Order> orders = new ArrayList<>()` and the\ninventory iterates it; use a thread-safe store or synchronise every access, as for pets (`LOCAL-5`).\n\n## Reproduce\n\nNot reproduced. To confirm: two callers at once, one placing and deleting orders with their own ids,\nthe other reading `GET /store/inventory`; look for a `500` from the inventory or a `404` right after\na `200` order.\n\n## Environment\n\nPetstore v3 image `swaggerapi/petstore3:1.0.28`, 2026-10-12. Read in `OrderData.java` at tag\n`swagger-petstore-v3-1.0.28`; same pattern as `LOCAL-5` on pets, with its own code. Proposed class\n`silent-write`, severity `S2` once reproduced, by the same criterion as `LOCAL-5`.\n",
+      "labels": [
+        "class:silent-write",
+        "type:unconfirmed-finding"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": []
     }
   }
 }

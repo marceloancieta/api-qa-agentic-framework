@@ -6,6 +6,7 @@ import {
   type ReporterDescription,
 } from '@playwright/test';
 import { configuredPacks, loadLocalEnvFile, loadRuntime } from './helpers/config';
+import { loadService } from './helpers/service';
 
 loadLocalEnvFile();
 
@@ -71,6 +72,8 @@ function traceMode(): 'off' | 'on' | 'retain-on-failure' {
 // is selected, and Playwright never runs the preflight of a pack that was not selected.
 function packProjects(pack: string): PlaywrightTestProject[] {
   const baseURL = configured.has(pack) ? `${loadRuntime(pack).baseUrl}/` : undefined;
+  // A service that cannot take concurrent callers caps its own project (service.json `workers`).
+  const { workers } = loadService(join(__dirname, 'services', pack));
   return [
     {
       name: `preflight-${pack}`,
@@ -85,6 +88,7 @@ function packProjects(pack: string): PlaywrightTestProject[] {
       dependencies: [`preflight-${pack}`],
       metadata: { pack },
       ...(baseURL ? { use: { baseURL } } : {}),
+      ...(workers ? { workers } : {}),
       // A @destructive case breaks the service for every other caller until its recovery runs, so
       // every run leaves it out. The destructive lane (`npm run lanes:destructive`) sets
       // QA_DESTRUCTIVE=1, which selects only those cases, and runs each alone (L-59).

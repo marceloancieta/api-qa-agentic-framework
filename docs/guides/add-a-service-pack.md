@@ -90,6 +90,11 @@ Two things in `service.json` need your attention before the first run that recor
 - `secret_keys` (optional) adds header and query names to mask beyond the built-in ones and the auth
   header.
 
+One more key is for a service that cannot take concurrent callers: `workers` (optional, at least
+`1`) caps how many Playwright workers run the pack's `api-<pack>` project at once. Set it only when a
+contract note shows the service breaking under parallel callers, and name the issue that lifts it
+there; the Petstore runs with `1` until its in-memory store is thread-safe (PN-26).
+
 ## 3. Configure qa-config
 
 qa-config says where cases run and as whom. `qa-config.json` is per machine and not tracked; without
