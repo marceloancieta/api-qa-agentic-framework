@@ -33,6 +33,10 @@ VAmPI runs in two modes from one pinned image (`docker-compose.yml`), each on lo
    it runs against vulnerable mode, where TC-BOOK-02 fails: that failure is the finding the
    authorization matrix exists to show (VN-09).
 
+CI runs both modes in the `e2e-vampi` job ([CI](../../docs/ci.md#e2e-vampi)): the vulnerable mode
+must fail exactly TC-BOOK-02 ([`check-bola-detection.mjs`](check-bola-detection.mjs)), then the
+pack runs on the secure mode. Jenkins runs the secure mode after the Petstore.
+
 Authentication is the core `login` strategy: it logs in as the actor's user on its first request
 and logs in again when a token it sent expires (`tokentimetolive` is 60 seconds). Actors are
 `user-a` (also the default credential), `user-b` and the built-in `anonymous`.

@@ -9,7 +9,7 @@ exist as Jenkins pipelines ([Jenkins](#jenkins)).
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e` |
+| `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e` and `e2e-vampi` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift` |
 
 ## `ci.yml`
@@ -43,7 +43,7 @@ Runs only when `gates` passed. Every step fails the job when its command fails. 
 |---|---|
 | Provide `API_KEY` | The variable that the `petstore` pack's `auth.env` names in qa-config. See [secrets and variables](#secrets-and-variables). |
 | `npm run petstore:up` | Starts the pinned Petstore image and waits for its healthcheck. |
-| `npx playwright test --project=api-petstore` | The `api-petstore` project, after its `preflight-petstore` project: the job starts only the Petstore, so other packs (VAmPI) are not run here. When the API is not answering, the preflight fails once with the reason and no case runs. `@destructive` cases are left out. |
+| `npx playwright test --project=api-petstore` | The `api-petstore` project, after its `preflight-petstore` project: the job starts only the Petstore; VAmPI runs in [`e2e-vampi`](#e2e-vampi). When the API is not answering, the preflight fails once with the reason and no case runs. `@destructive` cases are left out. |
 | `npm run lanes:destructive -- --service petstore` | Last. Each `@destructive` case runs alone and is followed by its pack's recovery, a restart of the container, and a wait until the API answers (L-59). Its results join the run above under the same run id. |
 | Rebuild the local tool's definitions | Only for the example's `local` tool: its store (`reports/tm/local`) is not tracked, so a fresh runner starts empty, and `npm run tm:publish` rebuilds the definitions from the registries. A real definitions-first tool is published by `qa-publish` after its review gate, never by CI; a results-first tool (Allure TestOps) needs no definitions. |
 | `npm run tm:report -- --service petstore` | Reports the suite and the destructive lane as one run to the configured tool. |
@@ -58,6 +58,19 @@ carry the id of the workflow run (L-48).
 
 The suite uses only Playwright's API client, so no browser is installed (`playwright install` is not
 needed).
+
+### `e2e-vampi`
+
+The second pack (CI-08), in a job of its own so that the required `e2e (petstore)` check keeps its
+meaning. It is not a required check. Both VAmPI modes run from one pinned image on the same runner.
+
+| Step | Why |
+|---|---|
+| Provide the VAmPI users | `VAMPI_USER_A_*` and `VAMPI_USER_B_*`, the users behind actors `user-a` and `user-b`: throwaway values per run (the pack registers them on a fresh container), passwords masked. |
+| `npm run vampi:up` | Starts both modes and creates their databases (VN-01). |
+| BOLA detection on the vulnerable mode | Runs `specs/books-authorization.spec.ts` with `QA_ENV=local-vulnerable` and passes only when TC-BOOK-02 is the one case that failed (`services/vampi/check-bola-detection.mjs`, VN-09): a matrix that stops failing there has stopped detecting the flaw. First, because every run clears `allure-results/`. |
+| `npx playwright test --project=api-vampi` | The pack on the secure mode, after `preflight-vampi`. |
+| `npm run coverage:status`, `npm run quality:gate`, the Allure report | As in `e2e`, on the secure-mode run. The run is not reported to the test-management tool: the pack has no published cases yet. |
 
 ### Why docker compose and not a service container
 
@@ -172,6 +185,7 @@ Each run uploads one artifact, even when a step failed, and keeps it for 14 days
 | Artifact | Holds |
 |---|---|
 | `e2e-reports-<attempt>` | `reports/allure-report/index.html` (the Allure report of the run, one file that opens from disk), `allure-results/` (the run, with redacted evidence), `playwright-report/`, `reports/` (the quality gate's JSON and Markdown, `reports/tm/`, and the Petstore log after a failure) |
+| `e2e-vampi-reports-<attempt>` | the same for the VAmPI job, plus `reports/vampi-vulnerable.json` (the vulnerable-mode run the detection reads) and the VAmPI log after a failure |
 | `drift-reports-<attempt>` | `reports/drift/` (digest report and lane tables), `reports/allure-report/index.html`, the Allure and Playwright output of the last lane run, and the Petstore log after a failure |
 
 ## Adapting to a new pack or environment
@@ -237,7 +251,7 @@ under `act` as a defect, repeat the suite with `npm run lanes:flake`.
 
 | File | Trigger | Stages |
 |---|---|---|
-| `Jenkinsfile` | the job's own triggers (a webhook, SCM polling or a schedule, [below](#scheduled-builds)) | Node, Install, Gates, `e2e (petstore)` |
+| `Jenkinsfile` | the job's own triggers (a webhook, SCM polling or a schedule, [below](#scheduled-builds)) | Node, Install, Gates, `e2e (petstore)`, `e2e (vampi)` (the secure mode; its results join the Petstore run) |
 | `Jenkinsfile.drift` | `cron('H 5 * * *')` | Node, Install, `Drift (petstore)` |
 
 **Agent.** Any agent with git, Node at the major version in `.nvmrc` on the `PATH` (the Node stage
