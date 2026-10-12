@@ -8,6 +8,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { REPO_ROOT } from '../lib/cli.mjs';
 import { parseRegistry } from '../lib/registry.mjs';
+import { escapeRegExp } from '../lib/text.mjs';
 import { lintFixtures as lintHarness } from '../lint-harness.mjs';
 import { lintFixtures as lintSuite } from '../lint-suite.mjs';
 
@@ -125,7 +126,7 @@ test('the README expects exactly the seeded findings, and its verdicts follow fr
       `${file}: the verdict depends on a borderline grade`,
     );
     const verdict = verdictOf(high);
-    assert.match(readme, new RegExp(`^- \`${file.replace(/\./g, '\\.')}\`: \`${verdict}\`$`, 'm'));
+    assert.match(readme, new RegExp(`^- \`${escapeRegExp(file)}\`: \`${verdict}\`$`, 'm'));
   }
 });
 

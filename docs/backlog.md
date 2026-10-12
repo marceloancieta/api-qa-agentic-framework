@@ -24,6 +24,7 @@ Every other item of the first release is in **Done**.
 | Id | Item | Origin | Status |
 |---|---|---|---|
 | DOC-05 | Right after the first push, switch to GitHub Flow: protect `main` (required CI checks, pull requests only, squash merge, linear history), add a pull-request template linking the backlog item, enable the matching `git-policy` rules (backlog-id key pattern, Conventional Commits, protected `main`), and turn on private vulnerability reporting, which CONTRIBUTING points security reports to. | ADR 0008 | in-progress |
+| CI-07 | The first CodeQL scan of the public repository: eight alerts fixed (a file read with no gap between the existence check and the use, `readTextIfExists`; complete regex escaping, `escapeRegExp`; Markdown cells that escape backslashes before pipes; HTML tags removed until none is left) and two dismissed as intended (the contract and health URLs come from the project's own qa-config). | exp | in-progress |
 
 ## Later (after v0.1.0)
 

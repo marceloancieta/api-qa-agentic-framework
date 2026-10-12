@@ -102,7 +102,11 @@ export function buildMatrix(root, { pack = null, resultsDir = null } = {}) {
   };
 }
 
-const cell = (value) => String(value ?? '').replace(/\|/g, '\\|');
+// Backslashes first, so an escaped pipe inside a value cannot turn into a column break.
+const cell = (value) =>
+  String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|');
 const specCell = (specs) =>
   specs.length > 0 ? specs.map((spec) => `\`${spec}\``).join('<br>') : '-';
 const table = (header, rows) => [

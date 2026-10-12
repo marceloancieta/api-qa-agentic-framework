@@ -19,7 +19,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parse as parseYaml } from 'yaml';
-import { parseCli, readService, REPO_ROOT, servicePacks } from './lib/cli.mjs';
+import { parseCli, readService, readTextIfExists, REPO_ROOT, servicePacks } from './lib/cli.mjs';
 import { normalizeTable, tableProblems } from './lib/decision-table.mjs';
 
 const GENERATED = join('generated', 'decision-tables.ts');
@@ -70,7 +70,7 @@ export async function processPack(
   const { tables, problems } = readTables(dir);
   const target = join(dir, GENERATED);
   const wanted = Object.keys(tables).length > 0 ? await format(moduleSource(pack, tables)) : null;
-  const current = existsSync(target) ? readFileSync(target, 'utf8') : null;
+  const current = readTextIfExists(target);
   const differs = problems.length === 0 && wanted !== current;
   if (write && differs) {
     if (wanted === null) rmSync(target);

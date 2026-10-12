@@ -85,6 +85,18 @@ test('the Markdown matches the reviewed copy', () => {
   assert.equal(renderPack(matrix, matrix['packs'][0]), expected());
 });
 
+test('a pipe or a backslash in a cell never breaks the table row', () => {
+  const matrix = structuredClone(buildMatrix(ROOT));
+  const row = matrix['packs'][0].registries[0].rows[0];
+  row.title = 'filter a|b, path c:\\d, already escaped e\\|f';
+  const line = renderPack(matrix, matrix['packs'][0])
+    .split('\n')
+    .find((text) => text.includes('filter a'));
+  assert.ok(line.includes('filter a\\|b, path c:\\\\d, already escaped e\\\\\\|f'), line);
+  const columns = line.replace(/\\\\/g, '').replace(/\\\|/g, '').split('|').length - 2;
+  assert.equal(columns, 7, 'the row keeps its seven columns');
+});
+
 test('without results every case reads "not run" and the document says why', () => {
   const matrix = buildMatrix(ROOT, { resultsDir: join(ROOT, 'no-such-results') });
   const text = renderPack(matrix, matrix['packs'][0]);

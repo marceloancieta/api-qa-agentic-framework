@@ -3,7 +3,18 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseCli, resolveSpecSource, servicePacks } from '../lib/cli.mjs';
+import { parseCli, readTextIfExists, resolveSpecSource, servicePacks } from '../lib/cli.mjs';
+
+test('readTextIfExists reads a file, answers null for a missing one and rethrows other errors', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cli-read-'));
+  writeFileSync(join(dir, 'a.txt'), 'content');
+  assert.equal(readTextIfExists(join(dir, 'a.txt')), 'content');
+  assert.equal(readTextIfExists(join(dir, 'missing.txt')), null);
+  assert.throws(
+    () => readTextIfExists(dir),
+    (error) => error.code !== 'ENOENT',
+  );
+});
 
 function repoWith(packs, config) {
   const root = mkdtempSync(join(tmpdir(), 'cli-'));
