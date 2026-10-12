@@ -24,7 +24,9 @@ titles cannot carry a backlog id.
 
 ### `gates`
 
-Checkout, Node from `.nvmrc` with the npm cache, `npm ci`, `npm run gates`. The gates need no API,
+Checkout with the full history (`lint-docs` checks each closing commit of the backlog against it,
+and reports a shallow clone), Node from `.nvmrc` with the npm cache, `npm ci`, `npm run gates`.
+The gates need no API,
 so a broken lint, type, contract or linter check fails in minutes, before any container starts. This
 is the same command as the pre-push hook: a gate counts only if its failure blocks (L-49).
 

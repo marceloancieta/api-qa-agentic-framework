@@ -29,7 +29,11 @@
 //                      `A-B-01`) or, in Done only, stage ids (`E0`, `E0.5-a`); ids are unique in the
 //                      file, so none is both open and done; open rows carry a status from the enum;
 //                      Done rows are closed by one or more commit hashes in code spans.
-//   count-claim        numbers written in prose that can be recomputed (L-08): lessons are numbered
+//   closing-commit     each hash cited in a well-formed Done row names a commit in the history of
+//                      HEAD, so a hash from a rewritten history or an unmerged branch is caught. A
+//                      shallow clone cannot tell, and is one finding on the Done table until the full
+//                      history is fetched. Not checked when the root is not a git repository.
+//   count-claim       numbers written in prose that can be recomputed (L-08): lessons are numbered
 //                      L-01..L-N with no gap or repeat; every cited `L-NN` and `L-NN..L-MM` exists;
 //                      every ADR of an `ADRs NNNN-NNNN` range exists; a "PREFIX-01 to PREFIX-NN ...
 //                      Done" claim in the backlog matches the ids in Done exactly, with no open row
@@ -61,10 +65,12 @@
 //
 // Usage:
 //   node scripts/lint-docs.mjs [--root <dir>]   exit 1 on any finding
-//   node scripts/lint-docs.mjs --self-test      exact-set test over scripts/__fixtures__/lint-docs/
+//   node scripts/lint-docs.mjs --self-test      exact-set test over scripts/__fixtures__/lint-docs/,
+//                                               with the git history of withFixtureHistory()
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { finding, report, selfTest } from './lib/lint.mjs';
@@ -477,6 +483,120 @@ function checkBacklog(backlog, out) {
   }
 }
 
+/**
+ * Git run in `dir`. The GIT_* variables of a calling hook (`GIT_DIR`, `GIT_INDEX_FILE`) are left out,
+ * so they cannot point it at another repository.
+ */
+function gitIn(dir) {
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('GIT_')),
+  );
+  return (args, { input, extraEnv = {} } = {}) =>
+    execFileSync('git', args, {
+      cwd: dir,
+      encoding: 'utf8',
+      input,
+      env: { ...env, ...extraEnv },
+    }).trim();
+}
+
+function checkClosingCommits(backlog, gitDir, out) {
+  if (!backlog.lines || !existsSync(join(gitDir, '.git'))) return;
+  const done = backlog.tables.filter(
+    (table) => table.heading === 'Done' && table.header[0] === 'Id',
+  );
+  if (done.length === 0) return;
+  const git = gitIn(gitDir);
+  if (git(['rev-parse', '--is-shallow-repository']) === 'true') {
+    out.push(
+      finding(
+        'closing-commit',
+        BACKLOG,
+        done[0].headerLine,
+        'the clone is shallow, so closing commits cannot be checked; fetch the full history',
+      ),
+    );
+    return;
+  }
+  const history = git(['rev-list', 'HEAD']).split('\n');
+  for (const table of done) {
+    for (const row of table.rows) {
+      const closing = row.cells[row.cells.length - 1];
+      // A short row or a malformed reference is backlog-row-shape's finding, not this one.
+      if (row.cells.length !== table.header.length || !CLOSING.test(closing)) continue;
+      const absent = [...closing.matchAll(/`([0-9a-f]+)`/g)]
+        .map((match) => match[1])
+        .filter((hash) => !history.some((commit) => commit.startsWith(hash)));
+      if (absent.length > 0) {
+        const cited = absent.map((hash) => `\`${hash}\``).join(', ');
+        out.push(
+          finding(
+            'closing-commit',
+            BACKLOG,
+            row.line,
+            `${row.cells[0]}: ${cited} is not a commit in the history of HEAD`,
+          ),
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Run `use(dir)` over the self-test's own git history (GATE-15), then delete it. The repository is
+ * built with plumbing from fixed identities, dates and messages and an empty tree, so its hashes are
+ * the same on every machine and the fixture backlog can cite them: `main` (HEAD) holds `first` and
+ * `second`; `side` branches from `first` and is never merged, so its commit exists without being in
+ * the history of HEAD. Messages are passed as arguments, so no line ending of the checkout reaches
+ * an object.
+ */
+export function withFixtureHistory(use) {
+  const dir = mkdtempSync(join(tmpdir(), 'lint-docs-history-'));
+  try {
+    const git = gitIn(dir);
+    git(['init', '-q', '--object-format=sha1', '--initial-branch=main']);
+    const tree = git(['mktree'], { input: '' });
+    const commit = (message, seconds, parent) => {
+      const identity = {
+        name: 'Fixture',
+        email: 'fixture@example.invalid',
+        date: `${seconds} +0000`,
+      };
+      return git(
+        [
+          '-c',
+          'commit.gpgSign=false',
+          '-c',
+          'i18n.commitEncoding=UTF-8',
+          'commit-tree',
+          tree,
+          ...(parent ? ['-p', parent] : []),
+          '-m',
+          message,
+        ],
+        {
+          extraEnv: {
+            GIT_AUTHOR_NAME: identity.name,
+            GIT_AUTHOR_EMAIL: identity.email,
+            GIT_AUTHOR_DATE: identity.date,
+            GIT_COMMITTER_NAME: identity.name,
+            GIT_COMMITTER_EMAIL: identity.email,
+            GIT_COMMITTER_DATE: identity.date,
+          },
+        },
+      );
+    };
+    const first = commit('fixture: first', 1767225600);
+    const second = commit('fixture: second', 1767229200, first);
+    const side = commit('fixture: side, never merged', 1767232800, first);
+    git(['update-ref', 'refs/heads/main', second]);
+    git(['update-ref', 'refs/heads/side', side]);
+    return use(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 /** The integers first..last inclusive (empty when first > last). */
 const span = (first, last) =>
   Array.from({ length: Math.max(0, last - first + 1) }, (_, offset) => first + offset);
@@ -760,8 +880,11 @@ function checkRegistries(corpus, out) {
   }
 }
 
-/** Every finding for the repository (or fixture tree) at `root`. */
-export function lintDocs(root = REPO_ROOT) {
+/**
+ * Every finding for the repository (or fixture tree) at `root`. `git` is the repository whose
+ * history the closing commits are checked against: the root itself unless given.
+ */
+export function lintDocs(root = REPO_ROOT, { git = root } = {}) {
   const corpus = loadCorpus(root);
   const backlog = readBacklog(corpus);
   const out = [];
@@ -769,6 +892,7 @@ export function lintDocs(root = REPO_ROOT) {
   checkOrphans(corpus, inbound, out);
   checkPaths(corpus, backlog, out);
   checkBacklog(backlog, out);
+  checkClosingCommits(backlog, git, out);
   checkCounts(corpus, backlog, out);
   checkAdrs(corpus, out);
   checkGuards(corpus, backlog, out);
@@ -782,7 +906,9 @@ if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
     root: { type: 'string' },
   });
   if (args['self-test']) {
-    process.exitCode = selfTest('lint-docs', FIXTURE_DIR, lintDocs(FIXTURE_DIR));
+    process.exitCode = withFixtureHistory((git) =>
+      selfTest('lint-docs', FIXTURE_DIR, lintDocs(FIXTURE_DIR, { git })),
+    );
   } else {
     process.exitCode = report('lint-docs', lintDocs(resolve(args['root'] ?? REPO_ROOT)));
   }
