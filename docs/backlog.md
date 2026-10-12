@@ -27,15 +27,28 @@ A second service pack proves that the core is generic. Every item is in **Done**
 and GATE-16 for the gates, FUT-09 for per-pack configuration, FUT-07 for the pack itself.
 Released as `v0.2.0`.
 
-## Later (after v0.2.0)
+## v0.3.0
+
+Stability and a complete quality gate. The rows are in the order they are taken: the small fixes
+first, then the intermittent Petstore failure, so the CI is quiet before VAmPI joins it; then the
+DAST and performance lanes, which give the quality gate checks that exist today without a source.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
+| GATE-17 | `session-probe` never prints its coverage line: it looks for a `TOTAL` row that `coverage-status` does not print, and when `coverage-status` exits 1 (findings) the probe drops the line silently instead of reporting it as unknown. Read the totals from `coverage-status --json --report-only` and say "unknown" with the reason when they cannot be read. | exp | todo |
+| PROC-15 | The scaffolder: its `service.json` description carries the `--spec` path (a local file leaks a machine path); its smoke spec assumes every parameterless GET is safe (VAmPI's `GET /createdb` resets the database and `GET /users/v1/_debug` returns passwords), so a pack must be able to leave operations out; its `contract` fixture parses the document as JSON even when it is `openapi.yaml`. | exp | todo |
 | PET-03 | Intermittent Petstore e2e failure, four times on 2026-10-12, always around a pet the case had just created: TC-PET-60 twice (`findByTags` with the pet's unique tag answered `[]`; the e2e runs of #5 and #15), TC-PET-01 once (`POST` answered `200`, the `GET` right after it `404`; #10), and TC-PET-60 with TC-PET-63 once more, `findByTags` answering `500` (#16). Each passed on a re-run; the seeds are in those runs' logs. Triage it (`qa-report-bug`, `contract-investigator` with read-only calls against a local Petstore): find out whether data that other spec files create at the same time breaks `findByTags` or loses writes, and then decide between a contract note, a known gap and a filed defect. | exp | todo |
 | CI-08 | The VAmPI pack in CI: the e2e job (and Jenkins) starts `vampi-secure` with `npm run vampi:up`, provides the `VAMPI_USER_*` variables (throwaway values per run) and runs `--project=api-vampi`. Until then the e2e job runs only `--project=api-petstore`. | plan | todo |
-| PROC-15 | The scaffolder: its `service.json` description carries the `--spec` path (a local file leaks a machine path); its smoke spec assumes every parameterless GET is safe (VAmPI's `GET /createdb` resets the database and `GET /users/v1/_debug` returns passwords), so a pack must be able to leave operations out; its `contract` fixture parses the document as JSON even when it is `openapi.yaml`. | exp | todo |
 | FUT-01 | DAST lane: OWASP ZAP API scan importing the OpenAPI document, rule policy IGNORE / WARN / FAIL, feeding the quality gate. | practice | todo |
 | FUT-02 | Performance smoke generated from the OpenAPI model (GET operations), k6 through its Docker image, thresholds feeding the quality gate; latency judged on percentiles across many requests, never on a single timing. | practice, exp | todo |
+
+## v0.4.0
+
+Extensibility and distribution. FUT-06 needs its reference implementation chosen before design,
+and FUT-05 publishes a package, which cannot be fully undone: it comes last.
+
+| Id | Item | Origin | Status |
+|---|---|---|---|
 | FUT-03 | Consumer-driven contract testing (Pact) documented as a complementary extension. | practice | todo |
 | FUT-04 | More auth strategies (`basic`, `oauth2-client-credentials`). | practice | todo |
 | FUT-06 | Differential testing against a reference implementation, e.g. two versions of an API serving the same requests, using the field-bucket model. | exp | todo |
