@@ -138,3 +138,60 @@ test('--skill-only writes just the skill, and only for an existing pack', async 
   ]);
   assert.ok(!existsSync(join(root, 'services', 'shop', 'service.json')), 'the pack is not touched');
 });
+
+const SHELTER_YAML = join(import.meta.dirname, '..', '__fixtures__', 'openapi', 'shelter-3.1.yaml');
+
+test('service.json never carries the --spec value: no machine path, no host', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'scaffold-'));
+  const plan = await planPack({ name: 'shop', spec: SPEC, root, now: NOW });
+  const manifest = JSON.parse(plan.files.get('services/shop/service.json'));
+  assert.equal(
+    manifest.description,
+    'Swagger Petstore - OpenAPI 3.0, scaffolded on 2026-10-09 from its openapi.json.',
+  );
+  for (const content of plan.files.values()) {
+    assert.ok(!content.includes(SPEC), 'no generated file names the source path');
+  }
+});
+
+test('the plan lists every smoke operation, and --skip-smoke leaves one out', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'scaffold-'));
+  const all = await planPack({ name: 'shop', spec: SPEC, root, now: NOW });
+  assert.match(
+    describePlan(all),
+    /Smoke tests: 3 GET operation\(s\)[^\n]*--skip-smoke[^\n]*\n {2}GET \/store\/inventory\n {2}GET \/user\/login\n {2}GET \/user\/logout/,
+  );
+  const trimmed = await planPack({
+    name: 'shop',
+    spec: SPEC,
+    root,
+    now: NOW,
+    skipSmoke: ['GET  /user/logout'],
+  });
+  assert.deepEqual(
+    trimmed.smoke.map(({ method }) => method.operation.key),
+    ['GET /store/inventory', 'GET /user/login'],
+  );
+  assert.match(describePlan(trimmed), /left out: GET {2}\/user\/logout/);
+  assert.doesNotMatch(trimmed.files.get('services/shop/specs/smoke.spec.ts'), /user\/logout/);
+  await assert.rejects(
+    planPack({ name: 'shop', spec: SPEC, root, now: NOW, skipSmoke: ['GET /user/logoff'] }),
+    /--skip-smoke "GET \/user\/logoff" is not an operation of the contract/,
+  );
+});
+
+test('the contract fixture parses YAML for a YAML contract and JSON otherwise', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'scaffold-'));
+  const yaml = await planPack({ name: 'shelter', spec: SHELTER_YAML, root, now: NOW });
+  const yamlFixtures = yaml.files.get('services/shelter/fixtures.ts');
+  assert.equal(yaml.specFile, 'openapi.yaml');
+  assert.match(yamlFixtures, /import \{ parse as parseYaml \} from 'yaml';/);
+  assert.match(
+    yamlFixtures,
+    /\.ya\?ml\$\/\.test\(file\) \? parseYaml\(text\) : JSON\.parse\(text\)/,
+  );
+  const json = await planPack({ name: 'shop', spec: SPEC, root, now: NOW });
+  const jsonFixtures = json.files.get('services/shop/fixtures.ts');
+  assert.doesNotMatch(jsonFixtures, /yaml/);
+  assert.match(jsonFixtures, /JSON\.parse\(readFileSync\(file, 'utf8'\)\)/);
+});

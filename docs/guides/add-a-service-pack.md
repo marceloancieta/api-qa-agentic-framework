@@ -66,7 +66,10 @@ lists what it writes. In short:
   `helpers/base-client.ts`, and `fixtures.ts`, which binds them to the default credential and to
   `actor(name)`;
 - `services/<pack>/specs/smoke.spec.ts`, when some `GET` needs no parameter: a first check of
-  configuration and credentials, with no case ids, that designed cases replace;
+  configuration and credentials, with no case ids, that designed cases replace. The dry run lists
+  each of those operations, because a parameterless `GET` is not always safe to call (VAmPI's
+  `GET /createdb` recreates its database). Leave one out with `--skip-smoke "GET /path"`, repeated
+  as needed;
 - `README.md`, the pack's map, and `services/<pack>/docs/contract-notes.md`, empty until the first
   intake;
 - `generated/` and `docs/discovery/<pack>-digest.json`, from the contract tools;
