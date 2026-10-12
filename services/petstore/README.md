@@ -15,7 +15,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `types.ts` | Request and response interfaces, written by hand, and aliases of the enum value sets generated in `generated/enums.ts`. | present |
 | `clients/` | One client per resource, extending `helpers/base-client.ts`. Paths with parameters use `this.route('pet/{petId}', { petId })`. Methods return the raw response. | present |
 | `fixtures.ts` | The core `test` extended with this pack's clients and `actor(name)`. Specs import from here. | present |
-| `specs/` | Playwright specs, run by the `api` project. | present |
+| `specs/` | Playwright specs, run by the `api-petstore` project after `preflight-petstore`. | present |
 | `__tests__/` | Offline unit tests of the pack (builders), run by the `unit` project. | present |
 | `flows/` | Multi-step business sequences over an actor's clients, one named step each (`purchasePet`), and cleanup confirmed by a read (`removePet`, `removeOrder`, `removeUser`). | present |
 | `builders/` | Test Data Builders (`aPet`, `anOrder`, `aUser`) and the Object Mother (`PetMother`). | present |
@@ -42,8 +42,9 @@ Cases that write check `qa.allowWrites` and skip with the reason when the enviro
 ## Layers you can opt into
 
 - **Actors.** `await actor('user')` returns the same clients bound to another credential, each actor with
-  its own request context. `default` is `api.auth`, `anonymous` sends no credential, and any other name
-  comes from `api.actors` in qa-config. This is how an authorization matrix is written.
+  its own request context. `default` is the pack's `auth`, `anonymous` sends no credential, and any
+  other name comes from the pack's `actors` (`api.environments.<env>.packs.petstore` in qa-config).
+  This is how an authorization matrix is written.
 - **Flows.** `purchasePet(actor, pet, order)` runs the steps a case needs as its precondition. A step
   that gets an unexpected status stops the flow with the step name, the status and a redacted body.
 - **Data.** Use the `faker`, `rng` and `clock` fixtures, never `Math.random` or `Date.now()`. Every

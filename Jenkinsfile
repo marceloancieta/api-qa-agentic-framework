@@ -49,8 +49,8 @@ pipeline {
     string(name: 'AGENT_LABEL', defaultValue: '', description: 'Label of the agent that runs the build; empty means any agent.')
     string(name: 'API_KEY_CREDENTIALS_ID', defaultValue: '', description: 'Secret-text credential with the API key. Empty: a random key per build, which the Petstore accepts.')
     string(name: 'PETSTORE_PORT', defaultValue: '', description: 'Host port for the Petstore container when 8080 is taken (for example by Jenkins itself); the API URLs follow it.')
-    string(name: 'API_BASE_URL', defaultValue: '', description: 'Overrides the environment base URL, e.g. http://host.docker.internal:8080/api/v3 when the agent runs in a container.')
-    string(name: 'API_SPEC_URL', defaultValue: '', description: 'Overrides the environment contract URL, same reason as API_BASE_URL.')
+    string(name: 'PETSTORE_BASE_URL', defaultValue: '', description: 'Overrides the base URL of the petstore pack (exported as QA_PETSTORE_BASE_URL), e.g. http://host.docker.internal:8080/api/v3 when the agent runs in a container.')
+    string(name: 'PETSTORE_SPEC_URL', defaultValue: '', description: 'Overrides the contract URL of the petstore pack (exported as QA_PETSTORE_SPEC_URL), same reason as PETSTORE_BASE_URL.')
     string(name: 'ALLURE_TOKEN_CREDENTIALS_ID', defaultValue: '', description: 'Secret-text credential with an Allure TestOps API token. Set: the run is reported to TestOps instead of the tool in qa-config.')
     string(name: 'ALLURE_ENDPOINT', defaultValue: '', description: 'Allure TestOps instance URL, with ALLURE_TOKEN_CREDENTIALS_ID.')
     string(name: 'ALLURE_PROJECT_ID', defaultValue: '', description: 'Allure TestOps project id, with ALLURE_TOKEN_CREDENTIALS_ID.')
@@ -97,16 +97,18 @@ pipeline {
         script {
           withApiEnvironment {
             // docker compose rather than a sidecar: the destructive lane's recovery is
-            // `docker compose restart petstore` (qa-config api.environments.local.recovery).
+            // `docker compose restart petstore` (qa-config
+            // api.environments.local.packs.petstore.recovery).
             timeout(time: 5, unit: 'MINUTES') {
               shell 'npm run petstore:up'
             }
 
-            // The preflight project runs first; when it fails, no API case runs. A failing suite
-            // marks the build failed but the steps below still run, as in the GitHub workflow.
+            // Each pack's preflight project runs first; when it fails, none of that pack's cases
+            // runs. A failing suite marks the build failed but the steps below still run, as in the
+            // GitHub workflow. The quotes keep sh from globbing `api-*`; cmd drops them.
             suiteRan = true
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              shell 'npx playwright test --project=api'
+              shell 'npx playwright test "--project=api-*"'
             }
 
             // Last, and only after the shared run: each @destructive case alone, then the recovery.
@@ -176,21 +178,22 @@ pipeline {
   }
 }
 
-// The variable named by qa-config api.auth.env, from a credential when one is configured, otherwise
-// a random value per build; plus the optional port and URL overrides.
+// The variable named by qa-config api.environments.local.packs.petstore.auth.env, from a credential
+// when one is configured, otherwise a random value per build; plus the optional port and the
+// petstore URL overrides.
 def withApiEnvironment(Closure body) {
   List<String> overrides = []
   String port = setting('PETSTORE_PORT')
   if (port) {
     overrides << "PETSTORE_PORT=${port}"
   }
-  String baseUrl = setting('API_BASE_URL') ?: (port ? "http://localhost:${port}/api/v3" : '')
-  String specUrl = setting('API_SPEC_URL') ?: (port ? "http://localhost:${port}/api/v3/openapi.json" : '')
+  String baseUrl = setting('PETSTORE_BASE_URL') ?: (port ? "http://localhost:${port}/api/v3" : '')
+  String specUrl = setting('PETSTORE_SPEC_URL') ?: (port ? "http://localhost:${port}/api/v3/openapi.json" : '')
   if (baseUrl) {
-    overrides << "API_BASE_URL=${baseUrl}"
+    overrides << "QA_PETSTORE_BASE_URL=${baseUrl}"
   }
   if (specUrl) {
-    overrides << "API_SPEC_URL=${specUrl}"
+    overrides << "QA_PETSTORE_SPEC_URL=${specUrl}"
   }
   withEnv(overrides) {
     String keyCredential = setting('API_KEY_CREDENTIALS_ID')

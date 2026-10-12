@@ -7,22 +7,26 @@
     "default_environment": "local",
     "environments": {
       "local": {
-        "base_url": "http://localhost:8080/api/v3",
-        "spec_url": "http://localhost:8080/api/v3/openapi.json",
-        "allow_writes": true,
-        "recovery": { "command": "docker compose restart petstore" }
+        "packs": {
+          "petstore": {
+            "base_url": "http://localhost:8080/api/v3",
+            "spec_url": "http://localhost:8080/api/v3/openapi.json",
+            "allow_writes": true,
+            "recovery": { "command": "docker compose restart petstore" },
+            "auth": { "type": "api_key", "in": "header", "name": "api_key", "env": "API_KEY" }
+          }
+        }
       },
       "public": {
-        "base_url": "https://petstore3.swagger.io/api/v3",
-        "spec_url": "https://petstore3.swagger.io/api/v3/openapi.json",
-        "allow_writes": false
+        "packs": {
+          "petstore": {
+            "base_url": "https://petstore3.swagger.io/api/v3",
+            "spec_url": "https://petstore3.swagger.io/api/v3/openapi.json",
+            "allow_writes": false,
+            "auth": { "type": "api_key", "in": "header", "name": "api_key", "env": "API_KEY" }
+          }
+        }
       }
-    },
-    "auth": {
-      "type": "api_key",
-      "in": "header",
-      "name": "api_key",
-      "env": "API_KEY"
     }
   },
   "test_management": {

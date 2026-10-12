@@ -247,12 +247,12 @@ sequenceDiagram
   GS->>GS: acquire the run lock
   GS->>AR: clear previous results unless QA_KEEP_RESULTS=1
   GS->>GS: fix QA_SEED, QA_RUN_ID and the redaction salt
-  PW->>PF: run the preflight before the api project
-  PF->>PF: check the variables api.auth names
-  PF->>API: GET the base URL
+  PW->>PF: run preflight-<pack> before api-<pack>
+  PF->>PF: check the variables the pack's auth and actors name
+  PF->>API: GET the pack's base URL
   API-->>PF: any HTTP answer
-  Note over PF,API: no answer stops the run before any API case
-  PW->>FX: api project, one test
+  Note over PF,API: no answer stops the pack before any of its API cases
+  PW->>FX: api-<pack> project, one test
   FX->>FX: worker scope qa, auth, service, contract, envelopes
   FX->>FX: test scope rng, faker, clock and the case labels
   FX->>SP: inject clients or actor(name)
@@ -277,14 +277,21 @@ sequenceDiagram
 
 Notes on the steps:
 
-- **Projects.** `npm test` runs the `unit`, `preflight` and `api` projects defined in
-  `playwright.config.ts`. Only `api` depends on the preflight, and it leaves out `@destructive`
-  cases, which `npm run lanes:destructive` runs alone ([lanes](quality-gates.md#lanes)).
+- **Projects.** `npm test` runs the projects defined in `playwright.config.ts`: `unit`, and for
+  each pack under `services/` (a folder with a `service.json`) a `preflight-<pack>` setup project
+  and an `api-<pack>` project that depends on it. `--project=api-<pack>` runs one pack and
+  `--project=api-*` every pack. Each `api-<pack>` project leaves out `@destructive` cases, which
+  `npm run lanes:destructive` runs alone ([lanes](quality-gates.md#lanes)).
+- **Configuration per pack.** A pack's projects read its entry in the active environment
+  (`api.environments.<env>.packs.<pack>`, [ADR 0009](adr/0009-per-pack-configuration.md)): base
+  URL, contract URL, credentials, actors and `allow_writes`; the destructive lane reads its
+  `recovery`. The pack name comes from the project's metadata; the core never names a pack.
 - **Global setup** (`fixtures/global-setup.ts`) checks before it deletes anything: a run whose
   reporters would record nothing fails with the old results still on disk. The run lock
   (`helpers/run-lock.ts`) keeps a second local run from clearing the first one's results.
-- **The preflight** (`fixtures/preflight.setup.ts`) turns a missing variable or a host that does
-  not answer into one readable failure. Any HTTP status counts as an answer
+- **The preflight** (`fixtures/preflight.setup.ts`) turns a missing variable, a pack the
+  environment does not configure, or a host that does not answer into one readable failure for
+  that pack. A pack that is not selected never blocks the run. Any HTTP status counts as an answer
   ([the reachability rule](../.claude/rules/reachability.md)).
 - **Case labels.** The pack's automatic `caseMeta` fixture calls `applyCaseMeta` in
   `helpers/case-meta.ts`, which gives each result its suite, its run id and, when the title starts

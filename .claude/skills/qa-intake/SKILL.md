@@ -18,7 +18,7 @@ Write requests are not.
 ## Inputs
 
 - The pack (`.claude/rules/service-packs.md`) and its contract `services/<pack>/openapi.json`, or the
-  live `spec_url` with `--live`.
+  pack's live `spec_url` with `--live --service <pack>`.
 - Optional: an issue key (read it with `npm run tracker -- get <KEY>`), or an intake request written
   from [the intake template](../../../docs/templates/intake.md).
 - The pack's skill `.claude/skills/<pack>-api/SKILL.md`, if there is one, and

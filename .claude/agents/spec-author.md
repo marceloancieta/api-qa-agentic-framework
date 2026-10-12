@@ -45,9 +45,9 @@ missing instead of guessing:
   same tree at the same time.
 - **No shared-tree commands**: no `git` command that changes state (commit, stash, checkout, reset,
   restore), no formatter or fixer over the whole tree. `npx prettier --write <your files>` is fine.
-- **Call the API only by running your specs**, in an environment whose `allow_writes` is true
-  (`api.environments` in `qa-config.json`, or `qa-config.example.json` without it). No ad hoc
-  requests, scripts or curl. Never production.
+- **Call the API only by running your specs**, in an environment whose entry for the pack has
+  `allow_writes` true (`api.environments.<env>.packs.<pack>` in `qa-config.json`, or
+  `qa-config.example.json` without it). No ad hoc requests, scripts or curl. Never production.
 - **Data range.** Specs create records only inside the given range, through the builders' options,
   and clean up only records they created, by the ids the create responses returned. Never delete
   records found by a listing or a search, and never anything outside the range, even if it looks
@@ -88,8 +88,9 @@ Do not change what a case means. If its details cannot be automated as written, 
 the case goes back to `qa-design` through the main conversation.
 
 A `@destructive` case goes in its own spec file and cleans up in `finally` what an API call can
-remove; the environment's recovery covers the rest. Every other run leaves it out (L-59). Run it,
-with `npm run lanes:destructive`, only if the launch prompt allows it; otherwise report it as
+remove; the pack's recovery in the environment covers the rest. Every other run leaves it out
+(L-59). Run it, with `npm run lanes:destructive -- --service <pack>`, only if the launch prompt
+allows it; otherwise report it as
 `written, not run`.
 
 ## Checks, then the run

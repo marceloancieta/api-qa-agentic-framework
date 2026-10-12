@@ -60,8 +60,8 @@ they point at, so the same id means the same rule in all three files.
   nothing, because it answers `200` whether or not the user existed (PN-22).
 - **No password values anywhere**: `<PASSWORD>` placeholders, values from the builder.
 - **`@destructive` cases** run alone on `local`, after every other case, each followed by its
-  recovery: `npm run lanes:destructive` restarts the service container (the environment's
-  `recovery` in qa-config) and waits for the API to answer. Each such case first confirms that
+  recovery: `npm run lanes:destructive` restarts the service container (the pack's `recovery` in
+  qa-config) and waits for the API to answer. Each such case first confirms that
   `<UNKNOWN_USERNAME>` reads `404` (tagging rule).
 - **Actors** are `default` and `anonymous` only. The service enforces no credential (PN-05,
   by-design), so object-level authorization (one user acting on another's record) cannot be shown

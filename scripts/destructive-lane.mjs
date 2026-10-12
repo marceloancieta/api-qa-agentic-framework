@@ -1,20 +1,23 @@
 #!/usr/bin/env node
 /**
- * Destructive lane (GATE-12): run every `@destructive` case alone, each followed by the
- * environment's recovery, and check that the service answers again before the next one.
+ * Destructive lane (GATE-12): run every `@destructive` case alone, each followed by its pack's
+ * recovery, and check that the service answers again before the next one.
  *
  * Why. A destructive case leaves a record that breaks a read for every other caller, or a state no
  * API call can undo (L-59). Next to other cases it turns their results red for reasons they do not
  * own, and a second destructive case run after it measures the damage of the first. So every other
- * run leaves these cases out (the `api` project's `grepInvert` in playwright.config.ts), and this
- * lane runs them last, one Playwright process per case with `QA_DESTRUCTIVE=1`, which selects only
- * them.
+ * run leaves these cases out (the `grepInvert` of each `api-<pack>` project in
+ * playwright.config.ts), and this lane runs them last, one Playwright process per case with
+ * `QA_DESTRUCTIVE=1`, which selects only them.
  *
- * Recovery comes from qa-config: `api.environments.<env>.recovery.command` is a shell command run
- * from the repository root (for the Petstore container, a restart), then the base URL is polled
- * until it answers with a status below 500, for up to `ready_timeout_s` seconds (default 60). The
- * case itself still cleans up what an API call can remove, in `finally`; the recovery covers what it
- * cannot. A failed recovery stops the lane: later cases would run against a broken service.
+ * A case belongs to the pack of its spec path (`services/<pack>/...`) and runs in that pack's
+ * project, `api-<pack>`. Recovery comes from the pack's entry in the active qa-config environment:
+ * `api.environments.<env>.packs.<pack>.recovery.command` is a shell command run from the repository
+ * root (for the Petstore container, a restart), then the pack's base URL (QA_<PACK>_BASE_URL
+ * overrides it) is polled until it answers with a status below 500, for up to `ready_timeout_s`
+ * seconds (default 60). The case itself still cleans up what an API call can remove, in `finally`;
+ * the recovery covers what it cannot. A failed recovery stops the lane: later cases would run
+ * against a broken service.
  *
  * Verdicts (one per case):
  *   passed        the case passed
@@ -26,11 +29,13 @@
  *   not-run       Playwright produced no result, or the lane stopped before the case
  * and one recovery outcome: recovered, command-failed or not-ready.
  *
- *   node scripts/destructive-lane.mjs [--project api] [--list] [--json] [--new-run] [--root dir]
- *                                     [--config file]
+ *   node scripts/destructive-lane.mjs [--service pack] [--project name] [--list] [--json]
+ *                                     [--new-run] [--root dir] [--config file]
  *
- * `--list` prints the selection without running anything (offline). The lane refuses to run in an
- * environment whose `allow_writes` is false, or that names no recovery.
+ * `--service` keeps the cases of one pack; an explicit `--project` replaces each case's pack
+ * project. `--list` prints the selection without running anything (offline). Before any case runs,
+ * the lane refuses a pack the environment does not configure, or whose entry has `allow_writes`
+ * false or names no recovery.
  *
  * One run. The lane runs last, after the shared run, and its results belong to that run: it reuses
  * the run id of the latest results in allure-results/ and keeps them (QA_RUN_ID, QA_KEEP_RESULTS=1),
@@ -47,14 +52,16 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
-import { activeEnvironment, REPO_ROOT } from './lib/cli.mjs';
+import { packEnvironment, REPO_ROOT } from './lib/cli.mjs';
 import { parseSpecFile, specFiles } from './lib/corpus.mjs';
 import {
   GATE_ENV,
   assertZeroRetries,
+  caseProject,
   errorLine,
   exitDetail,
   formatTable,
+  packOfSpec,
   retriedRecords,
   runLane,
   unexplainedExit,
@@ -70,12 +77,21 @@ const DEFAULT_READY_TIMEOUT_S = 60;
 // ---------------------------------------------------------------------------------------------
 // Selection
 
-/** Every `@destructive` test under `<root>/services/<pack>/specs`, in file and line order. */
+/**
+ * Every `@destructive` test under `<root>/services/<pack>/specs`, in file and line order, with the
+ * pack it belongs to.
+ */
 export function findDestructive(root, pack = null) {
   return specFiles(root, pack).flatMap((file) =>
     parseSpecFile(root, file)
       .tests.filter((test) => test.tags.includes(DESTRUCTIVE_TAG))
-      .map((test) => ({ file, line: test.line, title: test.title, caseId: test.caseId })),
+      .map((test) => ({
+        file,
+        pack: packOfSpec(file),
+        line: test.line,
+        title: test.title,
+        caseId: test.caseId,
+      })),
   );
 }
 
@@ -104,7 +120,7 @@ export function classifyCase(records) {
 // ---------------------------------------------------------------------------------------------
 // Recovery
 
-/** The environment's recovery settings, or null when it names none. */
+/** A pack entry's recovery settings (`{ config }` from `packEnvironment`), or null when it names none. */
 export function recoveryOf(environment) {
   const recovery = environment.config.recovery;
   if (!recovery?.command) return null;
@@ -112,6 +128,37 @@ export function recoveryOf(environment) {
     command: recovery.command,
     readyTimeoutS: recovery.ready_timeout_s ?? DEFAULT_READY_TIMEOUT_S,
   };
+}
+
+/**
+ * What every pack of the selection needs to run its destructive cases, checked before any case
+ * runs: `Map<pack, { environment, recovery, baseUrl }>`, with `environment` from `packEnvironment`.
+ * Throws for a case outside a pack, a pack the environment does not configure, and a pack entry
+ * that has `allow_writes` false or names no recovery.
+ */
+export function packRecoveries(cases, root = REPO_ROOT, env = process.env) {
+  const recoveries = new Map();
+  for (const item of cases) {
+    if (!item.pack) throw new Error(`${item.file} is not under services/<pack>/`);
+    if (recoveries.has(item.pack)) continue;
+    const environment = packEnvironment(item.pack, root, env);
+    const at = `api.environments.${environment.name}.packs.${item.pack}`;
+    if (!environment.config.allow_writes) {
+      throw new Error(
+        `pack "${item.pack}" has allow_writes false in environment "${environment.name}" ` +
+          `(${at} in ${environment.source}); destructive cases never run there`,
+      );
+    }
+    const recovery = recoveryOf(environment);
+    if (!recovery) {
+      throw new Error(
+        `pack "${item.pack}" names no recovery in environment "${environment.name}" ` +
+          `(${at}.recovery in ${environment.source}); a destructive case needs one`,
+      );
+    }
+    recoveries.set(item.pack, { environment, recovery, baseUrl: environment.baseUrl });
+  }
+  return recoveries;
 }
 
 /** Run the recovery command in `root`; `{ ok, detail }`. */
@@ -183,12 +230,22 @@ export function caseArgs(file, line, project, config) {
 }
 
 /**
- * Run each case in its own process, then its recovery. `recover()` returns `{ ok, outcome, detail }`.
- * After a failed recovery the remaining cases are reported as not run.
+ * Run each case in its own process, in its pack's project unless `project` is given, then its
+ * recovery. `recover(item)` returns `{ ok, outcome, detail }`. After a failed recovery the remaining
+ * cases are reported as not run.
  */
 export async function runDestructive(
   cases,
-  { scanRoot, runRoot, project, config, recover, run, runId = 'lane', join: joining = false },
+  {
+    scanRoot,
+    runRoot,
+    project = null,
+    config,
+    recover,
+    run,
+    runId = 'lane',
+    join: joining = false,
+  },
 ) {
   const results = [];
   let stopped = null;
@@ -198,16 +255,17 @@ export async function runDestructive(
       continue;
     }
     const file = relative(runRoot, join(scanRoot, item.file)).replace(/\\/g, '/');
+    const own = caseProject(item.file, project);
     const env = caseEnv(index, { runId, join: joining });
-    const lane = (run ?? runLane)(runRoot, caseArgs(file, item.line, project, config), env);
+    const lane = (run ?? runLane)(runRoot, caseArgs(file, item.line, own, config), env);
     if (retriedRecords(lane.records).length > 0) {
       throw new Error('a case was retried although QA_RETRIES=0; gate lanes run without retries');
     }
-    const result = classifyCase(recordsFor({ ...item, file }, lane.records, project));
+    const result = classifyCase(recordsFor({ ...item, file }, lane.records, own));
     const failure = unexplainedExit(lane, PROBLEM_VERDICTS.has(result.verdict));
     if (failure) Object.assign(result, { verdict: 'failed', detail: failure });
     else if (result.verdict === 'not-run' && lane.exitCode !== 0) result.detail = exitDetail(lane);
-    const recovery = await recover();
+    const recovery = await recover(item);
     if (!recovery.ok) stopped = `recovery after ${item.caseId ?? item.title} failed`;
     results.push({
       ...item,
@@ -219,7 +277,7 @@ export async function runDestructive(
   return results;
 }
 
-/** The recovery step for the active environment: the command, then the readiness poll. */
+/** The recovery step of one pack: its command, then the readiness poll of its base URL. */
 export function recoveryStep(recovery, baseUrl, root) {
   return async () => {
     const command = runRecoveryCommand(recovery.command, root);
@@ -229,6 +287,17 @@ export function recoveryStep(recovery, baseUrl, root) {
       ? { ok: true, outcome: 'recovered', detail: ready.detail }
       : { ok: false, outcome: 'not-ready', detail: ready.detail };
   };
+}
+
+/**
+ * `recover(item)` for `runDestructive`: the step of the case's own pack, from `packRecoveries`.
+ * `step` replaces `recoveryStep` in tests.
+ */
+export function recoverByPack(recoveries, root, step = recoveryStep) {
+  const steps = new Map(
+    [...recoveries].map(([pack, { recovery, baseUrl }]) => [pack, step(recovery, baseUrl, root)]),
+  );
+  return (item) => steps.get(item.pack)();
 }
 
 export const laneProblems = (results) =>
@@ -252,7 +321,8 @@ async function main(argv = process.argv.slice(2)) {
   const { values } = parseArgs({
     args: argv,
     options: {
-      project: { type: 'string', default: 'api' },
+      service: { type: 'string' },
+      project: { type: 'string' },
       list: { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
       root: { type: 'string' },
@@ -261,7 +331,7 @@ async function main(argv = process.argv.slice(2)) {
     },
   });
   const scanRoot = values.root ? resolve(values.root) : REPO_ROOT;
-  const cases = findDestructive(scanRoot);
+  const cases = findDestructive(scanRoot, values.service ?? null);
   if (cases.length === 0) {
     if (values.json) console.log(JSON.stringify({ cases: [] }, null, 2));
     else console.log('destructive-lane: no @destructive cases in the specs; nothing to run.');
@@ -273,20 +343,7 @@ async function main(argv = process.argv.slice(2)) {
     return 0;
   }
   assertZeroRetries();
-  const environment = activeEnvironment(REPO_ROOT);
-  if (!environment.config.allow_writes) {
-    throw new Error(
-      `environment "${environment.name}" has allow_writes false; destructive cases never run there`,
-    );
-  }
-  const recovery = recoveryOf(environment);
-  if (!recovery) {
-    throw new Error(
-      `environment "${environment.name}" names no recovery (api.environments.${environment.name}.recovery ` +
-        `in ${environment.source}); a destructive case needs one`,
-    );
-  }
-  const baseUrl = (process.env.API_BASE_URL || environment.config.base_url).replace(/\/+$/, '');
+  const recoveries = packRecoveries(cases, REPO_ROOT);
   const previous = values['new-run'] ? null : latestRunId(join(REPO_ROOT, 'allure-results'));
   const runId = previous ?? randomBytes(4).toString('hex');
   console.log(
@@ -299,16 +356,18 @@ async function main(argv = process.argv.slice(2)) {
     join: Boolean(previous),
     scanRoot,
     runRoot: REPO_ROOT,
-    project: values.project,
+    project: values.project ?? null,
     config: values.config,
-    recover: recoveryStep(recovery, baseUrl, REPO_ROOT),
+    recover: recoverByPack(recoveries, REPO_ROOT),
   });
   const problems = laneProblems(results);
   if (values.json) console.log(JSON.stringify({ cases: results }, null, 2));
   else {
+    const [{ environment }] = recoveries.values();
+    const commands = [...recoveries].map(([pack, { recovery }]) => `${pack}: ${recovery.command}`);
     console.log(
       `destructive-lane: ${results.length} case(s) on "${environment.name}", one process each, ` +
-        `each followed by: ${recovery.command}`,
+        `each followed by its pack's recovery (${commands.join('; ')})`,
     );
     printResults(results);
     if (problems.length > 0) console.log(`\n${problems.length} case(s) need attention.`);

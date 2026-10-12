@@ -47,9 +47,9 @@ Each area has an id for the report.
    `vacuous-assertion`, `coincidental-pass`, `layering`, `case-shape`) in the forms `lint-harness`
    does not report.
 5. **`data-safety`: test data.** Writes to records a test did not create without a resource guard;
-   missing cleanup; a write case that can reach an environment with `allow_writes` false or a
-   production URL; real or personal data in files `lint-suite` does not scan (scripts, helpers,
-   fixtures, configuration, `.github/`, `.claude/`).
+   missing cleanup; a write case that can reach an environment whose pack entry has `allow_writes`
+   false, or a production URL; real or personal data in files `lint-suite` does not scan (scripts,
+   helpers, fixtures, configuration, `.github/`, `.claude/`).
 6. **`workflow-security`: GitHub Actions.** `pull_request_target` or `workflow_run` with secrets;
    `${{ github.event.* }}` text interpolated into `run:` or a prompt; an action not pinned by full
    commit SHA with its version in a comment; `permissions` broader than the job needs, or set at the

@@ -10,7 +10,7 @@ Every tool takes the same source flags:
 |---|---|
 | `--service <name>` | The pack's `services/<name>/service.json` names its document. Default when there is one pack. |
 | `--spec <file\|url>` | An explicit document. |
-| `--live` | The `spec_url` of the active qa-config environment (`QA_ENV` selects it). |
+| `--live` | The pack's `spec_url` in the active qa-config environment (`api.environments.<env>.packs.<pack>`; `QA_ENV` selects the environment, `QA_<PACK>_SPEC_URL` overrides the URL for one run). Needs a pack: `--service`, or the only one. |
 
 ## Tools
 

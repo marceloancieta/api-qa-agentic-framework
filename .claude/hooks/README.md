@@ -7,7 +7,7 @@ folder as Node ES modules, so the hooks behave identically on Windows, macOS, Li
 |---|---|---|
 | `secret-guard.mjs` | `UserPromptSubmit`, `PreToolUse` (every tool), `PostToolUse` (every tool) | Refuses prompts and tool calls that contain credentials, refuses access to files that usually hold secrets, refuses network commands or web/subagent calls carrying secrets, and masks credentials in tool output. |
 | `git-policy.mjs` | `PreToolUse` (`Bash`, `PowerShell`) | Optional commit and pull-request rules read from `qa-config` (`tracker`, `policies`). Inactive until configured. |
-| `session-probe.mjs` | `SessionStart` | Adds a short status report to the session: setup state, API reachability, coverage totals. |
+| `session-probe.mjs` | `SessionStart` | Adds a short status report to the session: setup state, API reachability (one line per pack the active environment configures), coverage totals. |
 
 Shared modules in `lib/`:
 

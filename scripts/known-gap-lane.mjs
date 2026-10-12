@@ -8,7 +8,7 @@
  * runs alone so that one result can never mask another: a crash, a timeout or a collection problem
  * in one case cannot change what is reported for the next.
  *
- * Selection is read from the syntax tree of the `api` specs, never from titles alone:
+ * Selection is read from the syntax tree of the packs' specs, never from titles alone:
  *   - a `test.fail(...)` inside a test body whose reason is `knownGap(key, why)`, directly or through
  *     a variable initialised from it (`const reason = await knownGap(...)`);
  *   - or a test tagged `@known-gap`.
@@ -26,8 +26,11 @@
  *   skipped     the case skipped itself (reported, does not fail the lane)
  *   not-run     Playwright produced no result for the case
  *
- *   node scripts/known-gap-lane.mjs [--project api] [--list] [--json] [--root dir] [--config file]
+ *   node scripts/known-gap-lane.mjs [--service pack] [--project name] [--list] [--json] [--root dir]
+ *                                   [--config file]
  *
+ * `--service` keeps the gaps of one pack. Each case runs in its pack's project (`api-<pack>`, from
+ * its spec path), so it waits only on that pack's preflight; an explicit `--project` replaces it.
  * `--list` prints the selection without running anything (offline). `--root` is where `services/`
  * is scanned (default: the repository); `--config` is handed to Playwright.
  *
@@ -43,9 +46,11 @@ import { classifyCall, literalText, parseSpecFile, specFiles, ts } from './lib/c
 import {
   GATE_ENV,
   assertZeroRetries,
+  caseProject,
   errorLine,
   exitDetail,
   formatTable,
+  projectMatches,
   retriedRecords,
   runLane,
   unexplainedExit,
@@ -159,10 +164,10 @@ export function sameFile(selected, reported) {
   return a === b || a.endsWith(`/${b}`);
 }
 
-/** The records of a lane that belong to the selected case. */
+/** The records of a lane that belong to the selected case; `project` is the `--project` filter. */
 export function recordsFor(gap, records, project) {
   return records.filter(
-    (r) => r.project === project && r.line === gap.line && sameFile(gap.file, r.file),
+    (r) => projectMatches(project, r.project) && r.line === gap.line && sameFile(gap.file, r.file),
   );
 }
 
@@ -205,15 +210,19 @@ export function caseArgs(file, line, project, config) {
   ];
 }
 
-/** Run every gap in its own process. `runRoot` is where Playwright runs (it has node_modules). */
-export function runKnownGaps(gaps, { scanRoot, runRoot, project, config, run = runLane }) {
+/**
+ * Run every gap in its own process. `runRoot` is where Playwright runs (it has node_modules);
+ * `project` replaces the project of each gap's pack when given.
+ */
+export function runKnownGaps(gaps, { scanRoot, runRoot, project = null, config, run = runLane }) {
   return gaps.map((gap) => {
     const file = relative(runRoot, join(scanRoot, gap.file)).replace(/\\/g, '/');
-    const lane = run(runRoot, caseArgs(file, gap.line, project, config), GATE_ENV);
+    const own = caseProject(gap.file, project);
+    const lane = run(runRoot, caseArgs(file, gap.line, own, config), GATE_ENV);
     if (retriedRecords(lane.records).length > 0) {
       throw new Error('a case was retried although QA_RETRIES=0; gate lanes run without retries');
     }
-    const result = classifyGap(recordsFor({ ...gap, file }, lane.records, project));
+    const result = classifyGap(recordsFor({ ...gap, file }, lane.records, own));
     const failure = unexplainedExit(lane, PROBLEM_VERDICTS.has(result.verdict));
     if (failure) Object.assign(result, { verdict: 'errored', detail: failure });
     else if (result.verdict === 'not-run' && lane.exitCode !== 0) result.detail = exitDetail(lane);
@@ -237,7 +246,8 @@ function main(argv = process.argv.slice(2)) {
   const { values } = parseArgs({
     args: argv,
     options: {
-      project: { type: 'string', default: 'api' },
+      service: { type: 'string' },
+      project: { type: 'string' },
       list: { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
       root: { type: 'string' },
@@ -245,7 +255,7 @@ function main(argv = process.argv.slice(2)) {
     },
   });
   const scanRoot = values.root ? resolve(values.root) : REPO_ROOT;
-  const gaps = findKnownGaps(scanRoot);
+  const gaps = findKnownGaps(scanRoot, values.service ?? null);
   if (gaps.length === 0) {
     if (values.json) console.log(JSON.stringify({ gaps: [] }, null, 2));
     else console.log('known-gap-lane: no known-gap cases in the specs; nothing to check.');
@@ -260,7 +270,7 @@ function main(argv = process.argv.slice(2)) {
   const results = runKnownGaps(gaps, {
     scanRoot,
     runRoot: REPO_ROOT,
-    project: values.project,
+    project: values.project ?? null,
     config: values.config,
   });
   const problems = results.filter((r) => PROBLEM_VERDICTS.has(r.verdict));

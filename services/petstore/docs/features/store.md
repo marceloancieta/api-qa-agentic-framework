@@ -197,8 +197,8 @@ as `OrderStatus` in `../../generated/enums.ts`.
 
 ## Access and ownership
 
-- Credentials: none required by the service [PN-05, M2, M9]. The configured `api.auth` is `api_key`
-  from the environment variable `API_KEY` (qa-config); Petstore needs no value.
+- Credentials: none required by the service [PN-05, M2, M9]. The pack's configured `auth` is
+  `api_key` from the environment variable `API_KEY` (qa-config); Petstore needs no value.
 - Actors the cases need: `default` and `anonymous`. `anonymous` on the inventory shows only that
   `api_key` is not enforced (PN-05); it cannot demonstrate a refusal.
 - Ownership: `Order` has no owner field and no operation takes a caller identity [spec]. Every

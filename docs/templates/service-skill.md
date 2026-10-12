@@ -23,15 +23,16 @@ linked, not copied (`.claude/rules/documentation.md`).
 
 ## Environments and writes
 
-The environments, their base URLs and whether writes are allowed are set in qa-config
-(`api.environments`). _Pending_: which environments exist for this API, and which shared records
-must never change.
+The environments where this pack runs, its base URL in each and whether writes are allowed there
+are set in qa-config (`api.environments.<env>.packs.{{NAME}}`). _Pending_: which environments exist
+for this API, and which shared records must never change.
 
 ## Authentication and actors
 
 Security schemes declared by the contract: {{SECURITY}}.
 
-Suggested qa-config `api.auth`: {{AUTH}}. Actors for authorization cases (`api.actors`): _pending_.
+Suggested `auth` for the pack's qa-config entry: {{AUTH}}. Actors for authorization cases (the
+pack's `actors`): _pending_.
 
 ## Resources
 

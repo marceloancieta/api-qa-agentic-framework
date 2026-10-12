@@ -56,9 +56,10 @@ each gets its own launch.
    including "no access" for code you cannot read: the spec's prose, declared models, the
    implementation, documentation and tickets (contract notes, feature contract, pack skill, tracker),
    observation. Stop at the first source that settles it, but report every one you read.
-4. **Check reachability** of the environment's `base_url` with one read before measuring. On a
-   refused connection, timeout, DNS or TLS error, stop: name the system and what to check (VPN,
-   `QA_ENV`, `api.environments` in qa-config, the service), and return. No retry loop, and no
+4. **Check reachability** of the pack's `base_url` in the environment with one read before
+   measuring. On a refused connection, timeout, DNS or TLS error, stop: name the system and what to
+   check (VPN, `QA_ENV`, `api.environments.<env>.packs.<pack>` in qa-config, the service), and
+   return. No retry loop, and no
    substitute source in place of a measurement (`reachability.md`). An HTTP status is an answer.
 5. **Measure, read-only.** Only `GET`, `HEAD` and `OPTIONS`. Vary the input across equivalence
    partitions and boundaries (one value inside each class, the edges, one step outside each) so the
@@ -77,9 +78,10 @@ each gets its own launch.
 - Write one ES module file (`<name>.mjs`) with the Write tool in the scratchpad: the directory
   Claude Code names as the session scratchpad, otherwise a new folder under the system temporary
   directory. Never inside the repository. Run it with `node <file>`.
-- The script reads the base URL from `qa-config.json` (else `qa-config.example.json`) for the
-  environment, and credentials through `loadLocalEnv` from `scripts/lib/env.mjs` (imported by file
-  URL), using the variable qa-config `api.auth.env` names. It never prints a credential or the
+- The script reads the pack's `base_url` from `qa-config.json` (else `qa-config.example.json`) for
+  the environment (`api.environments.<env>.packs.<pack>`), and credentials through `loadLocalEnv`
+  from `scripts/lib/env.mjs` (imported by file URL), using the variable the pack entry's `auth.env`
+  names. It never prints a credential or the
   environment, and never puts a credential on the command line (L-43).
 - The `secret-guard` hook refuses commands that carry credentials or name env files. Work with it:
   if it refuses, change the approach, never the guard.

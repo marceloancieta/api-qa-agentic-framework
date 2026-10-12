@@ -16,9 +16,14 @@ Each API under test is a pack in `services/<name>/` (ADR 0007). The core (`helpe
   pack's contract. When several packs could match, ask. The contract tools default to the only pack
   when there is one.
 - **The environment** comes from qa-config: `QA_ENV` if set, otherwise `api.default_environment`.
-  Its `base_url`, `spec_url` and `allow_writes` decide where cases run and whether writes are allowed.
+  It holds one entry per pack it serves (`api.environments.<env>.packs.<pack>`, ADR 0009), and that
+  entry's `base_url`, `spec_url` and `allow_writes` decide where the pack's cases run and whether
+  writes are allowed. A pack without an entry cannot run there; there is no global fallback.
   `qa-config.json` is per machine; without it, `qa-config.example.json` applies.
-- **Credentials** are named in qa-config (`api.auth`, `api.actors`) and read from the environment.
+- **Credentials** are named in the pack's entry (`auth` for the `default` actor, `actors` for the
+  others) and read from the environment.
+- **Run one pack** with `npx playwright test --project=api-<pack>`, or a lane with
+  `--service <pack>`; `--project=api-*` and the lanes without `--service` take every pack.
 
 ## What a pack holds
 

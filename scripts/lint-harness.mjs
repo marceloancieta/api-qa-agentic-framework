@@ -66,7 +66,7 @@
 //   destructive-isolation (L-59)
 //     A `@destructive` test (tagged on itself or a describe) in a file that also declares tests
 //     without the tag. Such a case runs alone in the destructive lane, followed by the
-//     environment's recovery; the files it shares with other cases are run by every shared lane.
+//     recovery of its pack; the files it shares with other cases are run by every shared lane.
 //
 // Findings about a whole test are reported on the line of its title.
 //

@@ -39,9 +39,9 @@ Rules of thumb:
 - **`@destructive` names its recovery.** The case details have a `**Recovery**` bullet saying how
   the service gets back to a usable state: the delete that removes the record, or a restart when
   nothing else can (`lint-docs` destructive-recovery). The case lives in a spec file of its own
-  (`lint-harness` destructive-isolation). Every run leaves these cases out (the `api` project's
-  `grepInvert`); `npm run lanes:destructive` runs them alone, last, each followed by the
-  environment's `recovery` command from qa-config.
+  (`lint-harness` destructive-isolation). Every run leaves these cases out (the `api-<pack>`
+  projects' `grepInvert`); `npm run lanes:destructive` runs them alone, last, each followed by the
+  `recovery` command of the case's pack entry in the active environment of qa-config.
 - **A workaround names its exit.** Code that compensates for someone else's defect says which issue
   it waits on and what has to become true to remove it, in a form `npm run cited:status` can read:
   "until `<KEY>` ships". If the issue closes as won't fix, rewrite the comment, either to point at

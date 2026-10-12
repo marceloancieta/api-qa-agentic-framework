@@ -24,7 +24,7 @@
     "api": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["default_environment", "environments", "auth"],
+      "required": ["default_environment", "environments"],
       "properties": {
         "default_environment": {
           "type": "string",
@@ -35,22 +35,6 @@
           "minProperties": 1,
           "additionalProperties": {
             "$ref": "#/$defs/environment"
-          }
-        },
-        "auth": {
-          "$ref": "#/$defs/auth"
-        },
-        "actors": {
-          "description": "Extra named credentials for actor(name). \"default\" is api.auth and \"anonymous\" sends no credentials; both are built in.",
-          "type": "object",
-          "propertyNames": {
-            "pattern": "^[a-z][a-z0-9-]*$",
-            "not": {
-              "enum": ["default", "anonymous"]
-            }
-          },
-          "additionalProperties": {
-            "$ref": "#/$defs/auth"
           }
         }
       }
@@ -372,10 +356,47 @@
       }
     },
     "environment": {
+      "description": "A named place to run, holding one entry per service pack it serves. A pack without an entry here cannot run in this environment.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["base_url"],
+      "required": ["packs"],
       "properties": {
+        "packs": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "description": "The pack's folder name under services/.",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/pack"
+          }
+        }
+      }
+    },
+    "pack": {
+      "description": "Where one service pack runs in one environment and how it authenticates. QA_<PACK>_BASE_URL and QA_<PACK>_SPEC_URL override base_url and spec_url for one run (pack name upper-cased, hyphens as underscores).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base_url", "auth"],
+      "properties": {
+        "auth": {
+          "description": "The credential of the built-in \"default\" actor.",
+          "$ref": "#/$defs/auth"
+        },
+        "actors": {
+          "description": "Extra named credentials for actor(name). \"default\" is this pack's auth and \"anonymous\" sends no credentials; both are built in.",
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "not": {
+              "enum": ["default", "anonymous"]
+            }
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/auth"
+          }
+        },
         "base_url": {
           "type": "string",
           "format": "uri"

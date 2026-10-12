@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       contract_env:
-        description: 'qa-config environment whose spec_url is compared with the digest (empty: the default environment)'
+        description: 'qa-config environment whose petstore spec_url is compared with the digest (empty: the default environment)'
         type: string
         default: ''
 
@@ -48,8 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # The variable named by qa-config api.auth.env. A real API takes it from the API_KEY secret;
-      # the Petstore accepts any non-empty value, so without the secret one is generated per run.
+      # The variable named by qa-config api.environments.local.packs.petstore.auth.env. A real API
+      # takes it from the API_KEY secret; the Petstore accepts any non-empty value, so without the
+      # secret one is generated per run.
       - name: Provide API_KEY
         env:
           PROVIDED_API_KEY: ${{ secrets.API_KEY }}
@@ -77,7 +78,7 @@ jobs:
         run: |
           mkdir -p reports/drift
           status=0
-          npm run --silent contract:digest:live > reports/drift/digest.txt 2>&1 || status=$?
+          npm run --silent contract:digest:live -- --service petstore > reports/drift/digest.txt 2>&1 || status=$?
           cat reports/drift/digest.txt
           case "$status" in
             0) echo "moved=false" >> "$GITHUB_OUTPUT" ;;
@@ -99,9 +100,9 @@ jobs:
           npm run --silent lanes:known-gap 2>&1 | tee reports/drift/known-gap.txt
 
       # When the deployed contract moved, the cases on the changed operations first, so their result
-      # names what the move broke (L-31). --live diffs the tracked digest against QA_ENV's spec_url,
-      # the same environment the digest step read; the selected cases run there too (on an
-      # environment whose allow_writes is false, the write cases skip with their reason).
+      # names what the move broke (L-31). --live diffs each pack's tracked digest against that pack's
+      # spec_url in QA_ENV, the same environment the digest step read; the selected cases run there
+      # too (where the pack's allow_writes is false, the write cases skip with their reason).
       - name: Published cases on changed operations
         if: ${{ !cancelled() && steps.petstore.outcome == 'success' && steps.digest.outputs.moved == 'true' }}
         env:
