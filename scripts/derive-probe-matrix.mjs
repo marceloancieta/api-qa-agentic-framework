@@ -39,7 +39,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { parseCli, resolveSpecSource, REPO_ROOT } from './lib/cli.mjs';
+import { parseCli, readTextIfExists, resolveSpecSource, REPO_ROOT } from './lib/cli.mjs';
 import { loadModel, objectShape, refName, resolveSchema } from './lib/openapi.mjs';
 import { allPairs, PAIRWISE_LIMITS } from './lib/pairwise.mjs';
 
@@ -922,7 +922,7 @@ async function main() {
       console.log(`\nWrote ${shown}`);
     }
     if (values.check) {
-      const current = existsSync(file) ? readFileSync(file, 'utf8') : null;
+      const current = readTextIfExists(file);
       if (current !== text) {
         console.error(`\n${shown} is out of date; run with --write.`);
         process.exitCode = 1;

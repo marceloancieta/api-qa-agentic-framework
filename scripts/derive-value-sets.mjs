@@ -35,11 +35,11 @@
 //   node scripts/derive-value-sets.mjs --service <pack> --check    exit 1 when generated/ is stale
 
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadModel } from './lib/openapi.mjs';
-import { parseCli, REPO_ROOT, resolveSpecSource } from './lib/cli.mjs';
+import { parseCli, readTextIfExists, REPO_ROOT, resolveSpecSource } from './lib/cli.mjs';
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -363,7 +363,7 @@ async function main() {
     let stale = 0;
     for (const [file, raw] of files) {
       const text = await formatted(raw, file);
-      const current = existsSync(file) ? readFileSync(file, 'utf8') : null;
+      const current = readTextIfExists(file);
       if (values.check) {
         if (current !== text) {
           stale += 1;

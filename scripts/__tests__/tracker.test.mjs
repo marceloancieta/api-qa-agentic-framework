@@ -28,7 +28,14 @@ describeTrackerContract('github (fake API)', () => github());
 describeTrackerContract('jira (fake API)', () => jira(), { closes: 'Done' });
 
 test('a renderer that drops placeholders is caught (L-47)', async () => {
-  const dropsEverything = (text) => String(text).replace(/<[^>]*>|`[^`]*`/g, '');
+  const dropsEverything = (text) => {
+    let out = String(text);
+    for (let previous = null; out !== previous;) {
+      previous = out;
+      out = out.replace(/<[^>]*>|`[^`]*`/g, '');
+    }
+    return out;
+  };
   const tracker = verifiedTracker(github(fakeGitHub({ render: dropsEverything })));
   await assert.rejects(
     tracker.createIssue({ title: 't', body: 'see <petId>' }),

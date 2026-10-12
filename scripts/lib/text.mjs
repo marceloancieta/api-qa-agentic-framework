@@ -14,11 +14,22 @@ export function codeSpanPlaceholders(markdown) {
 
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ' };
 
-/** Visible text of an HTML fragment: tags removed, common entities decoded. */
+/** `text` with every regular-expression metacharacter escaped, to match it literally. */
+export function escapeRegExp(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Visible text of an HTML fragment: tags removed, common entities decoded. Tags are removed until
+ * none is left, so a nested one such as `<sc<x>ript>` cannot reassemble.
+ */
 export function htmlToText(html) {
-  return String(html ?? '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_, name) => ENTITIES[name]);
+  let text = String(html ?? '');
+  for (let previous = null; text !== previous;) {
+    previous = text;
+    text = text.replace(/<[^>]+>/g, '');
+  }
+  return text.replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_, name) => ENTITIES[name]);
 }
 
 /** Placeholders of the source that the rendered text no longer shows. */

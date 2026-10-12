@@ -10,6 +10,19 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+/**
+ * A text file's content, or null when it does not exist. Reading and treating a missing file as a
+ * normal outcome in one step leaves no gap between a check and the use that follows it.
+ */
+export function readTextIfExists(file) {
+  try {
+    return readFileSync(file, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
 export const REPO_ROOT = resolve(import.meta.dirname, '..', '..');
 
 const SPEC_OPTIONS = {

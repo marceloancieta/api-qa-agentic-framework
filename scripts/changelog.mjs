@@ -37,11 +37,12 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
-import { REPO_ROOT } from './lib/cli.mjs';
+import { readTextIfExists, REPO_ROOT } from './lib/cli.mjs';
+import { escapeRegExp } from './lib/text.mjs';
 import { createLogger } from './lib/log.mjs';
 import { describeExit, spawnFailure } from './lib/spawn.mjs';
 
@@ -231,8 +232,7 @@ export function nextVersion(latest, commits) {
  */
 export function insertSection(existing, section, version) {
   const text = existing ?? CHANGELOG_HEADER;
-  const escaped = version.replace(/\./g, '\\.');
-  if (new RegExp(`^## \\[${escaped}\\]`, 'm').test(text)) {
+  if (new RegExp(`^## \\[${escapeRegExp(version)}\\]`, 'm').test(text)) {
     throw refusal(`Version ${version} is already in the changelog; nothing was written.`);
   }
   const first = /^## \[(?!Unreleased\])/im.exec(text);
@@ -322,7 +322,7 @@ export function changelog(options) {
   if (write) {
     const file =
       options.file ?? join(git(['rev-parse', '--show-toplevel'], cwd).trim(), 'CHANGELOG.md');
-    const existing = existsSync(file) ? readFileSync(file, 'utf8') : null;
+    const existing = readTextIfExists(file);
     writeFileSync(file, insertSection(existing, section, version));
     log.info('changelog written', { file, version });
   }
