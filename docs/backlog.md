@@ -29,7 +29,6 @@ pack fails a check; then per-pack configuration; then the pack itself.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| FUT-09 | Several packs on different hosts: qa-config holds one `api.auth`, one set of `api.actors` and one `base_url` per environment, and the `api` project and the lanes collect every pack's specs. Move auth, actors and base URL per pack (or per environment and pack) and scope the lanes by pack; until then run one pack folder at a time. | exp | todo |
 | FUT-07 | Second service pack: VAmPI (single container, OpenAPI 3, JWT, users owning books) run in both its secure and vulnerable modes, so the same actor-based authorization matrix (OWASP API1 BOLA) passes on one and detects the flaw on the other. Needs a `login` auth strategy (credentials from variables, token minted and refreshed) and the container bound to localhost only. Verify image, tag and spec path before adopting. | plan | todo |
 
 ## Later (after v0.2.0)
@@ -133,3 +132,4 @@ pack fails a check; then per-pack configuration; then the pack itself.
 | GATE-15 | `lint-docs` rule `closing-commit`: every hash cited in Done names a commit in the history of HEAD; a shallow clone is one finding. The self-test builds its own git history with plumbing, so its hashes are the same on every machine; the CI gates job fetches the full history. | `1b46c39` |
 | GATE-14 | `coverage:status` judges each spec against the latest run it took part in, so a run of one spec or one pack no longer fails the gates; published cases of a spec in no run are counted in a note. Nothing is persisted. A `--grep` selection inside a spec is still not visible. | `0b06361` |
 | GATE-16 | `lint-layers` checks the ADR 0007 boundaries through the syntax tree: `core-imports-pack` (a core file whose literal relative import resolves into `services/`) and `spec-sends-request` (the `request` fixture, `request` from `@playwright/test`, an HTTP package, the global `fetch` or `<x>.request.newContext()` in a spec); exact self-test over a fixture tree; in `lint:qa`. | `8ccbcd1` |
+| FUT-09 | Configuration per service pack (ADR 0009): `api.environments.<env>.packs.<pack>` holds `base_url`, `auth`, `spec_url`, `allow_writes`, `recovery` and `actors`, with no global fallback; `QA_<PACK>_BASE_URL` / `QA_<PACK>_SPEC_URL` overrides; `preflight-<pack>` and `api-<pack>` projects per pack found under `services/`; lanes scoped by `--service`, the destructive lane by each case's pack; one probe line per pack. | `0ced424` |
