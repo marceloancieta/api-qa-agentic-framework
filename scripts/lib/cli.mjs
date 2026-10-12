@@ -2,8 +2,8 @@
 //   --service <name>   a service pack; its service.json names the API description (default when the
 //                      repository has exactly one pack)
 //   --spec <file|url>  an explicit API description instead
-//   --live             the active qa-config environment's spec_url (QA_ENV selects the environment;
-//                      API_SPEC_URL overrides it)
+//   --live             the pack's spec_url in the active qa-config environment (QA_ENV selects the
+//                      environment; QA_<PACK>_SPEC_URL overrides it)
 // Every tool resolves its input through `resolveSpecSource`, so the flags mean the same everywhere.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -59,8 +59,17 @@ export function readService(name, root = REPO_ROOT) {
 }
 
 /**
+ * The variable that overrides one of a pack's URLs for a one-off run:
+ * `packVariable('petstore', 'BASE_URL')` is `QA_PETSTORE_BASE_URL`. helpers/config.ts applies the
+ * same rule for the test runner; a unit test keeps the two equal.
+ */
+export function packVariable(pack, setting) {
+  return `QA_${pack.toUpperCase().replace(/-/g, '_')}_${setting}`;
+}
+
+/**
  * The active qa-config environment (qa-config.json, else the example; QA_ENV selects it):
- * `{ source, name, config }` where `config` is the environment's entry as written.
+ * `{ source, name, packs }` where `packs` maps each configured pack to its entry as written.
  */
 export function activeEnvironment(root = REPO_ROOT, env = process.env) {
   const source = ['qa-config.json', 'qa-config.example.json'].find((file) =>
@@ -71,15 +80,39 @@ export function activeEnvironment(root = REPO_ROOT, env = process.env) {
   const name = env.QA_ENV || api.default_environment;
   const config = api.environments?.[name];
   if (!config) throw new Error(`${source}: environment "${name}" is not defined.`);
-  return { source, name, config };
+  return { source, name, packs: config.packs ?? {} };
 }
 
-/** The spec_url of the active qa-config environment; API_SPEC_URL overrides it for one run. */
-export function liveSpecUrl(root = REPO_ROOT, env = process.env) {
-  if (env.API_SPEC_URL) return env.API_SPEC_URL;
-  const { source, name, config } = activeEnvironment(root, env);
-  if (!config.spec_url) throw new Error(`${source}: environment "${name}" has no spec_url.`);
-  return config.spec_url;
+/**
+ * One pack in the active environment: `{ source, name, pack, config, baseUrl, specUrl }`, where
+ * `config` is the pack's entry as written and the URLs carry the QA_<PACK>_* overrides. A pack the
+ * environment does not configure is an error; there is no global fallback.
+ */
+export function packEnvironment(pack, root = REPO_ROOT, env = process.env) {
+  const { source, name, packs } = activeEnvironment(root, env);
+  const config = packs[pack];
+  if (!config) {
+    throw new Error(
+      `${source}: environment "${name}" has no entry for pack "${pack}" ` +
+        `(api.environments.${name}.packs.${pack}). Configured packs: ${Object.keys(packs).join(', ') || '(none)'}.`,
+    );
+  }
+  return {
+    source,
+    name,
+    pack,
+    config,
+    baseUrl: (env[packVariable(pack, 'BASE_URL')] || config.base_url).replace(/\/+$/, ''),
+    specUrl: env[packVariable(pack, 'SPEC_URL')] || config.spec_url || null,
+  };
+}
+
+/** The pack's spec_url in the active qa-config environment; QA_<PACK>_SPEC_URL overrides it. */
+export function liveSpecUrl(pack, root = REPO_ROOT, env = process.env) {
+  const { source, name, specUrl } = packEnvironment(pack, root, env);
+  if (!specUrl)
+    throw new Error(`${source}: pack "${pack}" in environment "${name}" has no spec_url.`);
+  return specUrl;
 }
 
 /**
@@ -93,7 +126,12 @@ export function resolveSpecSource(values, root = REPO_ROOT, env = process.env) {
   const serviceName = values.service ?? (packs.length === 1 ? packs[0] : null);
   const service = serviceName ? readService(serviceName, root) : null;
   if (values.spec) return { source: values.spec, service };
-  if (values.live) return { source: liveSpecUrl(root, env), service };
+  if (values.live) {
+    if (!serviceName) {
+      throw new Error(`--live needs --service <name> (packs: ${packs.join(', ') || 'none'}).`);
+    }
+    return { source: liveSpecUrl(serviceName, root, env), service };
+  }
   if (!service) {
     throw new Error(
       `Name the API with --service <name> (packs: ${packs.join(', ') || 'none'}) or --spec <file|url>.`,

@@ -68,15 +68,20 @@ export function semanticErrors(config) {
     );
   }
   for (const [name, environment] of Object.entries(api.environments ?? {})) {
-    if (environment?.recovery && !environment.allow_writes) {
-      errors.push(
-        `api.environments.${name}.recovery is set but allow_writes is false: destructive cases never run there`,
-      );
-    }
-  }
-  for (const name of Object.keys(api.actors ?? {})) {
-    if (RESERVED_ACTORS.includes(name)) {
-      errors.push(`api.actors.${name} is built in and cannot be redefined (use another name)`);
+    for (const [pack, entry] of Object.entries(environment?.packs ?? {})) {
+      const at = `api.environments.${name}.packs.${pack}`;
+      if (entry?.recovery && !entry.allow_writes) {
+        errors.push(
+          `${at}.recovery is set but allow_writes is false: destructive cases never run there`,
+        );
+      }
+      for (const actor of Object.keys(entry?.actors ?? {})) {
+        if (RESERVED_ACTORS.includes(actor)) {
+          errors.push(
+            `${at}.actors.${actor} is built in and cannot be redefined (use another name)`,
+          );
+        }
+      }
     }
   }
   const pattern = config.tracker?.key_pattern;
