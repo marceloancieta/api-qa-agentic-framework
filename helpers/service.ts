@@ -15,6 +15,11 @@ export interface ServiceManifest {
   secret_keys?: string[];
   /** The OpenAPI document, relative to the pack directory. */
   spec?: string;
+  /**
+   * The most Playwright workers that may run this pack's specs at once, for a service that cannot
+   * take concurrent callers (its contract notes say why and which issue lifts it). Unset: no limit.
+   */
+  workers?: number;
 }
 
 export interface ServicePack extends ServiceManifest {
@@ -35,6 +40,12 @@ export function loadService(dir: string): ServicePack {
     problems.push('version must match ^[a-z0-9][a-z0-9.-]*$ (it is part of every case identity)');
   }
   if (!manifest.title) problems.push('title is required');
+  if (
+    manifest.workers !== undefined &&
+    !(Number.isInteger(manifest.workers) && manifest.workers >= 1)
+  ) {
+    problems.push('workers must be a whole number of at least 1');
+  }
   if (problems.length > 0) throw new Error(`${file}: ${problems.join('; ')}.`);
   return { ...(manifest as ServiceManifest), dir };
 }

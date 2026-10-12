@@ -4,5 +4,6 @@
   "title": "Swagger Petstore (OpenAPI 3.0)",
   "description": "Example service pack. The local Docker image is the system under test for every write.",
   "identity_fields": ["username", "firstName", "lastName", "email", "phone"],
-  "spec": "openapi.json"
+  "spec": "openapi.json",
+  "workers": 1
 }
