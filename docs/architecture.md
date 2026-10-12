@@ -93,7 +93,7 @@ Reading the diagram from the top:
   example.
 - **Execution core.** `helpers/` and `fixtures/` hold everything that is the same for every API:
   the base client, authentication, evidence and redaction, schema validation, seeded data. The core
-  never imports from a pack.
+  never imports from a pack (`lint-layers` checks it).
 - **Results and tools.** A run writes results and redacted evidence to `allure-results/`. A neutral
   case manifest joins them with the registries and feeds the configured test-management adapter
   ([ADR 0004](adr/0004-test-management-adapters.md)). Defects go to the configured tracker through
@@ -369,8 +369,8 @@ Each pattern below is in the code today; the path is where to read it.
   ([issue trackers](test-management.md#issue-trackers)).
 - **A quality-gate check:** a new strategy in `STRATEGIES` in `scripts/quality-gate.mjs`, with its
   settings in `schemas/qa-config.schema.json` ([quality gate](quality-gates.md#quality-gate)).
-- **A linter rule:** a rule in `scripts/lint-harness.mjs`, `scripts/lint-suite.mjs` or
-  `scripts/lint-docs.mjs`, with fixtures in `scripts/__fixtures__/` that contain the defect and
+- **A linter rule:** a rule in `scripts/lint-harness.mjs`, `scripts/lint-suite.mjs`,
+  `scripts/lint-docs.mjs` or `scripts/lint-layers.mjs`, with fixtures in `scripts/__fixtures__/` that contain the defect and
   look-alikes that do not ([linters](quality-gates.md#linters)).
 - **A decision table:** a YAML file in the pack's `rules/` folder, generated with
   `npm run contract:decision-tables` ([decision tables](contract-tooling.md#decision-tables)).

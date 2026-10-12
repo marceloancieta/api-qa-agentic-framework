@@ -12,11 +12,12 @@ A comment that restates one of these is noise; when one fails, CI already says s
   its schema; the hook and script test suites (including `scripts/__tests__/agent-guide.test.mjs`
   for the agents' tools); contract digest, probe matrix and value sets current; coverage status of
   every registry; unit tests; the denylist scanner's self-test.
-- **The three linters**, whose header comments are the exact list of rules and shapes:
+- **The four linters**, whose header comments are the exact list of rules and shapes:
   `scripts/lint-harness.mjs` (how a spec drives the runner, tags, destructive isolation),
-  `scripts/lint-suite.mjs` (real identifiers in specs, registries and `docs/`) and
-  `scripts/lint-docs.mjs` (dead links and paths, orphan docs under `docs/`, backlog shape, count
-  claims, ADR index, lesson guards, registry shape, destructive recovery).
+  `scripts/lint-suite.mjs` (real identifiers in specs, registries and `docs/`),
+  `scripts/lint-docs.mjs` (dead links and paths, orphan docs under `docs/`, backlog shape, closing
+  commits, count claims, ADR index, lesson guards, registry shape, destructive recovery) and
+  `scripts/lint-layers.mjs` (the core importing a pack, a spec sending a request without a client).
 - **`.github/workflows/codeql.yml`**: CodeQL `security-extended` queries on the JavaScript and
   TypeScript code.
 - **`.github/workflows/secret-scan.yml`**: gitleaks over the full history.

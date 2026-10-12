@@ -59,5 +59,7 @@ BaseClient       Playwright APIRequestContext, evidence, redaction
 ## Consequences
 
 - A simple test is written exactly as with plain clients; actors and flows are opt-in.
+- `scripts/lint-layers.mjs` checks the two boundaries that a review alone would have to catch: the
+  core never imports from a pack, and a spec never sends a request without a client (GATE-16).
 - Contributors who know the testing literature recognize each layer (Meszaros, *xUnit Test
   Patterns*; Freeman and Pryce, *Growing Object-Oriented Software*; Screenplay; GoF Facade/Adapter).
