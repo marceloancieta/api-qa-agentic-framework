@@ -21,7 +21,21 @@ commits and docs stay valid.
 
 Released: every item of the first release is in **Done**.
 
-## Later (after v0.1.0)
+## v0.2.0
+
+A second service pack proves that the core is generic. The rows are in dependency order: the gates
+first, so that running one pack at a time keeps `npm run gates` green and a layer break in the new
+pack fails a check; then per-pack configuration; then the pack itself.
+
+| Id | Item | Origin | Status |
+|---|---|---|---|
+| GATE-15 | `lint-docs` checks that every closing commit cited in Done is a commit of the current branch, not only that it is written as a hash: a hash from before the history rewrite slipped into a Done row and only a manual check caught it. The self-test fixtures need a small git history of their own. | exp | todo |
+| GATE-14 | `coverage:status` judges every `published` row against the latest run only, so after running one spec or one pack the rows outside it are `not-in-results` and `npm run gates` fails until a full run. Keep the latest result per pack (or per case) instead. | exp | todo |
+| GATE-16 | The layer boundaries of ADR 0007 are checked, not only described: the core (`helpers/`, `fixtures/`, `scripts/`) never imports from `services/`, and a spec never sends a request itself (the `request` fixture, `playwright.request`, `fetch`), only through a client. Today both hold by convention and review alone. Fixtures with each break and look-alikes that are allowed. | ADR 0007 | todo |
+| FUT-09 | Several packs on different hosts: qa-config holds one `api.auth`, one set of `api.actors` and one `base_url` per environment, and the `api` project and the lanes collect every pack's specs. Move auth, actors and base URL per pack (or per environment and pack) and scope the lanes by pack; until then run one pack folder at a time. | exp | todo |
+| FUT-07 | Second service pack: VAmPI (single container, OpenAPI 3, JWT, users owning books) run in both its secure and vulnerable modes, so the same actor-based authorization matrix (OWASP API1 BOLA) passes on one and detects the flaw on the other. Needs a `login` auth strategy (credentials from variables, token minted and refreshed) and the container bound to localhost only. Verify image, tag and spec path before adopting. | plan | todo |
+
+## Later (after v0.2.0)
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
@@ -31,10 +45,6 @@ Released: every item of the first release is in **Done**.
 | FUT-04 | More auth strategies (`basic`, `oauth2-client-credentials`). | practice | todo |
 | FUT-06 | Differential testing against a reference implementation, e.g. two versions of an API serving the same requests, using the field-bucket model. | exp | todo |
 | FUT-05 | Template repository / `npx create-api-qa` scaffolder. | plan | todo |
-| FUT-07 | Second service pack: VAmPI (single container, OpenAPI 3, JWT, users owning books) run in both its secure and vulnerable modes, so the same actor-based authorization matrix (OWASP API1 BOLA) passes on one and detects the flaw on the other. Needs a `login` auth strategy (credentials from variables, token minted and refreshed) and the container bound to localhost only. Verify image, tag and spec path before adopting. | plan | todo |
-| FUT-09 | Several packs on different hosts: qa-config holds one `api.auth`, one set of `api.actors` and one `base_url` per environment, and the `api` project and the lanes collect every pack's specs. Move auth, actors and base URL per pack (or per environment and pack) and scope the lanes by pack; until then run one pack folder at a time. | exp | todo |
-| GATE-14 | `coverage:status` judges every `published` row against the latest run only, so after running one spec or one pack the rows outside it are `not-in-results` and `npm run gates` fails until a full run. Keep the latest result per pack (or per case) instead. | exp | todo |
-| GATE-15 | `lint-docs` checks that every closing commit cited in Done is a commit of the current branch, not only that it is written as a hash: a hash from before the history rewrite slipped into a Done row and only a manual check caught it. The self-test fixtures need a small git history of their own. | exp | todo |
 
 ---
 
