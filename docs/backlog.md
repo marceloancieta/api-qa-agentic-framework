@@ -23,7 +23,6 @@ Every other item of the first release is in **Done**.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| DOC-03 | CHANGELOG built from Conventional Commits and semantic versioning (`npm run changelog`); version `0.1.0` and tag `v0.1.0`. | plan, ADR 0008 | in-progress |
 | DOC-04 | Release gate, before the first push: (1) a history without earlier wording or file versions: the first commits are squashed into one, every later commit keeps its tree, author and date, and the closing commits cited here are mapped to the new hashes; (2) full-history gitleaks and denylist scans and a wording review of every commit message; (3) create the GitHub repository and push `main` only with explicit approval. | plan, ADR 0001 | in-progress |
 | DOC-05 | Right after the first push, switch to GitHub Flow: protect `main` (required CI checks, pull requests only, squash merge, linear history), add a pull-request template linking the backlog item, enable the matching `git-policy` rules (backlog-id key pattern, Conventional Commits, protected `main`), and turn on private vulnerability reporting, which CONTRIBUTING points security reports to. | ADR 0008 | todo |
 
@@ -40,6 +39,7 @@ Every other item of the first release is in **Done**.
 | FUT-07 | Second service pack: VAmPI (single container, OpenAPI 3, JWT, users owning books) run in both its secure and vulnerable modes, so the same actor-based authorization matrix (OWASP API1 BOLA) passes on one and detects the flaw on the other. Needs a `login` auth strategy (credentials from variables, token minted and refreshed) and the container bound to localhost only. Verify image, tag and spec path before adopting. | plan | todo |
 | FUT-09 | Several packs on different hosts: qa-config holds one `api.auth`, one set of `api.actors` and one `base_url` per environment, and the `api` project and the lanes collect every pack's specs. Move auth, actors and base URL per pack (or per environment and pack) and scope the lanes by pack; until then run one pack folder at a time. | exp | todo |
 | GATE-14 | `coverage:status` judges every `published` row against the latest run only, so after running one spec or one pack the rows outside it are `not-in-results` and `npm run gates` fails until a full run. Keep the latest result per pack (or per case) instead. | exp | todo |
+| GATE-15 | `lint-docs` checks that every closing commit cited in Done is a commit of the current branch, not only that it is written as a hash: a hash from before the history rewrite slipped into a Done row and only a manual check caught it. The self-test fixtures need a small git history of their own. | exp | todo |
 
 ---
 
@@ -122,5 +122,6 @@ Every other item of the first release is in **Done**.
 | TM-08 | CI reports to Allure TestOps when it is configured: `QA_TM_PROVIDER` replaces the qa-config provider for one run; `ci.yml` uses it when the `ALLURE_TOKEN` secret exists (endpoint and project as variables), the Jenkinsfile from a secret-text credential. Checked live from GitHub Actions and Jenkins. | `0cea1c5`, `a828ed0` |
 | DOC-01 | README (first ten minutes, adoption levels, spec-version compatibility, optional pieces), `docs/onboarding.md`, `CONTRIBUTING.md`, `docs/references/README.md`, and `docs/architecture.md` with Mermaid diagrams of the building blocks, layers, phases and a run, plus the patterns in use; unused files and project-internal wording removed. | `714c39b`, `f96ca81` |
 | DOC-02 | Guides: add a test case (with the phase skills or by hand) and add a service pack. | `f96ca81` |
+| DOC-03 | `npm run changelog` and `changelog:write` (`scripts/changelog.mjs`): a Keep a Changelog section per version from the Conventional Commits since the last tag, with the backlog ids and short hashes; release steps in CONTRIBUTING. `CHANGELOG.md` starts at 0.1.0, tagged `v0.1.0`. | `d18e7f5`, `61a7336` |
 | FUT-08 | Mutation testing back in v0.1.0: `npm run mutation` (Stryker over the shared libraries, on demand), with `qs` pinned by an override. | `b2f77cb` |
 | CI-03 | `Jenkinsfile` and `Jenkinsfile.drift`: the CI and drift runs as declarative pipelines for Linux (`sh`) and Windows (`bat`) agents, with `PETSTORE_PORT` for a Jenkins that holds 8080; both ran green on a Jenkins with a Windows agent, checked out through SCM.  Empty parameters fall back to Jenkins environment variables, so a scheduled build gets the machine's setup. | `dd69c2e`, `b33f513`, `63a521a`, `3523d6e`, `930fa07` |
