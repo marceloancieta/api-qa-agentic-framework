@@ -43,8 +43,8 @@ Runs only when `gates` passed. Every step fails the job when its command fails. 
 |---|---|
 | Provide `API_KEY` | The variable that the `petstore` pack's `auth.env` names in qa-config. See [secrets and variables](#secrets-and-variables). |
 | `npm run petstore:up` | Starts the pinned Petstore image and waits for its healthcheck. |
-| `npx playwright test '--project=api-*'` | Every pack's `api-<pack>` project, each after its `preflight-<pack>` project. When a pack's API is not answering, its preflight fails once with the reason and none of that pack's cases run. `@destructive` cases are left out. |
-| `npm run lanes:destructive` | Last. Each `@destructive` case runs alone and is followed by its pack's recovery, a restart of the container, and a wait until the API answers (L-59). Its results join the run above under the same run id. |
+| `npx playwright test --project=api-petstore` | The `api-petstore` project, after its `preflight-petstore` project: the job starts only the Petstore, so other packs (VAmPI) are not run here. When the API is not answering, the preflight fails once with the reason and no case runs. `@destructive` cases are left out. |
+| `npm run lanes:destructive -- --service petstore` | Last. Each `@destructive` case runs alone and is followed by its pack's recovery, a restart of the container, and a wait until the API answers (L-59). Its results join the run above under the same run id. |
 | Rebuild the local tool's definitions | Only for the example's `local` tool: its store (`reports/tm/local`) is not tracked, so a fresh runner starts empty, and `npm run tm:publish` rebuilds the definitions from the registries. A real definitions-first tool is published by `qa-publish` after its review gate, never by CI; a results-first tool (Allure TestOps) needs no definitions. |
 | `npm run tm:report -- --service petstore` | Reports the suite and the destructive lane as one run to the configured tool. |
 | `npm run coverage:status` | The gates ran it without results. Here it also checks that every published case has a result in this run and that no blocked case passed. |
@@ -179,7 +179,8 @@ Each run uploads one artifact, even when a step failed, and keeps it for 14 days
 - **Another pack against a containerised API.** Add its service to `docker-compose.yml` and an
   entry for the pack under each qa-config environment that serves it
   (`api.environments.<env>.packs.<pack>`), with a `recovery.command` if it has `@destructive`
-  cases. Then change the start step and `--service` in the report step. `--project=api-*` and the
+  cases. Then change the start step, the suite's `--project=api-<pack>` and `--service` in the
+  destructive lane and the report step. `--project=api-*` and the
   lanes collect every pack in `services/`, each against its own base URL and credentials
   ([ADR 0009](adr/0009-per-pack-configuration.md)); `--project=api-<pack>` and a lane's
   `--service <pack>` narrow a step to one pack.

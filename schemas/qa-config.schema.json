@@ -473,6 +473,34 @@
               "$ref": "#/$defs/envVar"
             }
           }
+        },
+        {
+          "description": "Logs in with a username and a password from the environment, sends the returned token as a bearer token, and logs in again when a request it decorated is answered 401.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "path", "username_env", "password_env"],
+          "properties": {
+            "type": {
+              "const": "login"
+            },
+            "path": {
+              "description": "The login operation, relative to the pack's base_url (no leading slash).",
+              "type": "string",
+              "pattern": "^[^/].*$"
+            },
+            "username_env": {
+              "$ref": "#/$defs/envVar"
+            },
+            "password_env": {
+              "$ref": "#/$defs/envVar"
+            },
+            "token_field": {
+              "description": "The field of the login answer that holds the token.",
+              "type": "string",
+              "minLength": 1,
+              "default": "auth_token"
+            }
+          }
         }
       ]
     },

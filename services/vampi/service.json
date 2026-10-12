@@ -1,0 +1,8 @@
+{
+  "name": "vampi",
+  "version": "v0",
+  "title": "VAmPI",
+  "description": "Second service pack: VAmPI, a deliberately vulnerable API, run locally in a secure and a vulnerable mode (docker-compose.yml). Contract: openapi_specs/openapi3.yml of the upstream VAmPI repository at the pinned image's commit.",
+  "identity_fields": ["username", "email", "owner", "user"],
+  "spec": "openapi.yaml"
+}

@@ -1,0 +1,327 @@
+{
+  "descriptions": {
+    "DELETE /users/v1/{username}": "2e0bb5c8bcc84cf1",
+    "GET /": "9e56a5736d905023",
+    "GET /books/v1": "0052a6c045d55c0c",
+    "GET /books/v1/{book_title}": "6f01390d485d91e5",
+    "GET /createdb": "1eaf7cb3d759d7ea",
+    "GET /me": "c22716334e199442",
+    "GET /users/v1": "a9c540608785549f",
+    "GET /users/v1/_debug": "b6143069d5ae0e53",
+    "GET /users/v1/{username}": "d678136cc0b526f5",
+    "POST /books/v1": "ab42d039d180dabc",
+    "POST /users/v1/login": "0eaafaf28accdee1",
+    "POST /users/v1/register": "cdef1c6eefbdf4d0",
+    "PUT /users/v1/{username}/email": "c6c27b3b83150f3d",
+    "PUT /users/v1/{username}/password": "0815bcfc7159da62"
+  },
+  "digestVersion": 1,
+  "operations": {
+    "DELETE /users/v1/{username}": {
+      "parameters": {
+        "path:username": "string required"
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"success\",\"fail\"]",
+          "content-type": "application/json"
+        },
+        "401": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        },
+        "404": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        }
+      },
+      "security": "bearerAuth"
+    },
+    "GET /": {
+      "parameters": {},
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.help": "string",
+          "$.message": "string",
+          "$.vulnerable": "number",
+          "content-type": "application/json"
+        }
+      },
+      "security": "none"
+    },
+    "GET /books/v1": {
+      "parameters": {},
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.Books": "array",
+          "$.Books[]": "object",
+          "$.Books[].book_title": "string",
+          "$.Books[].user": "string",
+          "content-type": "application/json"
+        }
+      },
+      "security": "none"
+    },
+    "GET /books/v1/{book_title}": {
+      "parameters": {
+        "path:book_title": "string required"
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "array",
+          "$[]": "object",
+          "$[].book_title": "string",
+          "$[].owner": "string",
+          "$[].secret": "string",
+          "content-type": "application/json"
+        },
+        "401": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        },
+        "404": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        }
+      },
+      "security": "bearerAuth"
+    },
+    "GET /createdb": {
+      "parameters": {},
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.message": "string",
+          "content-type": "application/json"
+        }
+      },
+      "security": "none"
+    },
+    "GET /me": {
+      "parameters": {},
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.data": "object",
+          "$.data.admin": "boolean",
+          "$.data.email": "string",
+          "$.data.username": "string",
+          "$.status": "string",
+          "content-type": "application/json"
+        },
+        "401": {
+          "$": "object",
+          "$.message": "string enum=[\"Signature expired. Please log in again.\",\"Invalid token. Please log in again.\"]",
+          "$.status": "string",
+          "content-type": "application/json"
+        }
+      },
+      "security": "bearerAuth"
+    },
+    "GET /users/v1": {
+      "parameters": {},
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.users": "array",
+          "$.users[]": "object",
+          "$.users[].email": "string",
+          "$.users[].username": "string",
+          "content-type": "application/json"
+        }
+      },
+      "security": "none"
+    },
+    "GET /users/v1/_debug": {
+      "parameters": {},
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.users": "array",
+          "$.users[]": "object",
+          "$.users[].admin": "boolean",
+          "$.users[].email": "string",
+          "$.users[].password": "string",
+          "$.users[].username": "string",
+          "content-type": "application/json"
+        }
+      },
+      "security": "none"
+    },
+    "GET /users/v1/{username}": {
+      "parameters": {
+        "path:username": "string required"
+      },
+      "requestBody": {},
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.email": "string",
+          "$.username": "string",
+          "content-type": "application/json"
+        },
+        "404": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        }
+      },
+      "security": "none"
+    },
+    "POST /books/v1": {
+      "parameters": {},
+      "requestBody": {
+        "$": "object required",
+        "$.book_title": "string",
+        "$.secret": "string",
+        "content-type": "application/json"
+      },
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"success\",\"fail\"]",
+          "content-type": "application/json"
+        },
+        "400": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        },
+        "401": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        }
+      },
+      "security": "bearerAuth"
+    },
+    "POST /users/v1/login": {
+      "parameters": {},
+      "requestBody": {
+        "$": "object required",
+        "$.password": "string",
+        "$.username": "string",
+        "content-type": "application/json"
+      },
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.auth_token": "string",
+          "$.message": "string",
+          "$.status": "string enum=[\"success\",\"fail\"]",
+          "content-type": "application/json"
+        },
+        "400": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        }
+      },
+      "security": "none"
+    },
+    "POST /users/v1/register": {
+      "parameters": {},
+      "requestBody": {
+        "$": "object required",
+        "$.email": "string",
+        "$.password": "string",
+        "$.username": "string",
+        "content-type": "application/json"
+      },
+      "responses": {
+        "200": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"success\",\"fail\"]",
+          "content-type": "application/json"
+        },
+        "400": {
+          "content-type": "none"
+        }
+      },
+      "security": "none"
+    },
+    "PUT /users/v1/{username}/email": {
+      "parameters": {
+        "path:username": "string required"
+      },
+      "requestBody": {
+        "$": "object required",
+        "$.email": "string",
+        "content-type": "application/json"
+      },
+      "responses": {
+        "204": {
+          "content-type": "none"
+        },
+        "400": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        },
+        "401": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        }
+      },
+      "security": "bearerAuth"
+    },
+    "PUT /users/v1/{username}/password": {
+      "parameters": {
+        "path:username": "string required"
+      },
+      "requestBody": {
+        "$": "object required",
+        "$.password": "string",
+        "content-type": "application/json"
+      },
+      "responses": {
+        "204": {
+          "content-type": "none"
+        },
+        "400": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        },
+        "401": {
+          "$": "object",
+          "$.message": "string",
+          "$.status": "string enum=[\"fail\"]",
+          "content-type": "application/json"
+        }
+      },
+      "security": "bearerAuth"
+    }
+  },
+  "schemas": {}
+}

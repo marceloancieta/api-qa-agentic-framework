@@ -123,16 +123,17 @@ jobs:
         timeout-minutes: 5
         run: npm run petstore:up
 
-      # Each pack's preflight project runs first; when it fails, none of that pack's cases runs.
+      # Only the pack whose service this job starts; its preflight project runs first and, when it
+      # fails, none of its cases runs. Other packs need their own services in the job.
       - name: Suite (preflight, then api)
         id: suite
-        run: npx playwright test '--project=api-*'
+        run: npx playwright test --project=api-petstore
 
       # Last, and only after the shared run: each @destructive case alone, then the recovery.
       # Its results join the run above (same run id), so the report below covers both.
       - name: Destructive lane
         if: ${{ !cancelled() && steps.suite.outcome != 'skipped' }}
-        run: npm run lanes:destructive
+        run: npm run lanes:destructive -- --service petstore
 
       # The `local` tool keeps its definitions in reports/tm/local, which is not tracked, so a fresh
       # runner starts empty: rebuild them from the registries before reporting. Only for `local`: a
