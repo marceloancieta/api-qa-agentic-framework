@@ -4,8 +4,11 @@
  * nothing is written before someone has looked at what was found:
  *
  *   node scripts/scaffold-service.mjs --name <pack> --spec <file|url> [--version v1] [--title t]
+ *       [--skip-smoke "GET /path"]...
  *       reads the contract and prints the plan: resources, clients, suggested feature codes,
- *       security, the files it would write. Writes nothing.
+ *       security, every operation of the smoke spec, the files it would write. Writes nothing.
+ *       A parameterless GET is not always safe to call (it may reset data or expose secrets):
+ *       `--skip-smoke` leaves one out of the smoke spec, and must name an operation of the contract.
  *   ... --write
  *       writes the pack, its service skill and its generated contract files. Refuses when
  *       services/<pack>/ or the skill already exists: a pack is never overwritten.
@@ -176,15 +179,27 @@ export function planResources(model) {
   });
 }
 
-/** GET operations a smoke test can call: no required parameter and a declared 2xx answer. */
-export function smokeCandidates(resources) {
+/** "get  /path" as the model keys operations: "GET /path". */
+const operationKey = (entry) => {
+  const [method = '', ...path] = entry.trim().split(/\s+/);
+  return `${method.toUpperCase()} ${path.join(' ')}`;
+};
+
+/**
+ * GET operations a smoke test can call: no required parameter and a declared 2xx answer, minus the
+ * operations in `skip` ("GET /path"). A GET is not always safe (one may reset data or expose
+ * secrets), so the plan lists every candidate for review and `--skip-smoke` leaves one out.
+ */
+export function smokeCandidates(resources, skip = []) {
+  const skipped = new Set(skip.map(operationKey));
   return resources.flatMap((resource) =>
     resource.methods
       .filter(
         ({ operation }) =>
           operation.method === 'GET' &&
           !operation.parameters.some((p) => p.required) &&
-          successCodes(operation).length > 0,
+          successCodes(operation).length > 0 &&
+          !skipped.has(operation.key),
       )
       .map((method) => ({ resource, method })),
   );
@@ -235,7 +250,12 @@ function clientSource(resource) {
   return lines.join('\n');
 }
 
-function fixturesSource(pack, title, resources) {
+function fixturesSource(pack, title, resources, specFile) {
+  const yaml = /\.ya?ml$/.test(specFile);
+  const parseContract = yaml
+    ? `      const text = readFileSync(file, 'utf8');
+      await use(createSchemaValidator(/\\.ya?ml$/.test(file) ? parseYaml(text) : JSON.parse(text)));`
+    : `      await use(createSchemaValidator(JSON.parse(readFileSync(file, 'utf8'))));`;
   const imports = resources
     .map((r) => `import { ${r.className} } from './clients/${r.file.replace(/\.ts$/, '')}';`)
     .join('\n');
@@ -255,7 +275,7 @@ function fixturesSource(pack, title, resources) {
 // freely. Specs import \`test\` and \`expect\` from here.
 
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join } from 'node:path';${yaml ? "\nimport { parse as parseYaml } from 'yaml';" : ''}
 import type { APIRequestContext } from '@playwright/test';
 import { test as core, expect } from '../../fixtures';
 import type { AuthStrategy } from '../../helpers/auth';
@@ -303,7 +323,7 @@ export const test = core.extend<${typeName}Fixtures, ${typeName}WorkerFixtures>(
   contract: [
     async ({ service }, use) => {
       const file = join(service.dir, service.spec ?? 'openapi.json');
-      await use(createSchemaValidator(JSON.parse(readFileSync(file, 'utf8'))));
+${parseContract}
     },
     { scope: 'worker' },
   ],
@@ -449,7 +469,15 @@ async function readSource(spec) {
 }
 
 /** Read the contract and decide everything; writes nothing. */
-export async function planPack({ name, spec, version, title, root = REPO_ROOT, now = new Date() }) {
+export async function planPack({
+  name,
+  spec,
+  version,
+  title,
+  skipSmoke = [],
+  root = REPO_ROOT,
+  now = new Date(),
+}) {
   if (!NAME.test(name ?? '')) throw new Error('--name must match ^[a-z][a-z0-9-]*$, e.g. shop.');
   if (!spec) throw new Error('--spec <file|url> is required.');
   const text = await readSource(spec);
@@ -461,6 +489,12 @@ export async function planPack({ name, spec, version, title, root = REPO_ROOT, n
   const yaml = /\.ya?ml$/i.test(extname(spec.split('?')[0]));
   const specFile = yaml ? 'openapi.yaml' : 'openapi.json';
   const resources = planResources(model);
+  const keys = new Set(model.operations.map((operation) => operation.key));
+  for (const entry of skipSmoke) {
+    if (!keys.has(operationKey(entry))) {
+      throw new Error(`--skip-smoke "${entry}" is not an operation of the contract ("GET /path").`);
+    }
+  }
   const plan = {
     name,
     title: title ?? model.info.title ?? name,
@@ -472,7 +506,8 @@ export async function planPack({ name, spec, version, title, root = REPO_ROOT, n
     model,
     auth: suggestAuth(model, name),
     resources,
-    smoke: smokeCandidates(resources),
+    smoke: smokeCandidates(resources, skipSmoke),
+    skippedSmoke: skipSmoke,
     packDir: join(root, 'services', name),
     skillFile: join(root, '.claude', 'skills', `${name}-api`, 'SKILL.md'),
   };
@@ -487,7 +522,8 @@ function filesFor(plan, root) {
     name: plan.name,
     version: plan.version,
     title: plan.title,
-    description: `Scaffolded from ${plan.spec}.`,
+    // Never the --spec value: a local path names the machine, a URL may name a private host.
+    description: `${plan.title}, scaffolded on ${plan.date} from its ${plan.specFile}.`,
     identity_fields: [],
     spec: plan.specFile,
   };
@@ -497,7 +533,7 @@ function filesFor(plan, root) {
     ['error-envelopes.json', `${JSON.stringify({ envelopes: {} }, null, 2)}\n`],
     ['README.md', readmeSource(plan)],
     ['docs/contract-notes.md', contractNotesSource(plan)],
-    ['fixtures.ts', fixturesSource(plan.name, plan.title, plan.resources)],
+    ['fixtures.ts', fixturesSource(plan.name, plan.title, plan.resources, plan.specFile)],
     ...plan.resources.map((r) => [`clients/${r.file}`, clientSource(r)]),
   ]);
   if (plan.smoke.length > 0) files.set('specs/smoke.spec.ts', smokeSource(plan.title, plan.smoke));
@@ -524,7 +560,9 @@ export function describePlan(plan) {
         `  ${r.resource.padEnd(20)} ${r.className.padEnd(24)} fixture ${r.fixture.padEnd(16)} ${String(r.methods.length).padStart(3)} ops  code ${r.code}`,
     ),
     '',
-    `Smoke tests: ${plan.smoke.length} GET operation(s) without parameters`,
+    `Smoke tests: ${plan.smoke.length} GET operation(s) without parameters; check that each is safe to call, and leave one out with --skip-smoke "GET /path":`,
+    ...plan.smoke.map(({ method }) => `  ${method.operation.key}`),
+    ...plan.skippedSmoke.map((entry) => `  left out: ${entry}`),
   ];
   if (plan.model.problems.length > 0) {
     lines.push('', 'Contract problems (reported, not fatal):');
@@ -606,9 +644,10 @@ async function main() {
       title: { type: 'string' },
       write: { type: 'boolean', default: false },
       'skill-only': { type: 'boolean', default: false },
+      'skip-smoke': { type: 'string', multiple: true, default: [] },
     },
   });
-  const plan = await planPack(values);
+  const plan = await planPack({ ...values, skipSmoke: values['skip-smoke'] });
   console.log(describePlan(plan));
   if (!values.write) {
     console.log('\nNothing written. Review the plan, then run again with --write.');
