@@ -1,0 +1,10 @@
+[
+  {
+    "Name": "proj-staging-api-1",
+    "Service": "staging-api",
+    "State": "running",
+    "Publishers": [
+      { "URL": "127.0.0.1", "TargetPort": 5000, "PublishedPort": 9001, "Protocol": "tcp" }
+    ]
+  }
+]

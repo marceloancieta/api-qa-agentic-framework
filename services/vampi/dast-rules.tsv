@@ -1,0 +1,45 @@
+# ZAP API scan rule policy of the vampi pack: <pluginId> TAB <IGNORE|WARN|FAIL> TAB (<name>).
+# A rules file switches zap-api-scan.py from its API-Minimal policy to every active rule, minus
+# the ones set to IGNORE here. IGNORE on an active rule stops it from running, so its alerts leave
+# the JSON report; IGNORE on a passive rule only hides it from the console summary, and the alert
+# stays in the JSON report that the quality gate counts. Measured with ZAP 2.17.0 (VN-11 to VN-13).
+# FAIL: injection and code execution, real vulnerabilities in any API.
+7	FAIL	(Remote File Inclusion)
+40003	FAIL	(CRLF Injection)
+40009	FAIL	(Server Side Include)
+40018	FAIL	(SQL Injection)
+40043	FAIL	(Log4Shell)
+90019	FAIL	(Server Side Code Injection)
+90020	FAIL	(Remote OS Command Injection)
+90021	FAIL	(XPath Injection)
+90023	FAIL	(XML External Entity Attack)
+90035	FAIL	(Server Side Template Injection)
+90036	FAIL	(Server Side Template Injection (Blind))
+90037	FAIL	(Remote OS Command Injection (Time Based))
+# WARN: hygiene seen in both modes, and the answers an attack provoked.
+10021	WARN	(X-Content-Type-Options Header Missing)
+10036	WARN	(Server Leaks Version Information via "Server" HTTP Response Header Field)
+90004	WARN	(Cross-Origin-Resource-Policy Header Missing or Invalid)
+# Markup a caller registered comes back unescaped in JSON; harmless while nosniff is honoured.
+40014	WARN	(Cross Site Scripting (Persistent))
+# 100000 also reports 4xx as informational; a 5xx under attack is the debugger page (VN-02).
+100000	WARN	(A Server Error response code was returned by the server)
+100001	WARN	(Unexpected Content-Type was returned)
+# IGNORE: false positives and notes that are not findings for this JSON API.
+# False positive: Werkzeug answers every doubled or encoded slash with the same 308 redirect.
+6	IGNORE	(Path Traversal)
+# The local containers serve plain HTTP by design; TLS belongs to a deployment, not to the API.
+10106	IGNORE	(HTTP Only Site)
+# Cacheability notes (informational); no shared cache sits in front of the API.
+10049	IGNORE	(Content Cacheability)
+# Only identifies POST /users/v1/login as a login request (informational).
+10111	IGNORE	(Authentication Request Identified)
+# Time-based injection for engines VAmPI does not use: it stores data in SQLite.
+40019	IGNORE	(SQL Injection - MySQL (Time Based))
+40020	IGNORE	(SQL Injection - Hypersonic SQL (Time Based))
+40021	IGNORE	(SQL Injection - Oracle (Time Based))
+40022	IGNORE	(SQL Injection - PostgreSQL (Time Based))
+40027	IGNORE	(SQL Injection - MsSQL (Time Based))
+# SOAP-only rules: VAmPI speaks JSON, never SOAP.
+90026	IGNORE	(SOAP Action Spoofing)
+90029	IGNORE	(SOAP XML Injection)

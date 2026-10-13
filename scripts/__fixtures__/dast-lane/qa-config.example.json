@@ -1,0 +1,30 @@
+{
+  "api": {
+    "default_environment": "local",
+    "environments": {
+      "local": {
+        "packs": {
+          "demo": {
+            "base_url": "http://localhost:9000/api/",
+            "spec_url": "http://localhost:9000/api/openapi.json"
+          },
+          "plain": {
+            "base_url": "https://api.example.test/v1",
+            "spec_url": "https://api.example.test/v1/openapi.json"
+          },
+          "nospec": {
+            "base_url": "https://nospec.example.test"
+          }
+        }
+      },
+      "staging": {
+        "packs": {
+          "demo": {
+            "base_url": "http://127.0.0.1:9001",
+            "spec_url": "http://127.0.0.1:9001/openapi.json"
+          }
+        }
+      }
+    }
+  }
+}
