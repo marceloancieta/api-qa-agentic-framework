@@ -1,0 +1,4 @@
+# Known false positives of the DAST lane (scripts/dast-lane.mjs): <ZAP rule id>, tab, <URL regex>,
+# tab, the evidence that the alert is false. The lane marks their alerts False Positive in the
+# report and out of scope for ZAP's exit; every entry needs a contract note.
+40018	^https?://[^/]+/users/v1/register$	VN-16: the secure mode looks the username up with a bound ORM query; the boolean probes differ only by whether the scan registered that name already

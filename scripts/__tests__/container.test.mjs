@@ -1,15 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { join } from 'node:path';
 import { REPO_ROOT } from '../lib/cli.mjs';
 import {
   PS_ARGS,
   containerBase,
+  freeLoopbackPort,
   httpUrl,
   parseComposePs,
   reachableBase,
+  spawnAsync,
+  stoppableSleep,
+  watchLiveness,
 } from '../lib/container.mjs';
+import { describeExit, exitCodeOf, spawnFailure } from '../lib/spawn.mjs';
 
 const FIXTURES = join(REPO_ROOT, 'scripts', '__fixtures__', 'container');
 const PS_LINES = readFileSync(join(FIXTURES, 'compose-ps-lines.txt'), 'utf8');
@@ -114,4 +120,110 @@ test('compose ps that fails or prints no JSON is an error, never a guess', () =>
     reachableBase('http://localhost:9000', { root: '.', run: missing, tool: ZAP }).error,
     /could not run: spawn docker ENOENT/,
   );
+});
+
+test('an async run resolves like a spawnSync result, and never rejects', async () => {
+  const exited = await spawnAsync(process.execPath, ['-e', 'process.exit(3)'], { cwd: REPO_ROOT });
+  assert.deepEqual(exited, { status: 3, signal: null });
+  assert.equal(exitCodeOf(exited), 3);
+  assert.equal(describeExit(exited), 'exit 3');
+  const missing = await spawnAsync('no-such-command-qa', [], { cwd: REPO_ROOT });
+  assert.equal(missing.status, null);
+  assert.match(spawnFailure(missing), /^could not run: spawn no-such-command-qa ENOENT/);
+  assert.equal(exitCodeOf(missing), 1);
+});
+
+test('a free loopback port can be listened on', async () => {
+  const port = await freeLoopbackPort();
+  assert.ok(Number.isInteger(port) && port > 0 && port < 65536, String(port));
+  const server = createServer();
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', resolve);
+  });
+  await new Promise((resolve) => server.close(resolve));
+});
+
+test('a stoppable sleep ends at once on cancel and leaves no timer', async () => {
+  const pending = new Set();
+  const timers = {
+    setTimeout: (fn, ms) => {
+      const timer = { fn, ms };
+      pending.add(timer);
+      return timer;
+    },
+    clearTimeout: (timer) => pending.delete(timer),
+  };
+  const clock = stoppableSleep(timers);
+  const slept = clock.sleep(60_000);
+  assert.equal(pending.size, 1);
+  clock.cancel();
+  await slept;
+  assert.equal(pending.size, 0);
+  clock.cancel(); // nothing to cancel: a no-op
+});
+
+/** A fetch whose answer to call n (from 1) is `answer(n)`: a status, or an error to throw. */
+function scripted(answer) {
+  const calls = [];
+  const impl = async (url, init) => {
+    calls.push({ url, redirect: init.redirect });
+    const outcome = answer(calls.length);
+    if (outcome instanceof Error) throw outcome;
+    return new Response('x', { status: outcome });
+  };
+  return { impl, calls };
+}
+
+const refused = () => new TypeError('fetch failed', { cause: { code: 'ECONNREFUSED' } });
+const until = async (condition) => {
+  while (!condition()) await new Promise((resolve) => setTimeout(resolve, 2));
+};
+
+test('the API is down after the set number of checks in a row without an answer', async () => {
+  const fetcher = scripted(refused);
+  const downs = [];
+  const watch = watchLiveness('http://localhost:9000/api', {
+    fetchImpl: fetcher.impl,
+    intervalMs: 2,
+    misses: 3,
+    onDown: (state) => downs.push({ ...state }),
+  });
+  await until(() => watch.state.down);
+  await watch.stop();
+  assert.deepEqual(downs, [{ down: true, misses: 3, checks: 3, reason: 'ECONNREFUSED' }]);
+  assert.equal(fetcher.calls.length, 3, 'no check after the verdict');
+  assert.deepEqual(fetcher.calls[0], { url: 'http://localhost:9000/api', redirect: 'manual' });
+});
+
+test('any HTTP answer counts, and an answer resets the misses', async () => {
+  const fetcher = scripted((n) => (n % 3 === 0 ? 500 : refused()));
+  const watch = watchLiveness('http://localhost:9000', {
+    fetchImpl: fetcher.impl,
+    intervalMs: 2,
+    misses: 3,
+    onDown: () => assert.fail('never down'),
+  });
+  await until(() => fetcher.calls.length >= 9);
+  await watch.stop();
+  assert.equal(watch.state.down, false);
+  assert.ok(watch.state.misses < 3);
+});
+
+test('a check that gets no answer in time is a miss, and stop() ends the watch at once', async () => {
+  const hanging = async (_url, { signal }) =>
+    new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason)));
+  const slow = watchLiveness('http://localhost:9000', {
+    fetchImpl: hanging,
+    intervalMs: 1,
+    timeoutMs: 10,
+    misses: 2,
+  });
+  await until(() => slow.state.down);
+  assert.equal(slow.state.reason, 'no answer within 0.01 s');
+  await slow.stop();
+
+  const idle = watchLiveness('http://localhost:9000', { fetchImpl: hanging, intervalMs: 60_000 });
+  await idle.stop();
+  assert.deepEqual(idle.state, { down: false, misses: 0, checks: 0, reason: null });
 });

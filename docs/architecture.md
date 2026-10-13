@@ -390,6 +390,11 @@ flowchart LR
 - **Each pack sets its own policy.** `dast-rules.tsv` sets each ZAP rule to IGNORE, WARN or FAIL,
   `dast-exclude.txt` keeps URLs out of a scan, and `perf.json` gives parameter values and keeps out
   operations that reset data or expose secrets. The VAmPI pack has all three.
+- **The pack's credential goes along.** Both lanes send the credential of one of the pack's actors,
+  obtained on the host by `scripts/lib/auth-tokens.mjs`, the code the test runner's strategies use.
+  For ZAP the lane sets it as a replacer rule through ZAP's API and renews it during the scan; for
+  k6 it travels in the container's environment, never on disk
+  ([credentials in the lanes](quality-gates.md#credentials-in-the-dast-and-performance-lanes)).
 - **The lane judges what it can, the gate judges thresholds.** A lane fails on what is wrong in
   itself: an alert of a FAIL rule, a request that answered an unexpected status. Counts and
   percentiles are judged once, by the quality gate's strategies in `scripts/quality-gate.mjs`, with

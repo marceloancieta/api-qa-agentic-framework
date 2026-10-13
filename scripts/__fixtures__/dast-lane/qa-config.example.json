@@ -6,7 +6,17 @@
         "packs": {
           "demo": {
             "base_url": "http://localhost:9000/api/",
-            "spec_url": "http://localhost:9000/api/openapi.json"
+            "spec_url": "http://localhost:9000/api/openapi.json",
+            "actors": {
+              "user": {
+                "type": "login",
+                "path": "/users/v1/login",
+                "username_env": "U",
+                "password_env": "P"
+              },
+              "keyed": { "type": "api_key", "in": "header", "name": "X-Key", "env": "K" },
+              "queried": { "type": "api_key", "in": "query", "name": "key", "env": "K" }
+            }
           },
           "plain": {
             "base_url": "https://api.example.test/v1",

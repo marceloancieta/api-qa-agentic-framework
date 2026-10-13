@@ -29,6 +29,12 @@
  * minutes rather than seconds. IGNORE stops an active rule; on a passive rule it only hides the alert
  * from ZAP's summary, and the alert stays in the JSON report the quality gate counts.
  *
+ * Known false positives. `services/<pack>/dast-false-positives.tsv` lists alerts the pack has shown
+ * to be false: `<rule id>	<URL regex>	<reason>`, the reason naming the evidence. Each becomes a
+ * global alert filter (`newrisk=-1`), so ZAP marks those alerts False Positive and the JSON report
+ * leaves them out, and an OUTOFSCOPE line in a copy of the rules file (reports/dast/<out>-rules.tsv),
+ * because ZAP's scan script counts alerts for its exit before any filter applies. The lane lists them.
+ *
  * Scan options. Injection points include the URL path (`scanner.injectable=19`: query, body and
  * path), because an API carries its ids in the path and ZAP's default leaves them out. A pack may
  * keep URLs out of the scan with `services/<pack>/dast-exclude.txt`, one regular expression per
@@ -37,22 +43,45 @@
  * scan honour, and the lane also removes every matching path from the definition it saves: ZAP's
  * import sends each operation of the definition once and ignores those exclusions.
  *
- *   node scripts/dast-lane.mjs --service pack [--target openapi-url] [--base api-url] [--out name]
+ * Authentication (FUT-10). `--actor` picks whose credential the scan sends, as the specs pick it:
+ * `default` is the pack entry's `auth`, `anonymous` sends none, any other name comes from the
+ * entry's `actors` (scripts/lib/auth-tokens.mjs). With both `--target` and `--base`, qa-config is
+ * not read, so the scan sends no credential and only `default` or `anonymous` is accepted. A
+ * credential is obtained once before the scan, so missing variables, refused credentials and an
+ * API key the API expects in the query stop the lane before ZAP starts. The lane then publishes
+ * ZAP's API on a free loopback port, obtains the credential again the moment that API answers and
+ * puts it on every request ZAP sends with a replacer rule, which it swaps whenever the token is
+ * due for renewal (scripts/lib/zap-auth.mjs). A scan whose rule never went in, or whose renewal
+ * failed, is not trusted: an operation the scan attacked may have changed or removed the scan
+ * user's credentials, and dast-exclude.txt keeps it out of the next scan. The lane prints the
+ * actor, the scheme, the header name and the number of renewals, never a value.
+ *
+ * Liveness. While ZAP runs, the lane requests the base URL from the host every 15 s; any HTTP
+ * answer counts. After 4 checks in a row without one, the API stopped answering during the scan (a
+ * payload hung or crashed it, and ZAP would wait for it forever): the lane stops the container and
+ * fails with an availability finding, with or without a report.
+ *
+ *   node scripts/dast-lane.mjs --service pack [--actor name] [--target openapi-url]
+ *                              [--base api-url] [--out name]
  *
  * Reports land in reports/dast/<out>.json and .html (default out: the pack name). Stale files of
  * the same name are removed first, so a scan that writes no report can never pass with an old one.
  *
  * Exit codes: 0 no alert of a FAIL rule (ZAP exit 0, or 2 for warnings only); 1 an alert of a FAIL
- * rule (ZAP exit 1); 2 the lane could not run or the scan did not complete (bad arguments, a spec
- * URL that does not answer or is not an OpenAPI document, Docker missing, any other ZAP exit, no
- * JSON report or one that is not a ZAP report).
+ * rule (ZAP exit 1), or the API stopped answering during the scan; 2 the lane could not run or the
+ * scan did not complete or cannot be trusted (bad arguments, an unknown actor, a credential that
+ * cannot be obtained, a spec URL that does not answer or is not an OpenAPI document, Docker
+ * missing, any other ZAP exit, no JSON report or one that is not a ZAP report, a credential that
+ * was never set in ZAP or whose renewal failed).
  */
 
+import { randomBytes } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { ANONYMOUS_ACTOR, DEFAULT_ACTOR, actorAuthOf, laneCredential } from './lib/auth-tokens.mjs';
 import {
   packEnvironment,
   readService,
@@ -60,8 +89,16 @@ import {
   REPO_ROOT,
   servicePacks,
 } from './lib/cli.mjs';
-import { dockerRunner, httpUrl, reachableBase } from './lib/container.mjs';
+import {
+  dockerRunner,
+  dockerRunnerAsync,
+  freeLoopbackPort,
+  httpUrl,
+  reachableBase,
+  watchLiveness,
+} from './lib/container.mjs';
 import { describeExit, exitCodeOf, spawnFailure } from './lib/spawn.mjs';
+import { startZapAuth } from './lib/zap-auth.mjs';
 import { InputError, dastCounts } from './quality-gate.mjs';
 
 export const RISKS = ['informational', 'low', 'medium', 'high']; // index = ZAP riskcode
@@ -69,22 +106,43 @@ export const ZAP_SERVICE = 'zap';
 export const REPORTS_DIR = join('reports', 'dast');
 export const RULES_FILE = 'dast-rules.tsv';
 export const EXCLUDE_FILE = 'dast-exclude.txt';
+export const FALSE_POSITIVES_FILE = 'dast-false-positives.tsv';
 /** Query (1), body (2) and URL path (16), as ZAP's scanner.injectable bit set. */
 export const INJECTABLE = 19;
 const ZAP = { name: 'ZAP', service: ZAP_SERVICE };
 const CONTAINER_SERVICES = '/zap/services'; // ./services, mounted read-only
+const CONTAINER_WRK = '/zap/wrk'; // reports/dast, mounted read-write
 const OUT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const FETCH_TIMEOUT_MS = 30_000;
+/**
+ * How often and how long the lane waits during a scan, in ms: ZAP's API (`pollMs` between checks,
+ * `readyTimeoutMs` in all, `requestTimeoutMs` per call, renewals at least `minRenewMs` apart) and
+ * the API under test (a check every `livenessMs`, each given `livenessTimeoutMs`,
+ * `livenessMisses` in a row mean it stopped answering).
+ */
+export const TIMING = Object.freeze({
+  pollMs: 2_000,
+  readyTimeoutMs: 300_000,
+  requestTimeoutMs: 10_000,
+  minRenewMs: 1_000,
+  livenessMs: 15_000,
+  livenessTimeoutMs: 10_000,
+  livenessMisses: 4,
+});
 
 // ---------------------------------------------------------------------------------------------
 // Arguments and URLs
 
-/** `{ service, target, base, out }` from the command line; `out` defaults to the pack name. */
+/**
+ * `{ service, target, base, out, actor }` from the command line; `out` defaults to the pack name
+ * and `actor` to `default`.
+ */
 export function parseLaneArgs(argv, root = REPO_ROOT) {
   const { values } = parseArgs({
     args: argv,
     options: {
       service: { type: 'string' },
+      actor: { type: 'string' },
       target: { type: 'string' },
       base: { type: 'string' },
       out: { type: 'string' },
@@ -101,7 +159,42 @@ export function parseLaneArgs(argv, root = REPO_ROOT) {
       `--out must be a plain file name (letters, digits, ".", "_", "-"), got "${out}"`,
     );
   }
-  return { service: values.service, target: values.target ?? null, base: values.base ?? null, out };
+  return {
+    service: values.service,
+    target: values.target ?? null,
+    base: values.base ?? null,
+    out,
+    actor: values.actor ?? DEFAULT_ACTOR,
+  };
+}
+
+/**
+ * The `auth` entry of the scan's actor: `{ actor, auth, note }`, `note` saying why no credential is
+ * sent when qa-config is not read. With both `--target` and `--base` qa-config is not read (as for
+ * the URLs), so only `default` and `anonymous` are accepted and both send nothing; otherwise the
+ * actor comes from the pack's entry in the active environment, and an unknown name is an error
+ * that lists the known ones. A pack without `auth` sends nothing as `default`.
+ */
+export function scanAuth(
+  { service, target, base, actor = DEFAULT_ACTOR },
+  root = REPO_ROOT,
+  env = process.env,
+) {
+  if (target && base) {
+    if (actor !== DEFAULT_ACTOR && actor !== ANONYMOUS_ACTOR) {
+      throw new Error(
+        `--actor "${actor}" comes from the pack's qa-config entry, which the lane does not read ` +
+          'when both --target and --base are given; drop one of them, or use --actor anonymous',
+      );
+    }
+    return {
+      actor,
+      auth: { type: 'none' },
+      note: actor === DEFAULT_ACTOR ? 'qa-config is not read with both --target and --base' : null,
+    };
+  }
+  const auth = actorAuthOf(packEnvironment(service, root, env), actor);
+  return { actor, auth: auth ?? { type: 'none' }, note: null };
 }
 
 /**
@@ -146,15 +239,70 @@ export function excludePatterns(pack, root = REPO_ROOT) {
     .filter((line) => line !== '' && !line.startsWith('#'));
 }
 
-/** ZAP `-z` options: path injection plus one global URL exclusion per pattern. */
-export function zapConfig(excludes = []) {
+/**
+ * The pack's known false positives: `[{ ruleId, url, reason }]` from
+ * `services/<pack>/dast-false-positives.tsv`, one per line as `<rule id>\t<URL regex>\t<reason>`,
+ * `#` comments and blanks skipped. The reason is required: it names the evidence (a contract note)
+ * that the alert is false. Throws with every bad line.
+ */
+export function falsePositives(pack, root = REPO_ROOT) {
+  const text = readTextIfExists(join(root, 'services', pack, FALSE_POSITIVES_FILE));
+  if (text === null) return [];
+  const entries = [];
+  const problems = [];
+  text.split(/\r?\n/).forEach((raw, index) => {
+    const line = raw.trim();
+    if (line === '' || line.startsWith('#')) return;
+    const [ruleId, url, ...rest] = line.split('\t').map((part) => part.trim());
+    const reason = rest.join(' ').trim();
+    const where = `${FALSE_POSITIVES_FILE} line ${index + 1}`;
+    if (!/^\d+$/.test(ruleId ?? '')) problems.push(`${where}: the rule id must be a ZAP plugin id`);
+    else if (!url || /\s/.test(url))
+      problems.push(`${where}: a URL regex without spaces is required`);
+    else if (!reason) problems.push(`${where}: the reason (the evidence it is false) is required`);
+    else {
+      try {
+        new RegExp(url);
+        entries.push({ ruleId, url, reason });
+      } catch (error) {
+        problems.push(`${where}: "${url}" is not a regular expression (${error.message})`);
+      }
+    }
+  });
+  if (problems.length > 0) throw new Error(problems.join('; '));
+  return entries;
+}
+
+/**
+ * ZAP `-z` options: path injection, one global URL exclusion per pattern, and one global alert
+ * filter per known false positive, which marks its alerts False Positive (`newrisk=-1`) so the JSON
+ * report the quality gate counts leaves them out.
+ */
+export function zapConfig(excludes = [], positives = []) {
   return [
     `-config scanner.injectable=${INJECTABLE}`,
     ...excludes.flatMap((regex, i) => [
       `-config globalexcludeurl.url_list.url(${i}).regex=${regex}`,
       `-config globalexcludeurl.url_list.url(${i}).enabled=true`,
     ]),
+    ...positives.flatMap(({ ruleId, url }, i) => [
+      `-config globalalertfilter.filters.filter(${i}).ruleid=${ruleId}`,
+      `-config globalalertfilter.filters.filter(${i}).newrisk=-1`,
+      `-config globalalertfilter.filters.filter(${i}).url=${url}`,
+      `-config globalalertfilter.filters.filter(${i}).urlregex=true`,
+      `-config globalalertfilter.filters.filter(${i}).enabled=true`,
+    ]),
   ].join(' ');
+}
+
+/**
+ * The rules file ZAP reads when the pack has known false positives: the pack's own rules plus one
+ * `<rule>\tOUTOFSCOPE\t<URL regex>` line each. ZAP's scan script counts alerts before any alert
+ * filter applies, so without these lines a false positive of a FAIL rule would still fail the scan.
+ */
+export function rulesWithFalsePositives(rulesText, positives) {
+  const lines = positives.map(({ ruleId, url }) => `${ruleId}\tOUTOFSCOPE\t${url}`);
+  return `${rulesText.replace(/\s*$/, '')}\n# known false positives (${FALSE_POSITIVES_FILE})\n${lines.join('\n')}\n`;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -224,14 +372,37 @@ export function withoutExcluded(spec, base, excludes = []) {
 // The scan
 
 /**
- * `docker` arguments of one scan. File names are relative to /zap/wrk (reports/dast); the rules
- * file is read through the read-only services mount.
+ * The name of one scan's container, `qa-dast-<out>-<6 hex>`, which the lane stops when the API
+ * stops answering. `random` replaces the random suffix in tests.
  */
-export function zapArgs({ definition, base, out, pack, rules, excludes = [] }) {
+export function containerName(out, random = () => randomBytes(3).toString('hex')) {
+  return `qa-dast-${out}-${random()}`;
+}
+
+/**
+ * `docker` arguments of one scan. File names are relative to /zap/wrk (reports/dast); the rules
+ * file is read through the read-only services mount. `container` names the container; `apiPort`,
+ * given when the scan carries a credential, publishes ZAP's API on that loopback port (`-P` makes
+ * ZAP listen on it inside the container).
+ */
+export function zapArgs({
+  definition,
+  base,
+  out,
+  pack,
+  rules,
+  excludes = [],
+  positives = [],
+  rulesFile,
+  container,
+  apiPort,
+}) {
   return [
     'compose',
     'run',
     '--rm',
+    ...(container ? ['--name', container] : []),
+    ...(apiPort ? ['-p', `127.0.0.1:${apiPort}:${apiPort}`] : []),
     ZAP_SERVICE,
     'zap-api-scan.py',
     '-t',
@@ -245,9 +416,10 @@ export function zapArgs({ definition, base, out, pack, rules, excludes = [] }) {
     '-r',
     `${out}.html`,
     '-I',
+    ...(apiPort ? ['-P', String(apiPort)] : []),
     '-z',
-    zapConfig(excludes),
-    ...(rules ? ['-c', `${CONTAINER_SERVICES}/${pack}/${RULES_FILE}`] : []),
+    zapConfig(excludes, positives),
+    ...(rules ? ['-c', rulesFile ?? `${CONTAINER_SERVICES}/${pack}/${RULES_FILE}`] : []),
   ];
 }
 
@@ -316,11 +488,55 @@ export function summaryLines(summary) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Authentication and liveness messages
+
+/** Who the scan sends as: actor, scheme and header name; never a value. */
+export function credentialLine({ actor, auth, note }, credential) {
+  if (!credential) {
+    return `actor "${actor}" sends no credential (${note ?? `auth ${auth.type}`})`;
+  }
+  const renewed = credential.renewAt === undefined ? '' : ', renewed before it expires';
+  return (
+    `actor "${actor}" sends its credential (${credential.type}) in the ${credential.header} header, ` +
+    `set on every request ZAP sends through its replacer${renewed}`
+  );
+}
+
+/**
+ * Why a scan with a credential is not trusted, or null when the credential stayed on it: the rule
+ * never went in, or a renewal failed (`state` of scripts/lib/zap-auth.mjs).
+ */
+export function untrustedReason(state, { actor, pack }) {
+  const { failure } = state;
+  if (failure?.stage === 'renewal') {
+    return (
+      `renewal ${state.renewals + 1} of the credential failed ${failure.at} s into the scan ` +
+      `(${failure.reason}), so from then on ZAP sent a stale credential and the scan is not ` +
+      `trusted. An operation the scan attacked may have changed or removed the credentials of ` +
+      `actor "${actor}"; keep it out of the scan with services/${pack}/${EXCLUDE_FILE}`
+    );
+  }
+  if (failure) {
+    return (
+      `the credential was never set in ZAP (${failure.at} s into the scan: ${failure.reason}), ` +
+      'so the scan ran without it and is not trusted'
+    );
+  }
+  if (state.setAt === null) {
+    return "the scan ended before ZAP's API answered, so the credential was never set and the scan is not trusted";
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------------------------
 // The lane
 
 /**
- * Run one scan and return the lane's exit code; `log` prints. `run` replaces `dockerRunner` and
- * `fetchImpl` replaces `fetch` in tests, so they never start Docker or call a network.
+ * Run one scan and return the lane's exit code; `log` prints. In tests, `run` replaces
+ * `dockerRunner` (compose ps, docker stop), `runAsync` the scan's `dockerRunnerAsync` (an injected
+ * `run` serves the scan too unless `runAsync` is given), `fetchImpl` replaces `fetch` (the
+ * definition, ZAP's API, the liveness checks), `post` the credential requests, `freePort` the
+ * loopback port and `timing` shortens `TIMING`, so tests never start Docker or call a network.
  */
 export async function dastLane(
   options,
@@ -328,11 +544,20 @@ export async function dastLane(
     root = REPO_ROOT,
     env = process.env,
     run = dockerRunner,
+    runAsync = run === dockerRunner
+      ? dockerRunnerAsync
+      : (args, runOptions) => Promise.resolve(run(args, runOptions)),
     fetchImpl = fetch,
+    post,
+    now = Date.now,
+    freePort = freeLoopbackPort,
+    timing = {},
     log = console.log,
   } = {},
 ) {
   const urls = resolveUrls(options, root, env);
+  const who = scanAuth(options, root, env);
+  const times = { ...TIMING, ...timing };
   const rules = rulesPath(options.service, root);
   const dir = join(root, REPORTS_DIR);
   const jsonFile = join(dir, `${options.out}.json`);
@@ -349,7 +574,8 @@ export async function dastLane(
   } catch {
     // not ours to change; ZAP reports the problem if it cannot write
   }
-  for (const file of [jsonFile, htmlFile, ...specFiles]) rmSync(file, { force: true });
+  const rulesCopy = join(dir, `${options.out}-rules.tsv`);
+  for (const file of [jsonFile, htmlFile, rulesCopy, ...specFiles]) rmSync(file, { force: true });
 
   let spec;
   try {
@@ -363,8 +589,26 @@ export async function dastLane(
     log(`dast-lane: ${base.error}; the scan did not run`);
     return 2;
   }
+  // The login goes from the host, so the credential uses the host's view of the base URL.
+  const obtain = () =>
+    laneCredential(who.auth, { baseUrl: urls.baseUrl, env, now, ...(post ? { post } : {}) });
+  let credential;
+  try {
+    credential = await obtain();
+  } catch (error) {
+    const why = error.message.replace(/\.$/, '');
+    log(`dast-lane: actor "${who.actor}": ${why}; the scan did not run`);
+    return 2;
+  }
 
   const excludes = excludePatterns(options.service, root);
+  let positives;
+  try {
+    positives = falsePositives(options.service, root);
+  } catch (error) {
+    log(`dast-lane: ${error.message}; the scan did not run`);
+    return 2;
+  }
   let definition;
   try {
     definition = withoutExcluded(spec, base.url, excludes);
@@ -392,6 +636,22 @@ export async function dastLane(
         : 'dast-lane: no path of the definition matches them; the scan and the spider still skip matching URLs',
     );
   }
+  let rulesFile;
+  if (positives.length > 0) {
+    for (const { ruleId, url, reason } of positives) {
+      log(
+        `dast-lane: known false positive (${FALSE_POSITIVES_FILE}): rule ${ruleId} on ${url}: ${reason}`,
+      );
+    }
+    if (rules) {
+      writeFileSync(rulesCopy, rulesWithFalsePositives(readFileSync(rules, 'utf8'), positives));
+      rulesFile = `${CONTAINER_WRK}/${options.out}-rules.tsv`;
+      log(`dast-lane: ZAP reads the rules with them out of scope from ${shown(rulesCopy)}`);
+    }
+  }
+  log(`dast-lane: ${credentialLine(who, credential)}`);
+  const apiPort = credential ? await freePort() : null;
+  const container = containerName(options.out);
   const args = zapArgs({
     definition: `${options.out}-openapi.${spec.ext}`,
     base: base.url,
@@ -399,12 +659,70 @@ export async function dastLane(
     pack: options.service,
     rules,
     excludes,
+    positives,
+    rulesFile,
+    container,
+    apiPort,
   });
-  const result = run(args, { cwd: root });
+
+  const scan = runAsync(args, { cwd: root });
+  const seconds = (ms) => ms / 1000;
+  const liveness = watchLiveness(urls.baseUrl, {
+    fetchImpl,
+    intervalMs: times.livenessMs,
+    timeoutMs: times.livenessTimeoutMs,
+    misses: times.livenessMisses,
+    onDown: (state) => {
+      log(
+        `dast-lane: the API at ${urls.baseUrl} stopped answering during the scan: ${state.misses} ` +
+          `checks ${seconds(times.livenessMs)} s apart got no answer (${state.reason}); ` +
+          `stopping ZAP (docker stop ${container})`,
+      );
+      const stopped = run(['stop', container], { cwd: root, capture: true });
+      if (spawnFailure(stopped) || exitCodeOf(stopped) !== 0) {
+        log(
+          `dast-lane: docker stop ${describeExit(stopped)}; stop the container by hand: docker stop ${container}`,
+        );
+      }
+    },
+  });
+  const auth = credential
+    ? startZapAuth({
+        port: apiPort,
+        obtain,
+        log: (line) => log(`dast-lane: ${line}`),
+        fetchImpl,
+        now,
+        readyTimeoutMs: times.readyTimeoutMs,
+        pollMs: times.pollMs,
+        requestTimeoutMs: times.requestTimeoutMs,
+        minRenewMs: times.minRenewMs,
+      })
+    : null;
+  const result = await scan;
+  await Promise.all([liveness.stop(), auth?.stop()]);
+
+  if (liveness.state.down) {
+    const report = existsSync(jsonFile) ? `${shown(jsonFile)} may be incomplete` : 'no report';
+    log(
+      `dast-lane: failed (availability: the API stopped answering during the scan, so a request ` +
+        `ZAP sent may have hung or crashed it; see the API's logs. This is not an alert of a FAIL ` +
+        `rule; ${report})`,
+    );
+    return 1;
+  }
   const failure = spawnFailure(result);
   if (failure) {
     log(`dast-lane: docker ${failure}; the scan did not complete`);
     return 2;
+  }
+  if (auth) {
+    const untrusted = untrustedReason(auth.state, { actor: who.actor, pack: options.service });
+    log(`dast-lane: credential of actor "${who.actor}" renewed ${auth.state.renewals} time(s)`);
+    if (untrusted) {
+      log(`dast-lane: ${untrusted}`);
+      return 2;
+    }
   }
   const mapped = mapZapExit(exitCodeOf(result));
   if (mapped.code === 2) {

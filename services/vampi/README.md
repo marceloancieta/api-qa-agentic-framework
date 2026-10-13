@@ -43,19 +43,29 @@ pack runs on the secure mode. Jenkins runs the secure mode after the Petstore.
 and `--out vampi-vulnerable` for the vulnerable mode). Its policy lives here:
 [`dast-rules.tsv`](dast-rules.tsv) sets each ZAP rule to IGNORE, WARN or FAIL with its reason, and
 [`dast-exclude.txt`](dast-exclude.txt) keeps `GET /createdb` (VN-05) and `GET /users/v1/_debug`
-(VN-06) out of the scan, its import included. The secure mode
-passes the quality gate's `dast` check; the vulnerable mode fails on SQL injection (VN-11). The
-scan is not authenticated, so the 6 operations that need a token answer `401` and are not
-attacked. A scan writes to the API: run it only against these local containers, then
-`npm run vampi:up` before the specs.
+(VN-06) out of the scan, its import included, and `PUT /users/v1/{username}/password`, which in the
+secure mode changes the password of the scan user itself. The scan logs in as the actor's user
+(`--actor`, default `user-a`) and renews the 60-second token while it runs, so the operations
+that need a token are attacked too. The secure mode passes the quality gate's `dast` check; the
+vulnerable mode fails on SQL injection (VN-11) and is scanned with `--actor anonymous`, because a
+token lets ZAP reach a Regex DoS that hangs it (VN-15).
+[`dast-false-positives.tsv`](dast-false-positives.tsv) marks the SQL injection an authenticated
+scan reports on the secure mode's registration as false (VN-16). A scan writes to the API: run it only
+against these local containers, then `npm run vampi:up` before the specs.
+
+Both lanes log in without Playwright, so the users must exist first: `npm run vampi:users`
+registers the users of the active environment's `login` credentials (the pack fixtures do the same
+before a Playwright run).
 
 ## Performance
 
-`npm run lanes:perf -- --service vampi` sends the pack's unauthenticated `GET` operations with k6
-([the performance lane](../../docs/quality-gates.md#performance-lane)). Parameter values come from
-the contract's examples. [`perf.json`](perf.json) keeps out `GET /createdb` (it reseeds the
-database, VN-05) and `GET /users/v1/_debug` (it answers with every password, VN-06). `GET /me` and
-`GET /books/v1/{book_title}` need a token and are left out until the lane can authenticate.
+`npm run lanes:perf -- --service vampi` sends the pack's `GET` operations with k6, as the default
+actor ([the performance lane](../../docs/quality-gates.md#performance-lane)). Parameter values come
+from the contract's examples. [`perf.json`](perf.json) keeps out `GET /createdb` (it reseeds the
+database, VN-05), `GET /users/v1/_debug` (it answers with every password, VN-06) and
+`GET /books/v1/{book_title}`: a book is read only by its owner (VN-09), the actor owns none, and the
+lane sends reads only. The token lives 60 seconds and k6 cannot renew it, so a run longer than about
+40 seconds is refused.
 
 Authentication is the core `login` strategy: it logs in as the actor's user on its first request
 and logs in again when a token it sent expires (`tokentimetolive` is 60 seconds). Actors are

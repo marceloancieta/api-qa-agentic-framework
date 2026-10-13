@@ -5,6 +5,10 @@
 //
 //   PLAN     the plan: { base, load: { rate, duration, vus }, requests: [{ name, path, status }] }
 //   SUMMARY  where k6's end-of-test summary (handleSummary data) is written, as JSON
+//   QA_PERF_AUTH_HEADER, QA_PERF_AUTH_VALUE
+//            the actor's credential (FUT-10), added as this header to every request when set. They
+//            come from the container's environment (`docker compose run -e NAME`), never from the
+//            plan or a command line, so the value reaches no file and no process list.
 //
 // Load. An open model: `constant-arrival-rate` starts `rate` iterations a second whatever the API's
 // latency, so a slow answer cannot slow the load down and hide itself (coordinated omission). Each
@@ -26,6 +30,9 @@ import { check } from 'k6';
 import exec from 'k6/execution';
 
 const plan = JSON.parse(open(__ENV.PLAN));
+const headers = __ENV.QA_PERF_AUTH_HEADER
+  ? { [__ENV.QA_PERF_AUTH_HEADER]: __ENV.QA_PERF_AUTH_VALUE }
+  : {};
 
 export const options = {
   scenarios: {
@@ -50,7 +57,10 @@ export const options = {
 
 export default function () {
   const request = plan.requests[exec.scenario.iterationInTest % plan.requests.length];
-  const response = http.get(`${plan.base}${request.path}`, { tags: { name: request.name } });
+  const response = http.get(`${plan.base}${request.path}`, {
+    headers,
+    tags: { name: request.name },
+  });
   check(
     response,
     { [`status ${request.status}`]: (r) => r.status === request.status },
