@@ -169,13 +169,24 @@ A pack's `auth` and each of its actors select a strategy in `helpers/auth.ts`. T
 | `api_key` | the secret in a header or a query parameter (`in`, `name`) |
 | `bearer` | `Authorization: Bearer <secret>` |
 | `login` | `Authorization: Bearer <token>`, where the token comes from logging in: `{ username, password }` from `username_env` and `password_env` are posted to `path` (relative to the base URL), and the token is read from `token_field` of the answer (default `auth_token`) |
+| `basic` | `Authorization: Basic <base64 of username:password>`, from `username_env` and `password_env` |
+| `oauth2_client_credentials` | `Authorization: Bearer <token>`, where the token comes from the OAuth 2.0 client credentials grant: a form post to `token_url` (an absolute URL, since a token server is often another host) with the client id and secret from `client_id_env` and `client_secret_env`, sent as HTTP basic (`client_auth: basic`, the default) or as form fields (`client_auth: body`), and `scope` when set |
 
-`login` is the one strategy that calls the API itself. It logs in on the first request it
-decorates, shares that login between concurrent requests and reuses the token. When a request it
+`login` and `oauth2_client_credentials` obtain their token over HTTP. Each one asks for it on the
+first request it decorates, shares that request between concurrent callers and reuses the token;
+`oauth2_client_credentials` asks for a new one shortly before the `expires_in` of the answer runs
+out. When a request it
 decorated answers `401`, `BaseClient` asks it for a new token and sends the request once more, so a
 token that expires during a run is renewed; a `401` to a credential the caller set is returned as
-it is. The login exchange is never recorded as evidence, because it carries the password and
-returns the token. The VAmPI pack uses it for its default credential and for each actor.
+it is. The token exchange is never recorded as evidence, because it carries the password or the
+client secret and returns the token. A `401` to a token that was already replaced while the request
+was in flight is sent again with the current one, and simultaneous `401`s share one renewal.
+
+The VAmPI pack uses `login` for its default credential and for each actor. No example pack uses
+`basic` or `oauth2_client_credentials`, so their unit tests run them against a token server
+started inside the test. `npm run auth:live` also runs `oauth2_client_credentials` against a
+public OAuth 2.0 mock (`helpers/__live__/`), on demand and outside the gates: the mock answers any
+request with a token, so that check proves the wire format only.
 
 A strategy only decorates outgoing requests, so clients and specs never know which scheme is in
 use, and a caller's explicit value is never overwritten, which lets a case send a deliberately bad
@@ -185,17 +196,18 @@ To support another scheme, change these together, in one commit:
 
 1. the `AuthConfig` union in `helpers/config.ts`, and `requiredEnvVars` there if the new type
    reads more than one variable (the preflight checks the variables it returns);
-2. a new entry in `factories` in `helpers/auth.ts`, with its `secretKeys`;
+2. in `helpers/auth.ts`, a new entry in `factories` for a scheme that sends one variable's secret
+   as it is, or its own builder called from `createAuth` for one that needs several variables or
+   keeps state (`basicStrategy`, `tokenStrategy`), with its `secretKeys`;
 3. a new branch of `$defs.auth` in `schemas/qa-config.schema.json`;
-4. tests in `helpers/__tests__/auth.spec.ts`;
+4. tests in `helpers/__tests__/auth.spec.ts`, or a file of their own beside it (`helpers/__tests__/auth-oauth2.spec.ts`);
 5. optionally, `suggestAuth` in `scripts/scaffold-service.mjs`, so the scaffolder proposes it.
 
 Variables that a new type needs follow the propagation rules in
 [documentation](../../.claude/rules/documentation.md): the README setup and the docs that name them
 change in the same commit. A scheme that has to call the API, as `login` does, receives the
-client's request context in `apply` and can renew its credential in `refresh`; `loginStrategy` in
-`helpers/auth.ts` is the example. `basic` and OAuth 2 client credentials are open in the
-[backlog](../backlog.md) (FUT-04).
+client's request context in `apply` and can renew its credential in `refresh`; `tokenStrategy` in
+`helpers/auth.ts` does both for `login` and `oauth2_client_credentials`.
 
 ## 5. First run
 

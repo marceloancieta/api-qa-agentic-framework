@@ -386,10 +386,12 @@ function securitySchemes(ctx) {
         if (scheme.type === 'basic') return [name, { type: 'http', scheme: 'basic' }];
         if (scheme.type === 'apiKey')
           return [name, { type: 'apiKey', in: scheme.in, name: scheme.name }];
-        return [
-          name,
-          { type: scheme.type, flow: scheme.flow ?? null, scopes: scheme.scopes ?? {} },
-        ];
+        const out = { type: scheme.type, flow: scheme.flow ?? null, scopes: scheme.scopes ?? {} };
+        // 2.0 keeps one flow per scheme; its URLs stay as declared (3.x keeps them inside `flows`).
+        for (const key of ['tokenUrl', 'authorizationUrl']) {
+          if (key in scheme) out[key] = scheme[key];
+        }
+        return [name, out];
       }),
     );
   }

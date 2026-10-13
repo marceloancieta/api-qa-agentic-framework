@@ -22,6 +22,18 @@ export type AuthConfig =
       password_env: string;
       /** The field of the login answer that holds the token; `auth_token` when omitted. */
       token_field?: string;
+    }
+  | { type: 'basic'; username_env: string; password_env: string }
+  | {
+      type: 'oauth2_client_credentials';
+      /** The token endpoint, an absolute http(s) URL: a token server is often another host. */
+      token_url: string;
+      client_id_env: string;
+      client_secret_env: string;
+      /** Space-separated scopes to request; none when omitted. */
+      scope?: string;
+      /** How the client authenticates at the token endpoint (RFC 6749 2.3.1); `basic` when omitted. */
+      client_auth?: 'basic' | 'body';
     };
 
 export interface RecoveryConfig {
@@ -189,8 +201,17 @@ export function actorAuth(qa: QaRuntime, name: string): AuthConfig {
 
 /** Environment variable names the active auth needs. Names only: values never leave the process. */
 export function requiredEnvVars(auth: AuthConfig): string[] {
-  if (auth.type === 'none') return [];
-  return auth.type === 'login' ? [auth.username_env, auth.password_env] : [auth.env];
+  switch (auth.type) {
+    case 'none':
+      return [];
+    case 'login':
+    case 'basic':
+      return [auth.username_env, auth.password_env];
+    case 'oauth2_client_credentials':
+      return [auth.client_id_env, auth.client_secret_env];
+    default:
+      return [auth.env];
+  }
 }
 
 /** Names from `names` that are unset or blank. A blank value is a broken binding, not a value. */

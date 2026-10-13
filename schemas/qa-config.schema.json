@@ -510,6 +510,55 @@
               "default": "auth_token"
             }
           }
+        },
+        {
+          "description": "HTTP basic authentication with a username and a password from the environment.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "username_env", "password_env"],
+          "properties": {
+            "type": {
+              "const": "basic"
+            },
+            "username_env": {
+              "$ref": "#/$defs/envVar"
+            },
+            "password_env": {
+              "$ref": "#/$defs/envVar"
+            }
+          }
+        },
+        {
+          "description": "OAuth 2.0 client credentials grant: requests a token from token_url with a client id and secret from the environment, sends it as a bearer token, keeps it until it expires and requests a new one when a request it decorated is answered 401.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "token_url", "client_id_env", "client_secret_env"],
+          "properties": {
+            "type": {
+              "const": "oauth2_client_credentials"
+            },
+            "token_url": {
+              "description": "The token endpoint, an absolute http(s) URL.",
+              "type": "string",
+              "pattern": "^https?://"
+            },
+            "client_id_env": {
+              "$ref": "#/$defs/envVar"
+            },
+            "client_secret_env": {
+              "$ref": "#/$defs/envVar"
+            },
+            "scope": {
+              "description": "Space-separated scopes to request.",
+              "type": "string",
+              "minLength": 1
+            },
+            "client_auth": {
+              "description": "How the client authenticates at the token endpoint (RFC 6749 section 2.3.1): basic sends an Authorization header, body sends client_id and client_secret as form fields.",
+              "enum": ["basic", "body"],
+              "default": "basic"
+            }
+          }
         }
       ]
     },

@@ -129,6 +129,18 @@ export default defineConfig({
       testMatch: '**/__tests__/**/*.spec.ts',
       testIgnore: [worktreesOfThisCheckout, reportsOfThisCheckout],
     },
+    // Checks against public third-party services, on demand only (`npm run auth:live`, which sets
+    // QA_AUTH_LIVE=1): without the flag the project does not exist, so no other run calls them.
+    ...(process.env.QA_AUTH_LIVE === '1'
+      ? [
+          {
+            name: 'auth-live',
+            testDir: '.',
+            testMatch: '**/__live__/**/*.spec.ts',
+            testIgnore: [worktreesOfThisCheckout, reportsOfThisCheckout],
+          },
+        ]
+      : []),
     // `--project=api-<pack>` runs one pack; `--project=api-*` runs every pack.
     ...servicePacks().flatMap(packProjects),
   ],

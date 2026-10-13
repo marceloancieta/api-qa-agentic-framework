@@ -1,13 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { normalize } from '../lib/openapi.mjs';
 import {
+  authVariables,
   camelCase,
   describePlan,
   packVersion,
   planPack,
+  suggestAuth,
   suggestCode,
   suggestPackEntry,
   writePlan,
@@ -194,4 +197,200 @@ test('the contract fixture parses YAML for a YAML contract and JSON otherwise', 
   const jsonFixtures = json.files.get('services/shop/fixtures.ts');
   assert.doesNotMatch(jsonFixtures, /yaml/);
   assert.match(jsonFixtures, /JSON\.parse\(readFileSync\(file, 'utf8'\)\)/);
+});
+
+// Small contracts for the auth suggestion: `schemes` by name, one GET per entry of `uses`, each
+// accepting the schemes it lists.
+const openapi3 = (schemes, uses, servers = []) => ({
+  openapi: '3.0.3',
+  info: { title: 'Shop', version: '1.0.0' },
+  servers: servers.map((url) => ({ url })),
+  components: { securitySchemes: schemes },
+  paths: Object.fromEntries(
+    uses.map((names, index) => [
+      `/r${index}`,
+      {
+        get: {
+          security: names.map((name) => ({ [name]: [] })),
+          responses: { 200: { description: 'OK' } },
+        },
+      },
+    ]),
+  ),
+});
+const swagger2 = (definitions, uses, { host, basePath } = {}) => ({
+  swagger: '2.0',
+  info: { title: 'Shop', version: '1.0.0' },
+  ...(host ? { host } : {}),
+  ...(basePath ? { basePath } : {}),
+  securityDefinitions: definitions,
+  paths: Object.fromEntries(
+    uses.map((names, index) => [
+      `/r${index}`,
+      {
+        get: {
+          security: names.map((name) => ({ [name]: [] })),
+          responses: { 200: { description: 'OK' } },
+        },
+      },
+    ]),
+  ),
+});
+const suggest = (doc) => suggestAuth(normalize(doc), 'shop');
+const BASIC = { type: 'basic', username_env: 'SHOP_USERNAME', password_env: 'SHOP_PASSWORD' };
+const clientCredentials = (tokenUrl) => ({
+  type: 'oauth2_client_credentials',
+  token_url: tokenUrl,
+  client_id_env: 'SHOP_CLIENT_ID',
+  client_secret_env: 'SHOP_CLIENT_SECRET',
+});
+
+test('an http basic scheme suggests basic auth, in OpenAPI 3.x and Swagger 2.0', () => {
+  assert.deepEqual(
+    suggest(openapi3({ creds: { type: 'http', scheme: 'Basic' } }, [['creds']])),
+    BASIC,
+  );
+  assert.deepEqual(suggest(swagger2({ creds: { type: 'basic' } }, [['creds']])), BASIC);
+});
+
+test('an oauth2 client credentials grant suggests that grant, its token URL made absolute', () => {
+  const flows = (tokenUrl) => ({
+    oauth: {
+      type: 'oauth2',
+      flows: { clientCredentials: { tokenUrl, scopes: { 'read:items': 'read' } } },
+    },
+  });
+  const uses = [['oauth']];
+  assert.deepEqual(
+    suggest(openapi3(flows('https://auth.example.test/oauth/token'), uses, ['/v1'])),
+    clientCredentials('https://auth.example.test/oauth/token'),
+    'an absolute token URL is kept as declared',
+  );
+  assert.deepEqual(
+    suggest(openapi3(flows('/oauth/token'), uses, ['/v1', 'https://api.example.test/v1'])),
+    clientCredentials('https://api.example.test/oauth/token'),
+    'a relative token URL resolves against the first absolute server',
+  );
+  assert.deepEqual(
+    suggest(openapi3(flows('oauth/token'), uses, ['https://api.example.test/v1/'])),
+    clientCredentials('https://api.example.test/v1/oauth/token'),
+  );
+  assert.deepEqual(
+    suggest(openapi3(flows('/oauth/token'), uses, ['/v1'])),
+    clientCredentials('https://<host>/oauth/token'),
+    'without an absolute server the host is left to fill in',
+  );
+  assert.deepEqual(
+    suggest(openapi3(flows('/oauth/token'), uses)),
+    clientCredentials('https://<host>/oauth/token'),
+  );
+  const suggested = suggest(openapi3(flows('/oauth/token'), uses));
+  assert.ok(!('scope' in suggested), 'scopes are set by hand, never all of the declared ones');
+});
+
+test('a Swagger 2.0 oauth2 application flow suggests client credentials', () => {
+  const application = (tokenUrl) => ({
+    oauth: { type: 'oauth2', flow: 'application', tokenUrl, scopes: {} },
+  });
+  assert.deepEqual(
+    suggest(swagger2(application('https://auth.example.test/token'), [['oauth']])),
+    clientCredentials('https://auth.example.test/token'),
+  );
+  assert.deepEqual(
+    suggest(
+      swagger2(application('/token'), [['oauth']], { host: 'api.example.test', basePath: '/v2' }),
+    ),
+    clientCredentials('https://api.example.test/token'),
+    'a relative token URL resolves against the host',
+  );
+});
+
+test('other oauth2 grants, openIdConnect and http bearer still suggest a bearer token', () => {
+  const bearer = { type: 'bearer', env: 'SHOP_TOKEN' };
+  const implicit = {
+    type: 'oauth2',
+    flows: { implicit: { authorizationUrl: 'https://auth.example.test/authorize', scopes: {} } },
+  };
+  assert.deepEqual(suggest(openapi3({ oauth: implicit }, [['oauth']])), bearer);
+  assert.deepEqual(
+    suggest(
+      swagger2(
+        {
+          oauth: {
+            type: 'oauth2',
+            flow: 'password',
+            tokenUrl: 'https://auth.example.test/token',
+            scopes: {},
+          },
+        },
+        [['oauth']],
+      ),
+    ),
+    bearer,
+  );
+  assert.deepEqual(
+    suggest(
+      openapi3(
+        { oidc: { type: 'openIdConnect', openIdConnectUrl: 'https://auth.example.test/.wk' } },
+        [['oidc']],
+      ),
+    ),
+    bearer,
+  );
+  assert.deepEqual(
+    suggest(openapi3({ jwt: { type: 'http', scheme: 'bearer' } }, [['jwt']])),
+    bearer,
+  );
+});
+
+test('the most used scheme wins between basic and an API key, declaration order breaks ties', () => {
+  const schemes = {
+    key: { type: 'apiKey', in: 'header', name: 'X-Api-Key' },
+    creds: { type: 'http', scheme: 'basic' },
+  };
+  const apiKey = { type: 'api_key', in: 'header', name: 'X-Api-Key', env: 'SHOP_API_KEY' };
+  assert.deepEqual(suggest(openapi3(schemes, [['creds'], ['creds'], ['key']])), BASIC);
+  assert.deepEqual(suggest(openapi3(schemes, [['key'], ['key'], ['creds']])), apiKey);
+  assert.deepEqual(suggest(openapi3(schemes, [['creds'], ['key']])), apiKey, 'tie: key first');
+});
+
+test('the plan, README and skill name both variables of the new auth types', async () => {
+  assert.deepEqual(authVariables(BASIC), ['SHOP_USERNAME', 'SHOP_PASSWORD']);
+  assert.deepEqual(authVariables(clientCredentials('https://a.example.test/t')), [
+    'SHOP_CLIENT_ID',
+    'SHOP_CLIENT_SECRET',
+  ]);
+  assert.deepEqual(authVariables({ type: 'bearer', env: 'SHOP_TOKEN' }), ['SHOP_TOKEN']);
+  assert.deepEqual(authVariables({ type: 'none' }), []);
+
+  const root = mkdtempSync(join(tmpdir(), 'scaffold-'));
+  const spec = join(root, 'shop.json');
+  const oauth = {
+    type: 'oauth2',
+    flows: { clientCredentials: { tokenUrl: '/oauth/token', scopes: {} } },
+  };
+  writeFileSync(
+    spec,
+    JSON.stringify(openapi3({ oauth }, [['oauth']], ['https://api.example.test/v1'])),
+  );
+  const plan = await planPack({ name: 'shop', spec, root, now: NOW });
+  assert.deepEqual(plan.auth, clientCredentials('https://api.example.test/oauth/token'));
+  assert.match(
+    describePlan(plan),
+    /\n {2}Set SHOP_CLIENT_ID and SHOP_CLIENT_SECRET in the environment or the local \.env, never in qa-config\.\n {2}Add scope \(space-separated\) by hand/,
+  );
+  const readme = plan.files.get('services/shop/README.md');
+  assert.match(readme, /Set `SHOP_CLIENT_ID` and `SHOP_CLIENT_SECRET` in the environment/);
+  assert.match(readme, /Add `scope` \(space-separated\) by hand/);
+  const skill = plan.files.get('.claude/skills/shop-api/SKILL.md');
+  assert.match(skill, /`oauth` \(oauth2, clientCredentials\)/);
+  assert.ok(skill.includes(JSON.stringify(plan.auth)), 'the skill shows the suggested auth');
+
+  writeFileSync(spec, JSON.stringify(swagger2({ creds: { type: 'basic' } }, [['creds']])));
+  const basic = await planPack({ name: 'shop', spec, root, now: NOW });
+  assert.match(
+    basic.files.get('services/shop/README.md'),
+    /Set `SHOP_USERNAME` and `SHOP_PASSWORD` in the environment/,
+  );
+  assert.doesNotMatch(describePlan(basic), /scope/);
 });
