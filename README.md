@@ -14,8 +14,14 @@ agentic process last ([adoption levels](#adoption-levels)).
 
 Each API under test is a **service pack** in `services/<name>/`.
 [`services/petstore/`](services/petstore/README.md) is the worked example, run against Swagger
-Petstore v3 in Docker. Test only environments you are authorized to test, as named in qa-config;
-never production.
+Petstore v3 in Docker. [`services/vampi/`](services/vampi/README.md) is a second pack, against the
+deliberately vulnerable VAmPI in a secure and a vulnerable mode: it shows login authentication,
+actors and an authorization matrix that detects the vulnerable mode's flaw. Test only environments
+you are authorized to test, as named in qa-config; never production.
+
+Beyond the functional suite, two lanes run tools in containers against a pack: an OWASP ZAP security
+scan driven by the pack's OpenAPI document, and a k6 performance smoke of its `GET` operations.
+Their reports feed the quality gate next to the test results ([lanes](docs/quality-gates.md#lanes)).
 
 The project is before 1.0: names and formats can still change between minor versions. Architecture
 decisions are recorded in [`docs/adr/`](docs/adr/README.md).
@@ -27,7 +33,7 @@ From a fresh clone to a green run against the example Petstore pack.
 **You need:**
 
 - Node.js at the major version in `.nvmrc` (with nvm, `nvm use` reads it);
-- Docker with Compose v2, for the local Petstore container;
+- Docker with Compose v2, for the local Petstore container (and later for VAmPI, ZAP and k6);
 - git. [gitleaks](https://github.com/gitleaks/gitleaks) is needed only once you install the git
   hooks ([CONTRIBUTING](CONTRIBUTING.md#git-hooks)).
 
@@ -103,9 +109,19 @@ as redacted evidence. Results go to `allure-results/` and
 adds to the run before it instead). The optional runner switches (retries, extra reports, a fixed
 seed or clock) are listed in `.env.example`.
 
-The lanes that run outside a normal run (known gaps, published cases, flakiness, destructive cases,
-the DAST scan and the performance smoke) and the quality gate are described in
-[quality gates](docs/quality-gates.md#lanes).
+Lanes run outside a normal run, and the quality gate judges their outputs together. Both are
+described in [quality gates](docs/quality-gates.md#lanes):
+
+| Command | Runs |
+|---|---|
+| `npm run lanes:known-gap`, `lanes:published`, `lanes:flake`, `lanes:destructive` | Playwright selections: armed known gaps, published cases, repeats to find flaky cases, `@destructive` cases one at a time with a recovery after each. |
+| `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack, with the pack's rules, into `reports/dast/<pack>.json`. |
+| `npm run lanes:perf -- --service <pack>` | A k6 performance smoke of the pack's `GET` operations at a steady rate, into `reports/perf/<pack>.json`. |
+| `npm run quality:gate` | PASS, REVIEW or FAIL per check in qa-config `quality_gate`: pass rate, p95 latency, DAST alerts, mutation score. |
+
+ZAP and k6 run from compose services pinned by digest (profiles `dast` and `perf`, so
+`docker compose up` never starts them). Both send real traffic, and a ZAP scan writes: point them at
+local containers or an environment meant for it.
 
 ## Adoption levels
 
@@ -134,7 +150,7 @@ calls for, and whether the specs and docs still agree with it.
 | | |
 |---|---|
 | **Adds** | the `contract:*` scripts ([contract tooling](docs/contract-tooling.md)), registries of designed cases in `services/<pack>/registry/`, the linters, `coverage:status`, `traceability`, the lanes and the quality gate ([quality gates](docs/quality-gates.md)), all run together by `npm run gates`, plus the git hooks in `.githooks/`. |
-| **Needs** | the rest of `scripts/` and `schemas/`; each pack's tracked contract outputs (`docs/discovery/<pack>-digest.json`, `services/<pack>/generated/`), which `contract:check` keeps current; registries in the format of [the registry rule](.claude/rules/registry.md); gitleaks if you install the git hooks. |
+| **Needs** | the rest of `scripts/` and `schemas/`; each pack's tracked contract outputs (`docs/discovery/<pack>-digest.json`, `services/<pack>/generated/`), which `contract:check` keeps current; registries in the format of [the registry rule](.claude/rules/registry.md); Docker for the DAST and performance lanes; gitleaks if you install the git hooks. |
 | **You can skip** | the agent-specific parts of `.claude/` (skills, agents, hooks). The files in `.claude/rules/` still describe the conventions the linters enforce, so read them as documentation. |
 
 ### 3. The agentic process
@@ -198,9 +214,10 @@ None of these is needed for a green run. Turn on what your project uses.
   token is configured ([reporting to Allure TestOps](docs/ci.md#reporting-to-allure-testops)).
 - **Issue trackers.** Defects are searched, filed and re-read through `tracker.provider`; the example
   uses a local tracker kept in `docs/tracker/local/`. `none` turns every tracker call off. Same page.
-- **CI workflows.** `.github/workflows/` runs the gates, the end-to-end suite and a daily drift check
-  ([continuous integration](docs/ci.md)), plus CodeQL, a secret scan, Dependabot and an optional AI
-  pull-request review ([CI security and review](docs/ci-security.md)). Keep the ones you want; each
+- **CI workflows.** `.github/workflows/` runs the gates and the end-to-end suite of each pack, a
+  daily drift check, and weekly DAST and performance runs ([continuous integration](docs/ci.md)),
+  plus CodeQL, a secret scan, Dependabot and an optional AI pull-request review
+  ([CI security and review](docs/ci-security.md)). Keep the ones you want; each
   page says how to turn a workflow on or off. On Jenkins, `Jenkinsfile` and `Jenkinsfile.drift` run
   the same gates, suite and drift check on Linux or Windows agents
   ([Jenkins](docs/ci.md#jenkins)).
@@ -214,6 +231,10 @@ None of these is needed for a green run. Turn on what your project uses.
   passes, so a fresh clone loses nothing by ignoring it. The pre-commit and commit-msg hooks run the
   same scan on staged changes and on the message, `npm run scan:denylist:history` scans the whole
   history, and `npm run gates` runs only the scanner's self-test.
+- **Security scan and performance smoke.** A pack opts into the DAST lane's policy with
+  `dast-rules.tsv` and `dast-exclude.txt`, and into the performance lane's values and exclusions
+  with `perf.json`; without them both lanes still run on the contract alone
+  ([optional lanes](docs/guides/add-a-service-pack.md)).
 - **Quality gate checks.** Every check in `qa-config` `quality_gate` is optional
   ([quality gates](docs/quality-gates.md#quality-gate)).
 - **Mutation testing.** `npm run mutation` runs Stryker over the framework's own libraries. It is

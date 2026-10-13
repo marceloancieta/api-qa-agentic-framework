@@ -29,10 +29,14 @@ Released as `v0.2.0`.
 
 ## v0.3.0
 
-Stability and a complete quality gate. Every item is in **Done**: GATE-17 and PROC-15 for the small
-fixes, PET-03 for the intermittent Petstore failure, CI-08 for VAmPI in CI, then FUT-01 and FUT-02
-for the DAST and performance lanes, which give the quality gate's `dast` and `p95_latency` checks a
-source.
+Stability and a complete quality gate. GATE-17 and PROC-15 for the small fixes, PET-03 for the
+intermittent Petstore failure, CI-08 for VAmPI in CI, then FUT-01 and FUT-02 for the DAST and
+performance lanes, which give the quality gate's `dast` and `p95_latency` checks a source, are in
+**Done**. DOC-06 brings the overview pages up to date before the release.
+
+| Id | Item | Origin | Status |
+|---|---|---|---|
+| DOC-06 | The README, the architecture page and the onboarding tour cover what v0.2.0 and v0.3.0 added: the VAmPI pack, the DAST lane with ZAP, the performance lane with k6, the quality gate's sources, the compose services and `reports/`; a diagram of the lanes feeding the quality gate and one of the CI workflows; the service-pack guide documents the `login` strategy instead of calling it open work. | plan | in-progress |
 
 ## v0.4.0
 
