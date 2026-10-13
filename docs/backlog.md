@@ -36,16 +36,25 @@ and DOC-06 for the overview pages. Released as `v0.3.0`.
 
 ## v0.4.0
 
-Extensibility and distribution. FUT-06 needs its reference implementation chosen before design,
-and FUT-05 publishes a package, which cannot be fully undone: it comes last.
+Extensibility and distribution, in this order. FUT-04 adds the auth strategies, so FUT-10 can give
+the lanes credentials of any kind. FUT-03 is documentation and fits anywhere. FUT-06 compares two
+published versions of the Petstore. DOC-07 reviews the documentation once the code has settled, and
+FUT-05 comes last.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| FUT-03 | Consumer-driven contract testing (Pact) documented as a complementary extension. | practice | todo |
-| FUT-04 | More auth strategies (`basic`, `oauth2-client-credentials`). | practice | todo |
-| FUT-06 | Differential testing against a reference implementation, e.g. two versions of an API serving the same requests, using the field-bucket model. | exp | todo |
-| FUT-10 | Authenticated DAST: the lane scans with a pack's own credentials, so operations that answer `401` without a token are attacked too (6 of VAmPI's 14 today), with the token renewed through the scan (VAmPI's lives 60 seconds). Then bring the Petstore into the lane, after checking ZAP's `-O` with a base URL that has a path (`/api/v3`). The performance lane gets the same credentials, so it measures the `GET`s the contract secures as well (it leaves them out today unless a pack's `perf.json` lists them as answered without credentials). | exp | todo |
-| FUT-05 | Template repository / `npx create-api-qa` scaffolder. | plan | todo |
+| FUT-04 | More auth strategies: `basic` (username and password from the environment) and `oauth2-client-credentials` (a token from a token URL with a client id and secret from the environment, kept until it expires and renewed after a `401`, like `login`); the scaffolder suggests them from the contract's security schemes. No pack uses either, so unit tests run them against a token server started inside the test. An optional live check against Beeceptor's public OAuth mock proves the wire format only: it answers any request with a token and no `expires_in`. | practice | todo |
+| FUT-10 | Authenticated DAST: the lane scans with a pack's own credentials, so operations that answer `401` without a token are attacked too (6 of VAmPI's 14 today), with the token renewed through the scan (VAmPI's lives 60 seconds). A spike first decides how: an auth proxy started by the lane that applies the pack's strategy, or a ZAP hook. Then bring the Petstore into the lane, after checking ZAP's `-O` with a base URL that has a path (`/api/v3`), with few scan threads and a restart after the scan (LOCAL-5). The performance lane gets the same credentials, so it measures the `GET`s the contract secures as well (it leaves them out today unless a pack's `perf.json` lists them as answered without credentials). | exp | todo |
+| FUT-03 | Consumer-driven contract testing (Pact) documented as a complementary extension: what it covers that a provider contract does not, when it pays off, and where a broker and provider verification would sit next to the lanes and the quality gate. Documentation only. | practice | todo |
+| FUT-06 | Differential testing: the same requests sent to two published versions of the Petstore image (1.0.28, the pinned one, and 1.0.27 as the reference; an older tag if those two do not differ), with the answers compared through the field-bucket model, so a change of behaviour between versions is a finding. | exp | todo |
+| DOC-07 | A full documentation review: README, `docs/`, the pack READMEs, the rules and the skills read against the code, with a new ADR recording the container lanes (tools pinned in compose services; the lane judges statuses, the quality gate judges thresholds). | plan | todo |
+| FUT-05 | The repository as a GitHub template, with a guide to adopting it from the template; reversible, unlike an npm package (FUT-11). | plan | todo |
+
+## v0.5.0
+
+| Id | Item | Origin | Status |
+|---|---|---|---|
+| FUT-11 | `npx create-api-qa`: the scaffolder published as an npm package. Publishing needs the owner's npm account and cannot be fully undone, so it waits for its own approval. | plan | todo |
 
 ---
 
