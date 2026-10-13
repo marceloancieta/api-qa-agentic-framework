@@ -4,9 +4,11 @@
 // thresholds in `qa-config.quality_gate`:
 //
 //   pass_rate       share of executed tests that passed: Playwright JSON report or Allure results
-//   p95_latency     95th percentile of API case durations, from Allure start/stop times. This is
-//                   per test case, not per request: evidence attachments carry no timings yet, so
-//                   a case that sends three requests counts once with its whole duration.
+//   p95_latency     95th percentile of latency. `format: k6-summary` reads the summary of the
+//                   performance lane (`npm run lanes:perf`): every request counts, under a steady
+//                   load. The default `allure-results` reads API case durations from Allure
+//                   start/stop times: per test case, not per request, so a case that sends three
+//                   requests counts once with its whole duration.
 //   dast            alerts of a ZAP-style JSON report, counted per risk level
 //   mutation_score  Stryker's mutation.json (`npm run mutation`)
 //
@@ -181,6 +183,85 @@ export function p95FromAllure(results, minSamples = 5) {
   };
 }
 
+const K6_OPERATION = /^http_req_duration\{name:(.+)\}$/;
+
+/** The `values` of one k6 summary metric, checked to hold finite numbers under `keys`. */
+function k6Values(metrics, name, keys) {
+  const values = metrics[name]?.values;
+  if (!isObject(values)) throw new InputError(`metric ${name} has no "values"`);
+  for (const key of keys) {
+    if (!Number.isFinite(values[key])) {
+      throw new InputError(`metric ${name} has no numeric "${key}"`);
+    }
+  }
+  return values;
+}
+
+/**
+ * Latency of a k6 end-of-test summary (handleSummary data, written by the performance lane), per
+ * request: `{ requests, p95, max, operations, failedChecks, dropped }`. `operations` lists each
+ * operation's submetric (`http_req_duration{name:<operation>}`) as `{ name, count, p95, max,
+ * passes, fails }`, slowest p95 first. Throws an InputError for a summary of the wrong shape; a run
+ * that sent no request has `p95` null.
+ */
+export function k6Latency(summary) {
+  if (!isObject(summary) || !isObject(summary.metrics)) {
+    throw new InputError('not a k6 summary (no "metrics" object)');
+  }
+  const { metrics } = summary;
+  const requests = metrics.http_reqs ? k6Values(metrics, 'http_reqs', ['count']).count : 0;
+  if (requests === 0) {
+    return { requests, p95: null, max: null, operations: [], failedChecks: 0, dropped: 0 };
+  }
+  const overall = k6Values(metrics, 'http_req_duration', ['p(95)', 'max']);
+  const operations = Object.keys(metrics)
+    .map((name) => [name, K6_OPERATION.exec(name)?.[1]])
+    .filter(([, operation]) => operation !== undefined)
+    .map(([name, operation]) => {
+      const values = k6Values(metrics, name, ['count', 'p(95)', 'max']);
+      const checks = metrics[`checks{name:${operation}}`]?.values ?? {};
+      return {
+        name: operation,
+        count: values.count,
+        p95: values['p(95)'],
+        max: values.max,
+        passes: Number.isFinite(checks.passes) ? checks.passes : null,
+        fails: Number.isFinite(checks.fails) ? checks.fails : null,
+      };
+    })
+    .sort((a, b) => b.p95 - a.p95);
+  return {
+    requests,
+    p95: overall['p(95)'],
+    max: overall.max,
+    operations,
+    failedChecks: metrics.checks ? k6Values(metrics, 'checks', ['fails']).fails : 0,
+    dropped: metrics.dropped_iterations?.values?.count ?? 0,
+  };
+}
+
+/**
+ * p95 of the request durations in a k6 summary (ms): every request counts, not every test case.
+ * Returns `{ value: null }` with a reason when fewer than `minSamples` requests were sent.
+ */
+export function p95FromK6(summary, minSamples = 5) {
+  const latency = k6Latency(summary);
+  if (latency.requests < minSamples) {
+    return {
+      value: null,
+      detail: `only ${latency.requests} request(s), fewer than min_samples ${minSamples}`,
+    };
+  }
+  const slowest = latency.operations[0];
+  return {
+    value: round(latency.p95),
+    detail:
+      `${latency.requests} requests (per request), max ${round(latency.max)} ms` +
+      (slowest ? `; slowest operation ${slowest.name} p95 ${round(slowest.p95)} ms` : '') +
+      (latency.dropped > 0 ? `; ${latency.dropped} iteration(s) dropped` : ''),
+  };
+}
+
 /** Alert counts per risk of a ZAP-style JSON report: `site` (array or object) with `alerts`. */
 export function dastCounts(report) {
   if (!isObject(report) || !('site' in report)) {
@@ -293,10 +374,16 @@ export const STRATEGIES = {
   },
   p95_latency: {
     check: 'p95-latency',
-    source: (settings) => settings.source ?? 'allure-results',
-    sourceHint: 'run the API lane first (it writes allure-results)',
+    source: (settings) =>
+      settings.source ??
+      ((settings.format ?? 'allure-results') === 'allure-results' ? 'allure-results' : undefined),
+    sourceHint:
+      'run the API lane first (it writes allure-results), or the performance lane for k6-summary',
     threshold: (settings) => pick(settings, ['fail_above_ms', 'review_above_ms', 'min_samples']),
-    measure: (path, settings) => p95FromAllure(readAllureResults(path), settings.min_samples ?? 5),
+    measure: (path, settings) =>
+      (settings.format ?? 'allure-results') === 'k6-summary'
+        ? p95FromK6(readJson(path), settings.min_samples ?? 5)
+        : p95FromAllure(readAllureResults(path), settings.min_samples ?? 5),
     judge: (value, settings) => judgeAbove(value, settings.fail_above_ms, settings.review_above_ms),
   },
   dast: {

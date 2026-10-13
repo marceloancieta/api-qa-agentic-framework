@@ -48,6 +48,14 @@ scan is not authenticated, so the 6 operations that need a token answer `401` an
 attacked. A scan writes to the API: run it only against these local containers, then
 `npm run vampi:up` before the specs.
 
+## Performance
+
+`npm run lanes:perf -- --service vampi` sends the pack's unauthenticated `GET` operations with k6
+([the performance lane](../../docs/quality-gates.md#performance-lane)). Parameter values come from
+the contract's examples. [`perf.json`](perf.json) keeps out `GET /createdb` (it reseeds the
+database, VN-05) and `GET /users/v1/_debug` (it answers with every password, VN-06). `GET /me` and
+`GET /books/v1/{book_title}` need a token and are left out until the lane can authenticate.
+
 Authentication is the core `login` strategy: it logs in as the actor's user on its first request
 and logs in again when a token it sent expires (`tokentimetolive` is 60 seconds). Actors are
 `user-a` (also the default credential), `user-b` and the built-in `anonymous`.

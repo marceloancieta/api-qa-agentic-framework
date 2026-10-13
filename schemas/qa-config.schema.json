@@ -246,13 +246,22 @@
           }
         },
         "p95_latency": {
-          "description": "95th percentile of API case durations (Allure start/stop) in milliseconds. Per test case, not per request, until evidence attachments carry request timings.",
+          "description": "95th percentile of latency in milliseconds. k6-summary: every request of the performance lane (npm run lanes:perf). allure-results: API case durations (Allure start/stop), per test case, not per request.",
           "type": "object",
           "additionalProperties": false,
           "required": ["fail_above_ms"],
+          "if": {
+            "properties": { "format": { "const": "k6-summary" } },
+            "required": ["format"]
+          },
+          "then": { "properties": { "source": true }, "required": ["source"] },
           "properties": {
+            "format": {
+              "enum": ["allure-results", "k6-summary"],
+              "default": "allure-results"
+            },
             "source": {
-              "description": "Allure results directory. Default: allure-results.",
+              "description": "allure-results: the results directory (default allure-results). k6-summary: the summary the performance lane writes, reports/perf/<pack>.json (required).",
               "type": "string",
               "minLength": 1
             },
@@ -265,7 +274,7 @@
               "exclusiveMinimum": 0
             },
             "min_samples": {
-              "description": "Fewer timed API cases than this make the check SKIPPED: a percentile of a handful of timings is noise.",
+              "description": "Fewer timings than this (requests for k6-summary, API cases for allure-results) make the check SKIPPED: a percentile of a handful of timings is noise.",
               "type": "integer",
               "minimum": 1,
               "default": 5

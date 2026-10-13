@@ -1,0 +1,6 @@
+{
+  "$comment": "Fixture of the performance lane's pack file.",
+  "params": { "id": 7, "tag": ["a", "b"], "username": "a b" },
+  "anonymous": { "GET /open-secret": "the key is not checked" },
+  "exclude": { "GET /reset": "it resets the data" }
+}

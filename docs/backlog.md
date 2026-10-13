@@ -47,7 +47,7 @@ and FUT-05 publishes a package, which cannot be fully undone: it comes last.
 | FUT-03 | Consumer-driven contract testing (Pact) documented as a complementary extension. | practice | todo |
 | FUT-04 | More auth strategies (`basic`, `oauth2-client-credentials`). | practice | todo |
 | FUT-06 | Differential testing against a reference implementation, e.g. two versions of an API serving the same requests, using the field-bucket model. | exp | todo |
-| FUT-10 | Authenticated DAST: the lane scans with a pack's own credentials, so operations that answer `401` without a token are attacked too (6 of VAmPI's 14 today), with the token renewed through the scan (VAmPI's lives 60 seconds). Then bring the Petstore into the lane, after checking ZAP's `-O` with a base URL that has a path (`/api/v3`). | exp | todo |
+| FUT-10 | Authenticated DAST: the lane scans with a pack's own credentials, so operations that answer `401` without a token are attacked too (6 of VAmPI's 14 today), with the token renewed through the scan (VAmPI's lives 60 seconds). Then bring the Petstore into the lane, after checking ZAP's `-O` with a base URL that has a path (`/api/v3`). The performance lane gets the same credentials, so it measures the `GET`s the contract secures as well (it leaves them out today unless a pack's `perf.json` lists them as answered without credentials). | exp | todo |
 | FUT-05 | Template repository / `npx create-api-qa` scaffolder. | plan | todo |
 
 ---

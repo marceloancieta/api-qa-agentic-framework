@@ -39,6 +39,8 @@ Each API under test is a pack in `services/<name>/` (ADR 0007). The core (`helpe
 | `services/<name>/docs/features/` | feature contracts written at intake |
 | `services/<name>/docs/contract-notes.md` | where the API departs from its contract, with status |
 | `specs/` | Playwright specs |
+| `dast-rules.tsv`, `dast-exclude.txt` | optional: the DAST lane's rule policy and the URLs a scan must not call |
+| `perf.json` | optional: what the performance lane needs beyond the contract (parameter values, operations answered without credentials, operations it must not send) |
 
 The pack's `README.md` is the map. Its skill (`.claude/skills/<name>-api/SKILL.md`) records what an
 agent must know about this API that the contract does not say.

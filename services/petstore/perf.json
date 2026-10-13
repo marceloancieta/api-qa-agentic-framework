@@ -1,0 +1,17 @@
+{
+  "$comment": "Performance lane (scripts/perf-lane.mjs): values for required parameters, operations the contract secures but the API answers without credentials, and operations the lane must not send. Ids and the user are the image's seed data; the user is the one the contract suggests for testing.",
+  "params": {
+    "petId": 1,
+    "orderId": 1,
+    "username": "user1"
+  },
+  "anonymous": {
+    "GET /pet/findByStatus": "PN-05: petstore_auth is not checked",
+    "GET /pet/{petId}": "PN-05: neither api_key nor petstore_auth is checked",
+    "GET /store/inventory": "PN-05: api_key is not checked"
+  },
+  "exclude": {
+    "GET /user/login": "a session operation, not a read: it answers with a session token",
+    "GET /user/logout": "a session operation, not a read"
+  }
+}
