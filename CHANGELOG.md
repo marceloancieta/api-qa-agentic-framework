@@ -5,6 +5,39 @@ All notable changes to this project are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and each section is generated from the
 commit history by `scripts/changelog.mjs`.
 
+## [0.3.0] - 2026-10-13
+
+### Features
+
+- **gates:** DAST lane with OWASP ZAP feeding the quality gate (#26) (FUT-01) `b941e14`
+- **gates:** k6 performance lane feeding the quality gate's p95 check (#29) (FUT-02) `6c84b0f`
+
+### Fixes
+
+- **hooks:** session-probe reads the coverage totals again (#19) (GATE-17) `a9217fe`
+- **petstore:** file the Petstore concurrency defect and run the pack on one worker (#22) (PET-03) `9ff3667`
+- **scripts:** scaffolder never names its source, lists and skips smoke GETs, reads YAML (#20) (PROC-15) `8422299`
+- **vampi:** retry the database seed when its random book titles collide (#28) (FUT-07) `8e983ed`
+
+### Other
+
+- **ci(github):** the VAmPI pack runs in CI and Jenkins, with a BOLA detection check (#24) (CI-08) `df116e5`
+- **docs(backlog):** plan v0.3.0 and v0.4.0 (#18) (GATE-17) `fc34e7b`
+- **docs(backlog):** record their closing commits (#21) (GATE-17, PROC-15) `9313fb0`
+- **docs(backlog):** records its closing commit (#23) (PET-03) `3ce0d3f`
+- **docs(backlog):** records its closing commit (#25) (CI-08) `89494cd`
+- **docs(backlog):** records its closing commit (#27) (FUT-01) `9f3e255`
+- **docs(backlog):** records its closing commit (#30) (FUT-02) `a228bfe`
+- **docs(readme):** overview pages cover VAmPI, the DAST and performance lanes and login (#31) (DOC-06) `d713660`
+
+### Not conventional
+
+- build(deps-dev): Bump the npm-minor-patch group with 4 updates (#17) `688ac94` (no backlog id after the colon)
+
+A Dependabot update: its titles carry no backlog id, so its pull requests skip the `title` check
+([CI](docs/ci.md)). It moves four development dependencies to their next minor release: `allure`,
+`allure-js-commons`, `allure-playwright` and `typescript-eslint`.
+
 ## [0.2.0] - 2026-10-12
 
 ### Breaking changes
