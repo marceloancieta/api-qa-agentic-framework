@@ -1,7 +1,8 @@
 # DAST (FUT-01): an OWASP ZAP API scan of the VAmPI pack in both modes, weekly, on demand and on
 # pull requests that change the lane or the pack's policy. A full scan takes minutes, so it does not
-# run on every pull request. The secure mode feeds the quality gate's `dast` check; the vulnerable
-# mode must be caught by a FAIL rule (SQL injection, VN-11). What each step runs: docs/ci.md.
+# run on every pull request. The secure mode is scanned with the pack's credential (FUT-10) and
+# feeds the quality gate's `dast` check; the vulnerable mode, scanned without one (VN-15), must be
+# caught by a FAIL rule (SQL injection, VN-11). What each step runs: docs/ci.md.
 name: dast
 
 on:
@@ -11,8 +12,12 @@ on:
   pull_request:
     paths:
       - 'scripts/dast-lane.mjs'
+      - 'scripts/lib/auth-tokens.mjs'
+      - 'scripts/lib/container.mjs'
+      - 'scripts/lib/zap-auth.mjs'
       - 'scripts/quality-gate.mjs'
       - 'services/vampi/dast-*'
+      - 'services/vampi/register-users.mjs'
       - 'docker-compose.yml'
       - '.github/workflows/dast.yml'
 
@@ -59,6 +64,23 @@ jobs:
         timeout-minutes: 5
         run: npm run vampi:up
 
+      # The secure mode is scanned with the pack's credential (FUT-10): throwaway users per run,
+      # registered by the pack, as in the e2e-vampi job.
+      - name: Provide and register the VAmPI users
+        if: ${{ matrix.mode == 'secure' }}
+        env:
+          QA_ENV: local
+        run: |
+          for actor in A B; do
+            name="qa-$(echo "$actor" | tr 'AB' 'ab')-$(openssl rand -hex 6)"
+            password="$(openssl rand -hex 16)"
+            echo "::add-mask::$password"
+            echo "VAMPI_USER_${actor}_NAME=$name" >> "$GITHUB_ENV"
+            echo "VAMPI_USER_${actor}_PASSWORD=$password" >> "$GITHUB_ENV"
+            export "VAMPI_USER_${actor}_NAME=$name" "VAMPI_USER_${actor}_PASSWORD=$password"
+          done
+          npm run vampi:users
+
       # The secure mode must pass the quality gate on its own scan.
       - name: Scan the secure mode, then the quality gate
         if: ${{ matrix.mode == 'secure' }}
@@ -70,14 +92,16 @@ jobs:
           cat reports/quality-gate.md >> "$GITHUB_STEP_SUMMARY"
 
       # The vulnerable mode must fail on a FAIL rule (exit 1), with SQL injection (rule 40018) in the
-      # report; any other outcome means the scan stopped detecting what it exists to detect.
+      # report; any other outcome means the scan stopped detecting what it exists to detect. It scans
+      # without a token: with one, ZAP reaches the e-mail update's Regex DoS and the API stops
+      # answering (VN-15).
       - name: Scan the vulnerable mode and require the SQL injection finding
         if: ${{ matrix.mode == 'vulnerable' }}
         env:
           QA_ENV: local-vulnerable
         run: |
           set +e
-          npm run lanes:dast -- --service vampi --out vampi-vulnerable
+          npm run lanes:dast -- --service vampi --out vampi-vulnerable --actor anonymous
           code=$?
           set -e
           if [ "$code" -ne 1 ]; then

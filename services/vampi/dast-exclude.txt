@@ -4,3 +4,8 @@
 ^https?://[^/]+/createdb.*$
 # GET /users/v1/_debug answers every user's password (VN-06): kept out so ZAP never holds them.
 ^https?://[^/]+/users/v1/_debug.*$
+# PUT /users/v1/{username}/password changes the password of the token's own user in secure mode,
+# whatever the path names: an authenticated scan would change its own credentials and lose them
+# at the next renewal. Without a token it answers 401 before its handler runs, so leaving it out
+# costs the unauthenticated scan nothing.
+^https?://[^/]+/users/v1/[^/]+/password$

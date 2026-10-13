@@ -185,7 +185,10 @@ An OWASP ZAP API scan of the VAmPI pack (`npm run lanes:dast`, [quality gates](q
 one job per mode. A full scan takes about 13 minutes, so it runs weekly, on demand and on pull
 requests that touch the lane, the quality gate, VAmPI's DAST files, `docker-compose.yml` or the
 workflow; not on every pull request. An active scan writes to the API, so it only ever targets the
-job's own disposable containers.
+job's own disposable containers. The secure job scans as the pack's default actor (FUT-10): it
+generates throwaway users, as `e2e-vampi` does, and registers them with `npm run vampi:users`. The
+vulnerable job scans with `--actor anonymous`: with a token, ZAP reaches a Regex DoS that hangs
+that mode (VN-15).
 
 | Job | Passes when |
 |---|---|
@@ -202,7 +205,8 @@ k6 sends the pack's GET operations at a steady rate for 30 seconds against the j
 It sends only reads, but a load is still a load: the lane runs against the local containers here,
 never against a shared environment. It runs weekly, on demand and on pull requests that touch the
 lane, its k6 script, the container address library, a pack's `perf.json`, the quality gate,
-`docker-compose.yml` or the workflow.
+`docker-compose.yml` or the workflow. Each job sends its pack's default credential (FUT-10): any
+`API_KEY` for the Petstore, throwaway users registered by `npm run vampi:users` for VAmPI.
 
 | Job | Passes when |
 |---|---|

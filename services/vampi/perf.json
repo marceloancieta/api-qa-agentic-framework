@@ -1,7 +1,8 @@
 {
-  "$comment": "Performance lane (scripts/perf-lane.mjs): operations the lane must not send. Parameter values come from the contract's examples.",
+  "$comment": "Performance lane (scripts/perf-lane.mjs): operations the lane must not send. Parameter values come from the contract's examples; the lane sends the pack's credential (FUT-10).",
   "exclude": {
     "GET /createdb": "VN-05: it drops and reseeds the database",
-    "GET /users/v1/_debug": "VN-06: it answers with every user's password"
+    "GET /users/v1/_debug": "VN-06: it answers with every user's password",
+    "GET /books/v1/{book_title}": "VN-09: a book is read only by its owner, and the scan user owns none; the lane sends reads only, so it cannot create one, and the seeded titles are random (VN-14)"
   }
 }

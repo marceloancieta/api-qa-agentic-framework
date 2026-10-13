@@ -13,31 +13,45 @@
  * (`params` in services/<pack>/perf.json, by parameter name), the schema's first example, its
  * default, its first enum value. An operation is left out, with its reason, when the pack excludes
  * it (`exclude`: an operation that resets data or answers with secrets), when the contract
- * requires credentials (authenticated runs come with FUT-10) unless the pack lists it
- * in `anonymous` (the API answers it without them, with the contract note that says so), when a
- * required parameter has no value, or when it declares no 2xx response. Every operation left out is
- * printed with the reason (L-05). The plan is written to reports/perf/<out>-plan.json.
+ * requires credentials and the actor sends none, unless the pack lists it in `anonymous` (the API
+ * answers it without them, with the contract note that says so), when a required parameter has no
+ * value, or when it declares no 2xx response. Every operation left out is printed with the reason
+ * (L-05). The plan is written to reports/perf/<out>-plan.json.
+ *
+ * Authentication (FUT-10). The lane sends the credential of one actor of the pack's qa-config entry
+ * (`--actor`, default `default`, the entry's `auth`; `anonymous` sends none), obtained through
+ * scripts/lib/auth-tokens.mjs, and puts it on every request: the host preflight and everything k6
+ * sends. With a credential, the operations the contract secures are planned too, and `anonymous`
+ * has nothing left to say; whether the credential suits each operation's scheme is for the answers
+ * to tell. `--base` reads no qa-config, so it sends no credential and takes no other actor. The
+ * credential never reaches the disk (reports/ is uploaded by CI) or a command line: the docker
+ * process alone gets it in its environment, and `docker compose run -e NAME` hands it to k6. k6
+ * cannot renew a token mid-run, so a token due for renewal before the run ends (its `--duration`
+ * plus k6's start-up) stops the lane before k6 starts; a shorter `--duration` fits. An API key in
+ * the query is refused: k6's requests carry a fixed header, not a query parameter. The lane prints
+ * the actor, the scheme and the header's name, never its value.
  *
  * Run. k6 runs from the pinned `k6` compose service (profile `perf`) with scripts/k6/smoke.js, a
  * fixed script that reads the plan: an open model at `--rate` requests a second for `--duration`,
  * with at most `--vus` virtual users, one planned request per iteration in turn. A loopback base is
  * rewritten to the address the container reaches (scripts/lib/container.mjs). Before k6 starts,
- * the lane sends the first planned request from the host: an API that does not answer stops the
- * lane (reachability rule), whatever HTTP status it returns is an answer.
+ * the lane sends the first planned request from the host, with the credential: an API that does
+ * not answer stops the lane (reachability rule), whatever HTTP status it returns is an answer.
  *
  * Verdict. The lane judges correctness only: every request must answer its expected status. Latency
  * is judged once, by the quality gate's `p95_latency` check with `format: k6-summary`, which reads
  * the summary this lane writes (reports/perf/<out>.json). Response bodies are discarded.
  *
- *   node scripts/perf-lane.mjs --service pack [--base api-url] [--out name]
+ *   node scripts/perf-lane.mjs --service pack [--base api-url] [--actor name] [--out name]
  *                              [--rate n] [--duration 30s] [--vus n]
  *
  * Exit codes: 0 every request answered its expected status; 1 some did not (the operations are
- * listed); 2 the lane could not run or k6 did not complete (bad arguments or pack file, nothing to
- * measure, an API that does not answer, Docker missing, a k6 error, no summary or one that is not
- * a k6 summary).
+ * listed); 2 the lane could not run or k6 did not complete (bad arguments or pack file, an unknown
+ * actor, a credential that cannot be obtained or would expire mid-run, nothing to measure, an API
+ * that does not answer, Docker missing, a k6 error, no summary or one that is not a k6 summary).
  */
 
+import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -49,7 +63,15 @@ import {
   REPO_ROOT,
   servicePacks,
 } from './lib/cli.mjs';
+import {
+  actorAuthOf,
+  ANONYMOUS_ACTOR,
+  DEFAULT_ACTOR,
+  fetchPost,
+  laneCredential,
+} from './lib/auth-tokens.mjs';
 import { dockerRunner, httpUrl, reachableBase } from './lib/container.mjs';
+import { loadLocalEnv } from './lib/env.mjs';
 import { loadModel } from './lib/openapi.mjs';
 import { describeExit, exitCodeOf, spawnFailure } from './lib/spawn.mjs';
 import { InputError, k6Latency } from './quality-gate.mjs';
@@ -62,9 +84,16 @@ const CONTAINER_REPORTS = '/perf'; // reports/perf
 const K6 = { name: 'k6', service: K6_SERVICE };
 export const DEFAULT_LOAD = Object.freeze({ rate: 20, duration: '30s', vus: 10 });
 const OUT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-const DURATION = /^[1-9][0-9]*(ms|s|m|h)$/;
+const DURATION = /^(?:([0-9]+)h)?(?:([0-9]+)m)?(?:([0-9]+)s)?(?:([0-9]+)ms)?$/;
+const DURATION_UNITS_MS = [3_600_000, 60_000, 1_000, 1];
 const PREFLIGHT_TIMEOUT_MS = 10_000;
+/** What k6 needs before its first request, counted into the run a token has to outlive. */
+export const K6_STARTUP_MS = 10_000;
+/** The variables that carry the credential from the lane, through docker, to k6. */
+export const AUTH_HEADER_VAR = 'QA_PERF_AUTH_HEADER';
+export const AUTH_VALUE_VAR = 'QA_PERF_AUTH_VALUE';
 const PACK_KEYS = ['$comment', 'params', 'anonymous', 'exclude'];
+const TOKEN_TYPES = ['login', 'oauth2_client_credentials'];
 
 // ---------------------------------------------------------------------------------------------
 // Arguments
@@ -75,13 +104,33 @@ const positiveInteger = (raw, flag) => {
   return Number(raw);
 };
 
-/** `{ service, base, out, load }` from the command line; `out` defaults to the pack name. */
+/**
+ * A k6 duration in milliseconds: whole numbers of h, m, s and ms in that order (`30s`, `2m`,
+ * `1m30s`, `500ms`). Throws for anything else, and for a duration of zero.
+ */
+export function durationMs(text) {
+  const match = DURATION.exec(text);
+  const total = match
+    ? DURATION_UNITS_MS.reduce((sum, unit, index) => sum + Number(match[index + 1] ?? 0) * unit, 0)
+    : 0;
+  if (total <= 0) {
+    throw new Error(`--duration must be a k6 duration such as 30s, 2m or 1m30s, got "${text}"`);
+  }
+  return total;
+}
+
+/**
+ * `{ service, base, actor, out, load }` from the command line; `out` defaults to the pack name and
+ * `actor` to `default`. `--base` reads no qa-config, so it takes no actor but `default` (which then
+ * sends nothing) and `anonymous`.
+ */
 export function parseLaneArgs(argv, root = REPO_ROOT) {
   const { values } = parseArgs({
     args: argv,
     options: {
       service: { type: 'string' },
       base: { type: 'string' },
+      actor: { type: 'string' },
       out: { type: 'string' },
       rate: { type: 'string' },
       duration: { type: 'string' },
@@ -99,13 +148,19 @@ export function parseLaneArgs(argv, root = REPO_ROOT) {
       `--out must be a plain file name (letters, digits, ".", "_", "-"), got "${out}"`,
     );
   }
-  const duration = values.duration ?? DEFAULT_LOAD.duration;
-  if (!DURATION.test(duration)) {
-    throw new Error(`--duration must be a k6 duration such as 30s or 2m, got "${duration}"`);
+  const actor = values.actor ?? DEFAULT_ACTOR;
+  if (values.base && ![DEFAULT_ACTOR, ANONYMOUS_ACTOR].includes(actor)) {
+    throw new Error(
+      `--actor "${actor}" needs the pack's qa-config entry, which --base leaves unread; drop --base ` +
+        `to use the pack's base_url`,
+    );
   }
+  const duration = values.duration ?? DEFAULT_LOAD.duration;
+  durationMs(duration);
   return {
     service: values.service,
     base: values.base ?? null,
+    actor,
     out,
     load: {
       rate: values.rate ? positiveInteger(values.rate, '--rate') : DEFAULT_LOAD.rate,
@@ -128,6 +183,21 @@ export function resolveBase({ service, base }, root = REPO_ROOT, env = process.e
     baseUrl: environment.baseUrl,
     baseFrom: `base_url of "${service}" in environment "${environment.name}"`,
   };
+}
+
+/**
+ * `{ actor, auth, note }`: the qa-config `auth` the lane sends as `actor` (`--actor`, default
+ * `default`). With --base no qa-config is read and nothing is sent; `note` then says why. Throws
+ * for an actor the pack's entry does not define, naming the known ones.
+ */
+export function resolveAuth(
+  { service, base, actor = DEFAULT_ACTOR },
+  root = REPO_ROOT,
+  env = process.env,
+) {
+  if (base) return { actor, auth: { type: 'none' }, note: '--base reads no qa-config' };
+  const auth = actorAuthOf(packEnvironment(service, root, env), actor);
+  return { actor, auth: auth ?? { type: 'none' }, note: null };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -202,11 +272,17 @@ const securedOperation = (operation) =>
 
 /**
  * The plan of a model's GET operations: `{ requests, skipped }`. A request is `{ name, path,
- * status }` with `note` when the pack lists it in `anonymous`; a skipped operation is
- * `{ name, reason }`. Throws when the pack's file names an operation that is not a GET operation
- * of the contract, so a renamed path never leaves a stale entry behind.
+ * status }` with `note` when it goes without credentials because the pack lists it in `anonymous`;
+ * a skipped operation is `{ name, reason }`. The third argument says who sends: `actor` names it,
+ * and `authenticated` is true when it sends a credential, which plans the secured operations too.
+ * Throws when the pack's file names an operation that is not a GET operation of the contract, so a
+ * renamed path never leaves a stale entry behind.
  */
-export function derivePlan(model, pack = { params: {}, anonymous: {}, exclude: {} }) {
+export function derivePlan(
+  model,
+  pack = { params: {}, anonymous: {}, exclude: {} },
+  { actor = ANONYMOUS_ACTOR, authenticated = false } = {},
+) {
   const gets = model.operations.filter((operation) => operation.method === 'GET');
   const known = new Set(gets.map((operation) => operation.key));
   const stale = ['anonymous', 'exclude'].flatMap((key) =>
@@ -229,9 +305,14 @@ export function derivePlan(model, pack = { params: {}, anonymous: {}, exclude: {
       skip(`excluded by ${PACK_FILE}: ${pack.exclude[name]}`);
       continue;
     }
-    if (securedOperation(operation) && !(name in pack.anonymous)) {
+    const withoutCredentials = !authenticated && name in pack.anonymous;
+    if (!authenticated && securedOperation(operation) && !withoutCredentials) {
       const schemes = operation.security.map((schemes) => schemes.join(' + ')).join(' or ');
-      skip(`the contract requires credentials (${schemes}); the lane sends none yet`);
+      skip(
+        `the contract requires credentials (${schemes}) and actor "${actor}" sends none; ` +
+          `name one that does with --actor, or list it in ${PACK_FILE} "anonymous" if the API ` +
+          'answers it without',
+      );
       continue;
     }
     const status = successStatus(operation);
@@ -266,7 +347,7 @@ export function derivePlan(model, pack = { params: {}, anonymous: {}, exclude: {
     }
     const search = query.toString();
     const request = { name, path: search ? `${path}?${search}` : path, status };
-    if (name in pack.anonymous) request.note = `sent without credentials: ${pack.anonymous[name]}`;
+    if (withoutCredentials) request.note = `sent without credentials: ${pack.anonymous[name]}`;
     requests.push(request);
   }
   return { requests, skipped };
@@ -275,12 +356,18 @@ export function derivePlan(model, pack = { params: {}, anonymous: {}, exclude: {
 // ---------------------------------------------------------------------------------------------
 // The run
 
-/** `docker` arguments of one k6 run. Files are under /perf (reports/perf) in the container. */
-export function k6Args(out) {
+/**
+ * `docker` arguments of one k6 run. Files are under /perf (reports/perf) in the container. With
+ * `credential`, compose passes the credential's variables from the docker process's environment
+ * into the container (a bare `-e NAME`), so its value is on no command line; k6 reads them in
+ * `__ENV`.
+ */
+export function k6Args(out, { credential = false } = {}) {
   return [
     'compose',
     'run',
     '--rm',
+    ...(credential ? ['-e', AUTH_HEADER_VAR, '-e', AUTH_VALUE_VAR] : []),
     K6_SERVICE,
     'run',
     '-e',
@@ -292,16 +379,60 @@ export function k6Args(out) {
 }
 
 /**
- * Send one request from the host and report whether the API answered: null when it did (any HTTP
- * status is an answer), else the reason.
+ * `dockerRunner`, plus `env`: variables added to the environment of this one docker process, which
+ * is how the credential reaches k6 without a command line or a file carrying it.
  */
-export async function preflight(url, fetchImpl = fetch) {
+export function dockerRunnerWithEnv(args, { cwd, capture = false, env }) {
+  if (!env) return dockerRunner(args, { cwd, capture });
+  return spawnSync('docker', args, {
+    cwd,
+    encoding: 'utf8',
+    stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+    env: { ...process.env, ...env },
+  });
+}
+
+/**
+ * Send one request from the host, with `headers`, and report whether the API answered: null when
+ * it did (any HTTP status is an answer), else the reason.
+ */
+export async function preflight(url, fetchImpl = fetch, headers = {}) {
   try {
-    await fetchImpl(url, { signal: AbortSignal.timeout(PREFLIGHT_TIMEOUT_MS) });
+    await fetchImpl(url, { headers, signal: AbortSignal.timeout(PREFLIGHT_TIMEOUT_MS) });
     return null;
   } catch (error) {
     return `${url} did not answer (${error.cause?.code ?? error.message})`;
   }
+}
+
+/** The line that tells who sends: actor, scheme, header name and when a token is due; never a value. */
+export function credentialLine({ actor, auth, note }, credential, now) {
+  if (!credential) {
+    return `actor "${actor}" sends no credential` + (note ? ` (${note})` : ` (auth ${auth.type})`);
+  }
+  const line = `actor "${actor}" sends its ${credential.type} credential in the ${credential.header} header`;
+  if (credential.renewAt !== undefined) {
+    return `${line}; the token is due for renewal in ${Math.floor((credential.renewAt - now) / 1000)} s`;
+  }
+  return TOKEN_TYPES.includes(auth.type) ? `${line}; the token states no expiry` : line;
+}
+
+/**
+ * Null when the credential outlives a run of `runMs` starting at `now` (plus k6's start-up), else
+ * why the lane must not start: k6 cannot renew a token mid-run.
+ */
+export function credentialLifetimeProblem(credential, { actor, duration, runMs, now }) {
+  if (!credential || credential.renewAt === undefined) return null;
+  if (credential.renewAt >= now + runMs + K6_STARTUP_MS) return null;
+  const left = Math.max(0, Math.floor((credential.renewAt - now) / 1000));
+  const room = left - K6_STARTUP_MS / 1000;
+  return (
+    `the token of actor "${actor}" is due for renewal in ${left} s, before a run of ${duration} ` +
+    `(plus ${K6_STARTUP_MS / 1000} s for k6 to start) would end, and k6 cannot renew it; ` +
+    (room > 0
+      ? `choose a shorter --duration, under ${room}s`
+      : 'the token lives too briefly for any run; check the lifetime the API grants')
+  );
 }
 
 const ms = (value) => `${Math.round(value * 10) / 10} ms`;
@@ -323,24 +454,31 @@ export function summaryLines(latency) {
 }
 
 /**
- * Run the lane and return its exit code; `log` prints. `run` replaces `dockerRunner` and
- * `fetchImpl` replaces `fetch` in tests, so they never start Docker or call a network.
+ * Run the lane and return its exit code; `log` prints. `run` replaces `dockerRunnerWithEnv`,
+ * `fetchImpl` replaces `fetch`, `post` the POST that obtains a token and `now` the clock in tests,
+ * so they never start Docker or call a network.
  */
 export async function perfLane(
   options,
   {
     root = REPO_ROOT,
     env = process.env,
-    run = dockerRunner,
+    run = dockerRunnerWithEnv,
     fetchImpl = fetch,
+    post = fetchPost,
+    now = Date.now,
     log = console.log,
   } = {},
 ) {
   const service = readService(options.service, root);
   const { baseUrl, baseFrom } = resolveBase(options, root, env);
+  const sender = resolveAuth(options, root, env);
   const pack = readPackFile(options.service, root);
   const model = await loadModel(join(service.dir, service.spec));
-  const plan = derivePlan(model, pack);
+  const plan = derivePlan(model, pack, {
+    actor: sender.actor,
+    authenticated: sender.auth.type !== 'none',
+  });
 
   const dir = join(root, REPORTS_DIR);
   const planFile = join(dir, `${options.out}-plan.json`);
@@ -367,7 +505,25 @@ export async function perfLane(
   }
 
   log(`perf-lane: API base ${baseUrl} (${baseFrom})`);
-  const unreachable = await preflight(`${baseUrl}${plan.requests[0].path}`, fetchImpl);
+  // Obtained once the plan has something to send, and right before the requests that carry it.
+  let credential;
+  try {
+    credential = await laneCredential(sender.auth, { baseUrl, env, post, now });
+  } catch (error) {
+    // A login the API does not answer is a reachability problem, not a credential one.
+    const code = error.cause?.code
+      ? ` (${error.cause.code}); check that the service is up and QA_ENV names the right environment`
+      : '';
+    const why = error.message.replace(/\.$/, '');
+    log(
+      `perf-lane: no credential for actor "${sender.actor}": ${why}${code}; the lane did not run`,
+    );
+    return 2;
+  }
+  log(`perf-lane: ${credentialLine(sender, credential, now())}`);
+  const headers = credential ? { [credential.header]: credential.value } : {};
+
+  const unreachable = await preflight(`${baseUrl}${plan.requests[0].path}`, fetchImpl, headers);
   if (unreachable) {
     log(
       `perf-lane: ${unreachable}; check that the service is up and QA_ENV names the right ` +
@@ -382,17 +538,35 @@ export async function perfLane(
   }
   if (base.note) log(`perf-lane: rewritten to ${base.url}: ${base.note}`);
 
+  const { rate, duration, vus } = options.load;
+  const expiring = credentialLifetimeProblem(credential, {
+    actor: sender.actor,
+    duration,
+    runMs: durationMs(duration),
+    now: now(),
+  });
+  if (expiring) {
+    log(`perf-lane: ${expiring}; the lane did not run`);
+    return 2;
+  }
+
+  // The plan names the header k6 adds, never its value: reports/ is uploaded as a CI artifact.
+  const auth = { actor: sender.actor, type: sender.auth.type, header: credential?.header ?? null };
   writeFileSync(
     planFile,
-    `${JSON.stringify({ pack: options.service, base: base.url, load: options.load, ...plan }, null, 2)}\n`,
+    `${JSON.stringify({ pack: options.service, base: base.url, load: options.load, auth, ...plan }, null, 2)}\n`,
   );
-  const { rate, duration, vus } = options.load;
   log(
     `perf-lane: ${plan.requests.length} operation(s) at ${rate} requests/s for ${duration} ` +
       `(at most ${vus} VUs); plan in ${shown(planFile)}`,
   );
 
-  const result = run(k6Args(options.out), { cwd: root });
+  const result = credential
+    ? run(k6Args(options.out, { credential: true }), {
+        cwd: root,
+        env: { [AUTH_HEADER_VAR]: credential.header, [AUTH_VALUE_VAR]: credential.value },
+      })
+    : run(k6Args(options.out), { cwd: root });
   const failure = spawnFailure(result);
   if (failure) {
     log(`perf-lane: docker ${failure}; the run did not complete`);
@@ -441,7 +615,11 @@ export async function perfLane(
 const entryScript = process.argv[1];
 if (entryScript && pathToFileURL(entryScript).href === import.meta.url) {
   Promise.resolve()
-    .then(() => perfLane(parseLaneArgs(process.argv.slice(2))))
+    .then(() => {
+      const options = parseLaneArgs(process.argv.slice(2));
+      loadLocalEnv(); // the actor's credentials, when the real environment does not set them
+      return perfLane(options);
+    })
     .then(
       (code) => process.exit(code),
       (error) => {

@@ -3,7 +3,8 @@
   "params": {
     "petId": 1,
     "orderId": 1,
-    "username": "user1"
+    "username": "user1",
+    "tags": "tag1"
   },
   "anonymous": {
     "GET /pet/findByStatus": "PN-05: petstore_auth is not checked",

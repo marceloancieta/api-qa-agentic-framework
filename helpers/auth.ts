@@ -16,6 +16,13 @@
 import type { APIRequestContext } from '@playwright/test';
 import type { AuthConfig } from './config';
 import { missingEnvVars, requiredEnvVars } from './config';
+import {
+  base64,
+  issueLoginToken,
+  issueOAuth2Token,
+  type Issued,
+  type Post,
+} from '../scripts/lib/auth-tokens.mjs';
 
 export type QueryParams = Record<string, string | number | boolean>;
 
@@ -56,13 +63,6 @@ function setHeader(headers: Record<string, string>, name: string, value: string)
   if (!hasHeader(headers, name)) headers[name] = value;
 }
 
-const base64 = (text: string): string => Buffer.from(text, 'utf8').toString('base64');
-
-// application/x-www-form-urlencoded, which RFC 6749 2.3.1 applies to each half of a client's
-// Basic credential before it is encoded.
-const formEncode = (value: string): string =>
-  new URLSearchParams([['', value]]).toString().slice(1);
-
 export const noAuth: AuthStrategy = {
   type: 'none',
   secretKeys: [],
@@ -74,12 +74,6 @@ type OAuth2Config = Extract<AuthConfig, { type: 'oauth2_client_credentials' }>;
 /** Schemes that send the secret of one variable as it is: the ones `factories` builds. */
 type SecretConfig = Extract<AuthConfig, { env: string }>;
 type Factory<T extends SecretConfig> = (config: T, secret: string) => AuthStrategy;
-
-/** A token, and the time on the strategy's clock from which it is renewed; without one, at a 401. */
-interface Issued {
-  value: string;
-  renewAt?: number;
-}
 
 /**
  * What the token strategies share: get a token from `issue` for the first request, shared by
@@ -155,26 +149,36 @@ function basicStrategy(username: string, password: string): AuthStrategy {
   };
 }
 
-/**
- * `login`: POST `{ username, password }` to `config.path` (relative to the pack's base URL), read
- * the token from `config.token_field` of the answer and send it as a bearer token until a 401.
- */
-function loginStrategy(config: LoginConfig, username: string, password: string): AuthStrategy {
-  const field = config.token_field ?? 'auth_token';
-  const issue = async (context: APIRequestContext): Promise<Issued> => {
-    const response = await context.post(config.path, { data: { username, password } });
-    const body: unknown = await response.json().catch(() => null);
-    const token = (body as Record<string, unknown> | null)?.[field];
-    if (!response.ok() || typeof token !== 'string' || !token) {
-      throw new Error(
-        `Login at ${config.path} as the user in ${config.username_env} answered ` +
-          `${response.status()} without a "${field}" string; check the credentials in ` +
-          `${config.username_env} and ${config.password_env}.`,
-      );
-    }
-    return { value: token };
+/** Playwright's request context as the `post` of scripts/lib/auth-tokens.mjs. */
+function contextPost(context: APIRequestContext): Post {
+  return async (url, { data, form, headers }) => {
+    const response = await context.post(url, { data, form, headers });
+    const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+    return { ok: response.ok(), status: response.status(), body };
   };
-  return tokenStrategy('login', issue, () => Date.now());
+}
+
+/**
+ * `login`: POST `{ username, password }` to `config.path` (relative to the pack's base URL, which
+ * the client's context resolves), read the token from `config.token_field` of the answer and send
+ * it as a bearer token; a JWT is renewed shortly before its `exp`, any token after a 401.
+ */
+function loginStrategy(
+  config: LoginConfig,
+  username: string,
+  password: string,
+  now: () => number,
+): AuthStrategy {
+  const issue = (context: APIRequestContext): Promise<Issued> =>
+    issueLoginToken({
+      config,
+      url: config.path,
+      username,
+      password,
+      post: contextPost(context),
+      now,
+    });
+  return tokenStrategy('login', issue, now);
 }
 
 /**
@@ -190,46 +194,8 @@ function oauth2Strategy(
   clientSecret: string,
   now: () => number,
 ): AuthStrategy {
-  const variables = `${config.client_id_env} and ${config.client_secret_env}`;
-  const issue = async (context: APIRequestContext): Promise<Issued> => {
-    const form: Record<string, string> = { grant_type: 'client_credentials' };
-    if (config.scope) form['scope'] = config.scope;
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (config.client_auth === 'body') {
-      form['client_id'] = clientId;
-      form['client_secret'] = clientSecret;
-    } else {
-      headers['Authorization'] =
-        `Basic ${base64(`${formEncode(clientId)}:${formEncode(clientSecret)}`)}`;
-    }
-
-    const requested = now();
-    const response = await context.post(config.token_url, { form, headers });
-    const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
-    const answered = `Token endpoint ${config.token_url} answered ${response.status()}`;
-    if (!response.ok()) {
-      const code = body?.['error']; // RFC 6749 5.2
-      throw new Error(
-        `${answered}${typeof code === 'string' ? ` "${code}"` : ''} to the client in ` +
-          `${config.client_id_env}; check the client credentials in ${variables}` +
-          `${config.scope ? ` and the scope "${config.scope}"` : ''}.`,
-      );
-    }
-    const token = body?.['access_token'];
-    if (typeof token !== 'string' || !token) {
-      throw new Error(`${answered} without an "access_token" string.`);
-    }
-    const kind = body?.['token_type'];
-    if (kind !== undefined && (typeof kind !== 'string' || kind.toLowerCase() !== 'bearer')) {
-      throw new Error(
-        `${answered} with a token of type "${String(kind)}"; only bearer tokens are supported.`,
-      );
-    }
-    const seconds = body?.['expires_in'];
-    if (typeof seconds !== 'number' || !(seconds > 0)) return { value: token };
-    const margin = Math.min(30, seconds / 10);
-    return { value: token, renewAt: requested + (seconds - margin) * 1000 };
-  };
+  const issue = (context: APIRequestContext): Promise<Issued> =>
+    issueOAuth2Token({ config, clientId, clientSecret, post: contextPost(context), now });
   return tokenStrategy('oauth2_client_credentials', issue, now);
 }
 
@@ -271,7 +237,12 @@ export function createAuth(
     case 'basic':
       return basicStrategy(value(config.username_env), value(config.password_env));
     case 'login':
-      return loginStrategy(config, value(config.username_env), value(config.password_env));
+      return loginStrategy(
+        config,
+        value(config.username_env),
+        value(config.password_env),
+        options.now ?? (() => Date.now()),
+      );
     case 'oauth2_client_credentials':
       return oauth2Strategy(
         config,

@@ -12,9 +12,11 @@ on:
     paths:
       - 'scripts/perf-lane.mjs'
       - 'scripts/k6/**'
+      - 'scripts/lib/auth-tokens.mjs'
       - 'scripts/lib/container.mjs'
       - 'scripts/quality-gate.mjs'
       - 'services/*/perf.json'
+      - 'services/vampi/register-users.mjs'
       - 'docker-compose.yml'
       - '.github/workflows/perf.yml'
 
@@ -58,6 +60,26 @@ jobs:
       - name: Start the API
         timeout-minutes: 5
         run: npm run ${{ matrix.pack }}:up
+
+      # The lane sends the pack's credential (FUT-10), so it measures the GETs the contract secures:
+      # any API key for the Petstore, throwaway users registered by the VAmPI pack.
+      - name: Provide the credentials
+        run: |
+          if [ "${{ matrix.pack }}" = "petstore" ]; then
+            key="$(openssl rand -hex 12)"
+            echo "::add-mask::$key"
+            echo "API_KEY=$key" >> "$GITHUB_ENV"
+          else
+            for actor in A B; do
+              name="qa-$(echo "$actor" | tr 'AB' 'ab')-$(openssl rand -hex 6)"
+              password="$(openssl rand -hex 16)"
+              echo "::add-mask::$password"
+              echo "VAMPI_USER_${actor}_NAME=$name" >> "$GITHUB_ENV"
+              echo "VAMPI_USER_${actor}_PASSWORD=$password" >> "$GITHUB_ENV"
+              export "VAMPI_USER_${actor}_NAME=$name" "VAMPI_USER_${actor}_PASSWORD=$password"
+            done
+            npm run vampi:users
+          fi
 
       # The lane fails on a request that does not answer its expected status; latency is judged by
       # the quality gate, which reads the Petstore summary (qa-config.example.json).

@@ -4,8 +4,30 @@
     "environments": {
       "local": {
         "packs": {
-          "demo": { "base_url": "http://localhost:9000/api/" },
-          "plain": { "base_url": "https://api.example.test/v1" }
+          "demo": {
+            "base_url": "http://localhost:9000/api/",
+            "auth": { "type": "none" },
+            "actors": {
+              "reader": { "type": "bearer", "env": "TOK" },
+              "client": {
+                "type": "oauth2_client_credentials",
+                "token_url": "http://auth.test/token",
+                "client_id_env": "U",
+                "client_secret_env": "P"
+              },
+              "user": {
+                "type": "login",
+                "path": "login",
+                "username_env": "U",
+                "password_env": "P"
+              },
+              "query-key": { "type": "api_key", "in": "query", "name": "k", "env": "TOK" }
+            }
+          },
+          "plain": {
+            "base_url": "https://api.example.test/v1",
+            "auth": { "type": "bearer", "env": "TOK" }
+          }
         }
       }
     }

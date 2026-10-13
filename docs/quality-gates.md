@@ -48,7 +48,7 @@ matrix, and `traceability:write` writes it to `docs/traceability/<pack>.md`.
 | `npm run lanes:published` | Registry cases with status `published`, zero retries. `lanes:published:changed` runs only those whose endpoints changed against the tracked digest (`:live` compares with the pack's `spec_url` in the environment). |
 | `npm run lanes:destructive` | Every `@destructive` case (L-59), each alone in its own Playwright process in its pack's `api-<pack>` project, followed by the `recovery` command of that pack's entry in the active qa-config environment and a wait until the pack's base URL answers again. Every other run leaves these cases out (each `api-<pack>` project's `grepInvert`), so the known-gap and published lanes skip them too. A failed recovery stops the lane. Before any case runs, it refuses a pack the environment does not configure or whose entry has `allow_writes` false or no recovery. Its results join the latest run in `allure-results/` (same run id, nothing cleared), so `tm:report` reports the shared run and the destructive cases together; `--new-run` starts a run of its own. |
 | `npm run lanes:flake` | A selection repeated N times (`--repeat-each`, default 5) with retries forced to 0. Reports tests whose repeats disagree and what to quarantine or release. |
-| `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack (FUT-01): the OpenAPI document is fetched from the pack's `spec_url`, ZAP (the `zap` compose service, pinned by digest, profile `dast`) attacks the pack's base URL, injecting into the query, the body and the URL path, and writes `reports/dast/<pack>.json` and `.html` for the quality gate's `dast` check. The pack's policy is `services/<pack>/dast-rules.tsv` (ZAP's IGNORE, WARN and FAIL per rule) and `services/<pack>/dast-exclude.txt` (URLs a scan must not call: ZAP skips them in the spider and the active scan, and the lane removes the matching paths from the definition, because ZAP's import sends every operation once whatever the exclusions say). Exit 1 means an alert of a FAIL rule. An active scan writes to the API: run it only against a disposable environment. The header of `scripts/dast-lane.mjs` has the details. |
+| `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack (FUT-01): the OpenAPI document is fetched from the pack's `spec_url`, ZAP (the `zap` compose service, pinned by digest, profile `dast`) attacks the pack's base URL, injecting into the query, the body and the URL path, and writes `reports/dast/<pack>.json` and `.html` for the quality gate's `dast` check. The pack's policy is `services/<pack>/dast-rules.tsv` (ZAP's IGNORE, WARN and FAIL per rule) and `services/<pack>/dast-exclude.txt` (URLs a scan must not call: ZAP skips them in the spider and the active scan, and the lane removes the matching paths from the definition, because ZAP's import sends every operation once whatever the exclusions say), and `services/<pack>/dast-false-positives.tsv` (alerts the pack has shown to be false, each rule and URL with the evidence: ZAP marks them False Positive, so neither its exit nor the report the quality gate counts includes them, and the lane lists them). Exit 1 means an alert of a FAIL rule. An active scan writes to the API: run it only against a disposable environment. The header of `scripts/dast-lane.mjs` has the details. |
 | `npm run lanes:perf -- --service <pack>` | A performance smoke of the pack (FUT-02), described [below](#performance-lane). k6 (the `k6` compose service, pinned by digest, profile `perf`) sends the pack's GET operations at a steady rate and writes `reports/perf/<pack>.json` for the quality gate's `p95_latency` check. Exit 1 means a request answered something other than the success status its operation declares. |
 
 Every Playwright lane runs the `api-<pack>` project of every pack by default; `--service <pack>`
@@ -57,6 +57,37 @@ performance lanes run in a container against one pack, so they need `--service`.
 
 In CI the destructive lane runs after the suite on every pull request, and the known-gap and
 published lanes run daily ([continuous integration](ci.md)).
+
+### Credentials in the DAST and performance lanes
+
+The DAST and performance lanes send the credential of one actor of the pack (FUT-10): `--actor
+<name>`, by default `default` (the pack entry's `auth`), `anonymous` for none, or any name in the
+entry's `actors`. The credential is obtained from the host through `scripts/lib/auth-tokens.mjs`,
+the same code the test runner's strategies use, so every `auth` type works except an API key in
+the query, which a lane refuses (exit 2): a tool's requests can carry a fixed header, not a query
+parameter. A `login` or OAuth 2.0 token is due for renewal a margin before it expires (10% of its
+lifetime, at most 30 s), from the `expires_in` of the answer or the `exp` claim of a JWT. The lanes
+print the actor, the auth type and the header name, never the value.
+
+- **DAST.** ZAP's API is published on a loopback port of the host. Once it answers, about a minute
+  after the container starts, the lane obtains a fresh credential and sets a replacer rule that
+  puts the header on every request ZAP sends, the import included; at each renewal it swaps the
+  rule. A rule that was never set, or a renewal that failed, makes the scan untrusted (exit 2): the
+  rest of it ran without a valid credential. The usual cause is an attacked operation that changed
+  or removed the scan user's credentials, such as a password change of the caller's own account;
+  keep it out with `dast-exclude.txt`. The lane also obtains the credential once before the scan,
+  so a refused login stops it before ZAP starts.
+- **Performance.** The credential reaches k6 through the environment of the `docker compose run`
+  call only (`QA_PERF_AUTH_HEADER`, `QA_PERF_AUTH_VALUE`), never the command line or the plan file,
+  because `reports/` is uploaded as a CI artifact. k6 cannot renew a token, so the lane refuses
+  (exit 2) a run that would outlast it: a token due for renewal before the run and k6's start-up
+  are over. The host preflight carries the credential too.
+
+**Liveness.** During every DAST scan, with or without a credential, the lane requests the pack's
+base URL from the host every 15 s (10 s timeout; any HTTP status is an answer). After four checks
+in a row without an answer it stops the scan container and exits 1: an availability finding, not
+an alert of a FAIL rule, and without a report. An authenticated payload can hang a fragile API
+(VAmPI's vulnerable mode, VN-15), and ZAP would otherwise wait for it indefinitely.
 
 Every Playwright lane refuses a non-zero `QA_RETRIES`: a retry turns an intermittent failure into a
 pass.
@@ -89,11 +120,11 @@ parts:
 | Key | Holds |
 |---|---|
 | `params` | values by parameter name, for parameters the contract gives no value for (seed ids, a seed user) |
-| `anonymous` | operations the contract secures but the API answers without credentials, each with the contract note that records it |
+| `anonymous` | operations the contract secures but the API answers without credentials, each with the contract note that records it; they are planned even for an actor without a credential |
 | `exclude` | operations the lane must not send, each with its reason: one that resets data, one that answers with secrets |
 
 An operation is left out when the pack excludes it, when the contract requires credentials and the
-pack does not list it in `anonymous` (authenticated runs come with FUT-10), when a required
+actor sends no credential and the pack does not list it in `anonymous`, when a required
 parameter has no value or is a header or cookie, or when the contract declares no 2xx answer. The
 lane prints every operation it leaves out with its reason, and refuses a `perf.json` that names an
 operation the contract does not have. The plan is written to `reports/perf/<pack>-plan.json`.
