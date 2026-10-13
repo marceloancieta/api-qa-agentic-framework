@@ -204,6 +204,42 @@ test('objectShape follows references and merges allOf', () => {
   assert.deepEqual(resolveSchema(model, { $ref: '#/schemas/Base' }).required, ['id']);
 });
 
+test('a Swagger 2.0 oauth2 scheme keeps its flow, scopes and URLs', () => {
+  const model = normalize({
+    swagger: '2.0',
+    info: { title: 'T', version: '1' },
+    securityDefinitions: {
+      machine: {
+        type: 'oauth2',
+        flow: 'application',
+        tokenUrl: 'https://auth.example.test/token',
+        scopes: { read: 'read' },
+      },
+      browser: {
+        type: 'oauth2',
+        flow: 'implicit',
+        authorizationUrl: 'https://auth.example.test/authorize',
+        scopes: {},
+      },
+    },
+    paths: {},
+  });
+  assert.deepEqual(model.securitySchemes, {
+    machine: {
+      type: 'oauth2',
+      flow: 'application',
+      scopes: { read: 'read' },
+      tokenUrl: 'https://auth.example.test/token',
+    },
+    browser: {
+      type: 'oauth2',
+      flow: 'implicit',
+      scopes: {},
+      authorizationUrl: 'https://auth.example.test/authorize',
+    },
+  });
+});
+
 test('the Petstore documents normalize without problems', async () => {
   const v2 = await fixture('petstore-v2.json');
   const v3 = await fixture('petstore-v3.json');

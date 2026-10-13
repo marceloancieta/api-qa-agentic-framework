@@ -52,6 +52,32 @@ test.describe('createAuth', () => {
   });
 });
 
+test.describe('basic', () => {
+  const config = { type: 'basic' as const, username_env: 'U', password_env: 'P' };
+
+  test('sends the username and password as an Authorization: Basic header', () => {
+    const auth = createAuth(config, { U: 'u:a', P: 'pw' });
+    const request = blank();
+    auth.apply(request);
+    expect(request.headers).toEqual({
+      Authorization: `Basic ${Buffer.from('u:a:pw').toString('base64')}`,
+    });
+    expect(auth.secretKeys).toEqual(['authorization']);
+    expect(auth.refresh).toBeUndefined();
+  });
+
+  test('a header the caller set wins, whatever its case', () => {
+    const request: OutgoingRequest = { headers: { AUTHORIZATION: 'Basic bad' }, params: {} };
+    createAuth(config, { U: 'u', P: 'pw' }).apply(request);
+    expect(request.headers).toEqual({ AUTHORIZATION: 'Basic bad' });
+  });
+
+  test('both credential variables are required, by name', () => {
+    expect(() => createAuth(config, { U: 'u' })).toThrow(/variable P\b/);
+    expect(() => createAuth(config, { P: 'pw' })).toThrow(/variable U\b/);
+  });
+});
+
 test.describe('login', () => {
   const config = {
     type: 'login' as const,

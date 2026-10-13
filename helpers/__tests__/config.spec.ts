@@ -162,6 +162,18 @@ test.describe('environment variables', () => {
     expect(
       requiredEnvVars({ type: 'login', path: 'login', username_env: 'U', password_env: 'P' }),
     ).toEqual(['U', 'P']);
+    expect(requiredEnvVars({ type: 'basic', username_env: 'U', password_env: 'P' })).toEqual([
+      'U',
+      'P',
+    ]);
+    expect(
+      requiredEnvVars({
+        type: 'oauth2_client_credentials',
+        token_url: 'https://idp.example.test/token',
+        client_id_env: 'CID',
+        client_secret_env: 'CSEC',
+      }),
+    ).toEqual(['CID', 'CSEC']);
   });
 
   test('blank values count as missing', () => {

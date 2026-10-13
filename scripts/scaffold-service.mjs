@@ -101,7 +101,44 @@ export function suggestCode(resource, taken) {
   return code;
 }
 
-/** The qa-config `auth` of the pack's entry, for the scheme most operations accept. */
+const ABSOLUTE_URL = /^https?:\/\//i;
+// Stands in for the host while a URL is resolved against a relative server, then becomes `<host>`.
+const PLACEHOLDER_ORIGIN = 'https://host.invalid';
+
+/** The first absolute server of the contract, else its first relative one under `https://<host>`. */
+function serverBase(model) {
+  const servers = model.servers ?? [];
+  const absolute = servers.find((url) => ABSOLUTE_URL.test(url));
+  const relative = servers.find((url) => url.startsWith('/')) ?? '';
+  return absolute ?? `https://<host>${relative}`;
+}
+
+/** A contract URL, absolute as declared or resolved against `serverBase` (RFC 3986, as OpenAPI says). */
+function absoluteUrl(model, url) {
+  if (ABSOLUTE_URL.test(url)) return url;
+  const base = serverBase(model);
+  const placeholder = base.startsWith('https://<host>');
+  const resolved = new URL(
+    url,
+    placeholder ? base.replace('https://<host>', PLACEHOLDER_ORIGIN) : base,
+  ).href;
+  return placeholder ? resolved.replace(PLACEHOLDER_ORIGIN, 'https://<host>') : resolved;
+}
+
+/** The token URL of an oauth2 scheme's client credentials grant (3.x `clientCredentials`, 2.0 `application`). */
+function clientCredentialsTokenUrl(scheme) {
+  const url =
+    scheme.flows?.clientCredentials?.tokenUrl ??
+    (scheme.flow === 'application' ? scheme.tokenUrl : undefined);
+  return typeof url === 'string' && url.trim() ? url.trim() : null;
+}
+
+/**
+ * The qa-config `auth` of the pack's entry, for the scheme most operations accept. An oauth2 scheme
+ * with a client credentials grant gets the grant itself, without `scope`: asking for every declared
+ * scope would over-ask, so scopes are set by hand when the API needs them. Its other grants, and
+ * openIdConnect, get a bearer token obtained outside the framework.
+ */
 export function suggestAuth(model, pack) {
   const prefix = pack.toUpperCase().replace(/-/g, '_');
   const uses = new Map(Object.keys(model.securitySchemes).map((name) => [name, 0]));
@@ -116,15 +153,35 @@ export function suggestAuth(model, pack) {
     if (scheme.type === 'apiKey' && (scheme.in === 'header' || scheme.in === 'query')) {
       return { type: 'api_key', in: scheme.in, name: scheme.name, env: `${prefix}_API_KEY` };
     }
-    if (
-      (scheme.type === 'http' && String(scheme.scheme).toLowerCase() === 'bearer') ||
-      scheme.type === 'oauth2' ||
-      scheme.type === 'openIdConnect'
-    ) {
+    const httpScheme = scheme.type === 'http' ? String(scheme.scheme).toLowerCase() : null;
+    if (httpScheme === 'basic') {
+      return {
+        type: 'basic',
+        username_env: `${prefix}_USERNAME`,
+        password_env: `${prefix}_PASSWORD`,
+      };
+    }
+    const tokenUrl = scheme.type === 'oauth2' ? clientCredentialsTokenUrl(scheme) : null;
+    if (tokenUrl) {
+      return {
+        type: 'oauth2_client_credentials',
+        token_url: absoluteUrl(model, tokenUrl),
+        client_id_env: `${prefix}_CLIENT_ID`,
+        client_secret_env: `${prefix}_CLIENT_SECRET`,
+      };
+    }
+    if (httpScheme === 'bearer' || scheme.type === 'oauth2' || scheme.type === 'openIdConnect') {
       return { type: 'bearer', env: `${prefix}_TOKEN` };
     }
   }
   return { type: 'none' };
+}
+
+/** The environment variables a suggested `auth` names (`env`, `username_env`, ...), in order. */
+export function authVariables(auth) {
+  return Object.entries(auth)
+    .filter(([key, value]) => (key === 'env' || key.endsWith('_env')) && typeof value === 'string')
+    .map(([, value]) => value);
 }
 
 /**
@@ -133,9 +190,24 @@ export function suggestAuth(model, pack) {
  * server of the contract; a relative one, or none, leaves the host to fill in.
  */
 export function suggestPackEntry(model, auth) {
-  const absolute = model.servers.find((url) => /^https?:\/\//i.test(url));
-  const relative = model.servers.find((url) => url.startsWith('/')) ?? '';
-  return { base_url: absolute ?? `https://<host>${relative}`, auth };
+  return { base_url: serverBase(model), auth };
+}
+
+/** What the plan and the README say about the suggested credentials, one sentence each. */
+function credentialNotes(auth) {
+  const variables = authVariables(auth).map((name) => `\`${name}\``);
+  const notes = [];
+  if (variables.length > 0) {
+    const list =
+      variables.length > 1
+        ? `${variables.slice(0, -1).join(', ')} and ${variables.at(-1)}`
+        : variables[0];
+    notes.push(`Set ${list} in the environment or the local \`.env\`, never in qa-config.`);
+  }
+  if (auth.type === 'oauth2_client_credentials') {
+    notes.push('Add `scope` (space-separated) by hand if the token endpoint needs one.');
+  }
+  return notes;
 }
 
 const successCodes = (operation) =>
@@ -404,7 +476,9 @@ Suggested codes are confirmed at the first design gate and are permanent once a 
    \`\`\`json
    ${JSON.stringify(plan.packEntry)}
    \`\`\`
-
+${credentialNotes(plan.auth)
+  .map((note) => `\n   ${note}\n`)
+  .join('')}
    \`${packVariable(plan.name, 'BASE_URL')}\` and \`${packVariable(plan.name, 'SPEC_URL')}\` override the URLs for one run.
 2. Run \`npx playwright test --project=api-${plan.name}\` to check configuration and credentials.
 3. Start the phases with \`qa-intake\` for the first feature. Its contract goes in
@@ -426,12 +500,17 @@ function skillSource(plan, template) {
   const servers =
     plan.model.servers.length > 0 ? plan.model.servers.map((s) => `\`${s}\``).join(', ') : 'none';
   const schemes = Object.entries(plan.model.securitySchemes);
+  // An oauth2 scheme's grants: the 3.x flow names, or the one 2.0 flow.
+  const flows = (s) => {
+    const names = s.flows ? Object.keys(s.flows) : s.flow ? [s.flow] : [];
+    return names.length > 0 ? `, ${names.join(' and ')}` : '';
+  };
   const security =
     schemes.length > 0
       ? schemes
           .map(
             ([name, s]) =>
-              `\`${name}\` (${s.type}${s.in ? `, ${s.in} \`${s.name}\`` : ''}${s.scheme ? `, ${s.scheme}` : ''})`,
+              `\`${name}\` (${s.type}${s.in ? `, ${s.in} \`${s.name}\`` : ''}${s.scheme ? `, ${s.scheme}` : ''}${flows(s)})`,
           )
           .join(', ')
       : 'none';
@@ -553,6 +632,7 @@ export function describePlan(plan) {
     `Servers: ${plan.model.servers.join(', ') || 'none declared'}`,
     `Security: ${Object.keys(plan.model.securitySchemes).join(', ') || 'none'}`,
     `Suggested qa-config entry api.environments.<env>.packs.${plan.name}: ${JSON.stringify(plan.packEntry)}`,
+    ...credentialNotes(plan.auth).map((note) => `  ${note.replace(/`/g, '')}`),
     '',
     'Resources:',
     ...plan.resources.map(

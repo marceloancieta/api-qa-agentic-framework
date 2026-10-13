@@ -63,6 +63,7 @@
     "tm:publish": "node scripts/tm/run.mjs publish",
     "tm:report": "node scripts/tm/run.mjs report",
     "tm:contract:live": "node --test \"scripts/__live__/*.test.mjs\"",
+    "auth:live": "node scripts/auth-live.mjs",
     "test": "playwright test",
     "test:smoke": "playwright test --project=api-* --grep @smoke",
     "gates": "npm run lint && npm run format:check && npm run types:check && npm run config:check && npm run test:hooks && npm run test:scripts && npm run contract:check && npm run lint:qa && npm run coverage:status && npm run test:unit && npm run scan:denylist:self-test",

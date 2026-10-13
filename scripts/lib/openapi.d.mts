@@ -58,6 +58,12 @@ export interface SecurityScheme {
   name?: string;
   scheme?: string;
   bearerFormat?: string;
+  /** OpenAPI 3.x oauth2: the flows by name (`clientCredentials`, `implicit`, ...), as declared. */
+  flows?: Record<string, { tokenUrl?: string; authorizationUrl?: string; scopes?: unknown }>;
+  /** Swagger 2.0 oauth2: the one flow (`application`, `implicit`, ...) and its URLs. */
+  flow?: string | null;
+  tokenUrl?: string;
+  authorizationUrl?: string;
   [key: string]: unknown;
 }
 
