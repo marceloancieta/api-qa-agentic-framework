@@ -15,6 +15,50 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 | `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane or VAmPI's DAST policy | `dast (vampi secure)`, `dast (vampi vulnerable)` |
 | `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane, its k6 script, a pack's `perf.json` or the quality gate | `perf (petstore)`, `perf (vampi)` |
 
+```mermaid
+flowchart LR
+  pr(["pull request"])
+  push(["push to main"])
+  daily(["daily schedule"])
+  weekly(["weekly schedule"])
+
+  subgraph ciWf["ci.yml"]
+    title["title<br/>ADR 0008 title"]
+    gatesJob["gates<br/>npm run gates"]
+    e2e["e2e petstore<br/>suite, destructive lane,<br/>report, coverage, quality gate"]
+    e2eVampi["e2e vampi<br/>BOLA detection on vulnerable,<br/>pack on secure, quality gate"]
+    gatesJob --> e2e
+    gatesJob --> e2eVampi
+  end
+
+  subgraph driftWf["drift.yml"]
+    drift["drift<br/>live digest, known gaps,<br/>published cases"]
+  end
+
+  subgraph dastWf["dast.yml"]
+    dastSecure["vampi secure<br/>ZAP scan, quality gate"]
+    dastVuln["vampi vulnerable<br/>must fail on SQL injection"]
+  end
+
+  subgraph perfWf["perf.yml"]
+    perfPet["petstore<br/>k6 smoke, quality gate"]
+    perfVampi["vampi<br/>k6 smoke"]
+  end
+
+  pr --> title
+  pr --> gatesJob
+  push --> gatesJob
+  daily --> drift
+  weekly --> dastSecure
+  weekly --> dastVuln
+  weekly --> perfPet
+  weekly --> perfVampi
+  pr -.->|"only when the lane's files change"| dastWf
+  pr -.->|"only when the lane's files change"| perfWf
+```
+
+Solid arrows are the regular triggers; every scheduled workflow also runs on `workflow_dispatch`.
+
 ## `ci.yml`
 
 ### `title`

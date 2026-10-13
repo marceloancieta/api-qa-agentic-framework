@@ -168,6 +168,14 @@ A pack's `auth` and each of its actors select a strategy in `helpers/auth.ts`. T
 | `none` | no credential |
 | `api_key` | the secret in a header or a query parameter (`in`, `name`) |
 | `bearer` | `Authorization: Bearer <secret>` |
+| `login` | `Authorization: Bearer <token>`, where the token comes from logging in: `{ username, password }` from `username_env` and `password_env` are posted to `path` (relative to the base URL), and the token is read from `token_field` of the answer (default `auth_token`) |
+
+`login` is the one strategy that calls the API itself. It logs in on the first request it
+decorates, shares that login between concurrent requests and reuses the token. When a request it
+decorated answers `401`, `BaseClient` asks it for a new token and sends the request once more, so a
+token that expires during a run is renewed; a `401` to a credential the caller set is returned as
+it is. The login exchange is never recorded as evidence, because it carries the password and
+returns the token. The VAmPI pack uses it for its default credential and for each actor.
 
 A strategy only decorates outgoing requests, so clients and specs never know which scheme is in
 use, and a caller's explicit value is never overwritten, which lets a case send a deliberately bad
@@ -184,9 +192,10 @@ To support another scheme, change these together, in one commit:
 
 Variables that a new type needs follow the propagation rules in
 [documentation](../../.claude/rules/documentation.md): the README setup and the docs that name them
-change in the same commit. A strategy's `apply` runs synchronously on each request, so a scheme that
-has to log in and refresh a token needs more than a factory entry; that work is still open in the
-[backlog](../backlog.md) (FUT-07).
+change in the same commit. A scheme that has to call the API, as `login` does, receives the
+client's request context in `apply` and can renew its credential in `refresh`; `loginStrategy` in
+`helpers/auth.ts` is the example. `basic` and OAuth 2 client credentials are open in the
+[backlog](../backlog.md) (FUT-04).
 
 ## 5. First run
 
