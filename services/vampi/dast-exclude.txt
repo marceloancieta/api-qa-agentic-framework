@@ -2,3 +2,5 @@
 # GET /createdb drops and reseeds the database (VN-05). Scanned, it resets the tables while other
 # operations are being attacked, and their answers turn into "no such table" 500s (VN-11).
 ^https?://[^/]+/createdb.*$
+# GET /users/v1/_debug answers every user's password (VN-06): kept out so ZAP never holds them.
+^https?://[^/]+/users/v1/_debug.*$

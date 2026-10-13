@@ -42,7 +42,8 @@ pack runs on the secure mode. Jenkins runs the secure mode after the Petstore.
 `npm run lanes:dast -- --service vampi` scans the pack with OWASP ZAP (`QA_ENV=local-vulnerable`
 and `--out vampi-vulnerable` for the vulnerable mode). Its policy lives here:
 [`dast-rules.tsv`](dast-rules.tsv) sets each ZAP rule to IGNORE, WARN or FAIL with its reason, and
-[`dast-exclude.txt`](dast-exclude.txt) keeps `GET /createdb` out of the scan. The secure mode
+[`dast-exclude.txt`](dast-exclude.txt) keeps `GET /createdb` (VN-05) and `GET /users/v1/_debug`
+(VN-06) out of the scan, its import included. The secure mode
 passes the quality gate's `dast` check; the vulnerable mode fails on SQL injection (VN-11). The
 scan is not authenticated, so the 6 operations that need a token answer `401` and are not
 attacked. A scan writes to the API: run it only against these local containers, then

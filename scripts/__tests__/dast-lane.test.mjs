@@ -25,6 +25,7 @@ import {
   summarize,
   summaryLines,
   zapArgs,
+  withoutExcluded,
   zapConfig,
 } from '../dast-lane.mjs';
 
@@ -300,6 +301,100 @@ test('ZAP injects into the URL path too, and a pack keeps URLs out of the scan',
     excludes: excludePatterns('shop', root),
   });
   assert.equal(args[args.indexOf('-z') + 1], zapConfig(excludePatterns('shop', root)));
+});
+
+const SHOP_PATHS = {
+  '/reset': { get: {} },
+  '/resets/history': { get: {} },
+  '/users/{id}': { delete: {}, get: {} },
+  '/users/{id}/orders': { get: {} },
+};
+
+test("excluded paths leave the definition, because ZAP's import ignores the global exclusions", () => {
+  const json = { text: JSON.stringify({ openapi: '3.0.1', paths: SHOP_PATHS }), ext: 'json' };
+  const excludes = ['^https?://[^/]+/api/reset$', '.*/users/\\{id\\}$'];
+  const filtered = withoutExcluded(json, 'http://shop:80/api/', excludes);
+  assert.deepEqual(filtered.removed, ['/reset', '/users/{id}']);
+  assert.deepEqual(
+    Object.keys(JSON.parse(filtered.text).paths),
+    ['/resets/history', '/users/{id}/orders'],
+    'look-alikes that the patterns do not match stay',
+  );
+
+  const yaml = {
+    text: 'openapi: 3.0.1\npaths:\n  /reset:\n    get: {}\n  /items:\n    get: {}\n',
+    ext: 'yaml',
+  };
+  const fromYaml = withoutExcluded(yaml, 'http://shop:80/api', excludes);
+  assert.deepEqual(fromYaml.removed, ['/reset']);
+  assert.match(fromYaml.text, /^openapi: 3\.0\.1\npaths:\n {2}\/items:/, 'written back as YAML');
+
+  assert.deepEqual(withoutExcluded(json, 'http://shop:80/api', []), {
+    text: json.text,
+    removed: [],
+  });
+  assert.deepEqual(
+    withoutExcluded(json, 'http://shop:80/api', ['.*/nothing$']),
+    { text: json.text, removed: [] },
+    'nothing matches: the text is kept as received',
+  );
+  assert.throws(() => withoutExcluded(json, 'http://shop:80/api', ['(unclosed']));
+});
+
+test('the lane saves the definition without the excluded paths and says which went', async (t) => {
+  const runner = fakeRunner({ report: readFixture('zap-site-object.json') });
+  const spec = JSON.stringify({ openapi: '3.0.1', info: {}, paths: SHOP_PATHS });
+  const root = scratchRoot(t);
+  writeFileSync(
+    join(root, 'services', 'demo', 'dast-exclude.txt'),
+    '# resets the data\n^https?://[^/]+/api/reset$\n',
+  );
+  const lines = [];
+  const code = await dastLane(DEMO, {
+    root,
+    env: {},
+    run: runner.run,
+    fetchImpl: fakeFetch(spec).impl,
+    log: (line) => lines.push(line),
+  });
+  assert.equal(code, 0);
+  const saved = JSON.parse(
+    readFileSync(join(root, 'reports', 'dast', 'demo-openapi.json'), 'utf8'),
+  );
+  assert.deepEqual(Object.keys(saved.paths), [
+    '/resets/history',
+    '/users/{id}',
+    '/users/{id}/orders',
+  ]);
+  assert.match(
+    lines.join('\n'),
+    /removed from the definition, so ZAP's import never calls them: \/reset/,
+  );
+  const z = runner.scan().args[runner.scan().args.indexOf('-z') + 1];
+  assert.match(
+    z,
+    /globalexcludeurl\.url_list\.url\(0\)\.regex=\^https\?:\/\/\[\^\/\]\+\/api\/reset\$/,
+  );
+});
+
+test('a pattern that is not a regular expression stops the lane with 2 before the scan', async (t) => {
+  const runner = fakeRunner({});
+  const root = scratchRoot(t);
+  writeFileSync(join(root, 'services', 'demo', 'dast-exclude.txt'), '(unclosed\n');
+  const lines = [];
+  const code = await dastLane(DEMO, {
+    root,
+    env: {},
+    run: runner.run,
+    fetchImpl: fakeFetch().impl,
+    log: (line) => lines.push(line),
+  });
+  assert.equal(code, 2);
+  assert.equal(runner.scan(), undefined);
+  assert.match(
+    lines.join('\n'),
+    /dast-exclude\.txt holds a pattern that is not a regular expression/,
+  );
 });
 
 test('the lane saves the definition, rewrites a loopback base through compose ps and runs the scan', async (t) => {

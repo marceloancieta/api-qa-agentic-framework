@@ -33,7 +33,9 @@
  * path), because an API carries its ids in the path and ZAP's default leaves them out. A pack may
  * keep URLs out of the scan with `services/<pack>/dast-exclude.txt`, one regular expression per
  * line (`#` starts a comment), for an operation a scan must not call, such as one that resets the
- * service's data.
+ * service's data. The patterns become ZAP's global URL exclusions, which the spider and the active
+ * scan honour, and the lane also removes every matching path from the definition it saves: ZAP's
+ * import sends each operation of the definition once and ignores those exclusions.
  *
  *   node scripts/dast-lane.mjs --service pack [--target openapi-url] [--base api-url] [--out name]
  *
@@ -50,7 +52,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
   packEnvironment,
   readService,
@@ -195,6 +197,29 @@ export async function fetchSpec(url, fetchImpl = fetch) {
   return { text, ext };
 }
 
+/**
+ * The definition without the paths a pack keeps out of the scan: `{ text, removed }`. A path goes
+ * when its URL (`base` + the path template, e.g. `http://api:5000/users/v1/{username}`) matches an
+ * exclusion. ZAP's global URL exclusions cover the spider and the active scan but not the import,
+ * which sends every operation of the definition once: an operation that resets the data was called
+ * at the start of every scan until the lane took it out of the definition. Unchanged text when
+ * nothing matches; otherwise the document is written back in its own format.
+ */
+export function withoutExcluded(spec, base, excludes = []) {
+  if (excludes.length === 0) return { text: spec.text, removed: [] };
+  const document = spec.ext === 'json' ? JSON.parse(spec.text) : parseYaml(spec.text);
+  const patterns = excludes.map((regex) => new RegExp(regex));
+  const prefix = base.replace(/\/+$/, '');
+  const removed = Object.keys(document.paths ?? {}).filter((path) =>
+    patterns.some((pattern) => pattern.test(`${prefix}${path}`)),
+  );
+  if (removed.length === 0) return { text: spec.text, removed };
+  for (const path of removed) delete document.paths[path];
+  const text =
+    spec.ext === 'json' ? `${JSON.stringify(document, null, 2)}\n` : stringifyYaml(document);
+  return { text, removed };
+}
+
 // ---------------------------------------------------------------------------------------------
 // The scan
 
@@ -333,15 +358,25 @@ export async function dastLane(
     log(`dast-lane: ${error.message}; the scan did not run`);
     return 2;
   }
-  const specFile = join(dir, `${options.out}-openapi.${spec.ext}`);
-  writeFileSync(specFile, spec.text);
-  log(`dast-lane: definition ${urls.specUrl} (${urls.specFrom}), saved as ${shown(specFile)}`);
-
   const base = reachableBase(urls.baseUrl, { root, run, tool: ZAP });
   if (base.error) {
     log(`dast-lane: ${base.error}; the scan did not run`);
     return 2;
   }
+
+  const excludes = excludePatterns(options.service, root);
+  let definition;
+  try {
+    definition = withoutExcluded(spec, base.url, excludes);
+  } catch (error) {
+    log(
+      `dast-lane: ${EXCLUDE_FILE} holds a pattern that is not a regular expression (${error.message}); the scan did not run`,
+    );
+    return 2;
+  }
+  const specFile = join(dir, `${options.out}-openapi.${spec.ext}`);
+  writeFileSync(specFile, definition.text);
+  log(`dast-lane: definition ${urls.specUrl} (${urls.specFrom}), saved as ${shown(specFile)}`);
   log(`dast-lane: API base ${urls.baseUrl} (${urls.baseFrom})`);
   if (base.note) log(`dast-lane: rewritten to ${base.url}: ${base.note}`);
   log(
@@ -349,10 +384,13 @@ export async function dastLane(
       ? `dast-lane: rule policy ${shown(rules)}`
       : `dast-lane: no ${RULES_FILE} in services/${options.service}; every alert is a warning`,
   );
-
-  const excludes = excludePatterns(options.service, root);
   if (excludes.length > 0) {
     log(`dast-lane: kept out of the scan (${EXCLUDE_FILE}): ${excludes.join(', ')}`);
+    log(
+      definition.removed.length > 0
+        ? `dast-lane: removed from the definition, so ZAP's import never calls them: ${definition.removed.join(', ')}`
+        : 'dast-lane: no path of the definition matches them; the scan and the spider still skip matching URLs',
+    );
   }
   const args = zapArgs({
     definition: `${options.out}-openapi.${spec.ext}`,
