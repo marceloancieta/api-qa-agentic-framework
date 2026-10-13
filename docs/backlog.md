@@ -35,7 +35,6 @@ DAST and performance lanes, which give the quality gate checks that exist today 
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| FUT-01 | DAST lane: OWASP ZAP API scan importing the OpenAPI document, rule policy IGNORE / WARN / FAIL, feeding the quality gate. | practice | todo |
 | FUT-02 | Performance smoke generated from the OpenAPI model (GET operations), k6 through its Docker image, thresholds feeding the quality gate; latency judged on percentiles across many requests, never on a single timing. | practice, exp | todo |
 
 ## v0.4.0
@@ -147,3 +146,4 @@ and FUT-05 publishes a package, which cannot be fully undone: it comes last.
 | PROC-15 | The scaffolder never writes its `--spec` value into the pack, lists every smoke operation in the dry run with `--skip-smoke "GET /path"` to leave one out, and generates a contract fixture that parses a YAML contract as YAML. | `8422299` |
 | PET-03 | The intermittent Petstore e2e failures were the service's: an unsynchronised pet store in Petstore 1.0.28 makes searches answer `500` and can lose a pet under concurrent writes. Filed `LOCAL-5` (`silent-write`, S2) and, for users and orders, the unconfirmed findings `LOCAL-6` and `LOCAL-7`; contract note PN-26. `service.json` takes an optional `workers` cap, and the Petstore pack runs on one worker until `LOCAL-5` ships. | `9ff3667` |
 | CI-08 | The VAmPI pack in CI: job `e2e (vampi)`, separate from the required `e2e (petstore)`, starts both modes with throwaway users, requires the book matrix to fail exactly TC-BOOK-02 on the vulnerable mode (`check-bola-detection.mjs`), then runs the pack on the secure mode; Jenkins runs the secure mode after the Petstore. | `df116e5` |
+| FUT-01 | DAST lane `npm run lanes:dast -- --service <pack>`: an OWASP ZAP API scan (pinned `zap` compose service, profile `dast`) of the pack's OpenAPI document, injecting into query, body and path, with the pack's IGNORE / WARN / FAIL rules and URL exclusions; `reports/dast/<pack>.json` feeds `quality_gate.dast`. The `dast` workflow scans both VAmPI modes: secure passes the gate, vulnerable fails on SQL injection (VN-11). | `b941e14` |
