@@ -29,14 +29,10 @@ Released as `v0.2.0`.
 
 ## v0.3.0
 
-Stability and a complete quality gate. GATE-17 and PROC-15 for the small fixes, PET-03 for the
-intermittent Petstore failure, CI-08 for VAmPI in CI, then FUT-01 and FUT-02 for the DAST and
-performance lanes, which give the quality gate's `dast` and `p95_latency` checks a source, are in
-**Done**. DOC-06 brings the overview pages up to date before the release.
-
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| DOC-06 | The README, the architecture page and the onboarding tour cover what v0.2.0 and v0.3.0 added: the VAmPI pack, the DAST lane with ZAP, the performance lane with k6, the quality gate's sources, the compose services and `reports/`; a diagram of the lanes feeding the quality gate and one of the CI workflows; the service-pack guide documents the `login` strategy instead of calling it open work. | plan | in-progress |
+Stability and a complete quality gate. Every item is in **Done**: GATE-17 and PROC-15 for the small
+fixes, PET-03 for the intermittent Petstore failure, CI-08 for VAmPI in CI, FUT-01 and FUT-02 for the
+DAST and performance lanes, which give the quality gate's `dast` and `p95_latency` checks a source,
+and DOC-06 for the overview pages. Released as `v0.3.0`.
 
 ## v0.4.0
 
@@ -149,3 +145,4 @@ and FUT-05 publishes a package, which cannot be fully undone: it comes last.
 | CI-08 | The VAmPI pack in CI: job `e2e (vampi)`, separate from the required `e2e (petstore)`, starts both modes with throwaway users, requires the book matrix to fail exactly TC-BOOK-02 on the vulnerable mode (`check-bola-detection.mjs`), then runs the pack on the secure mode; Jenkins runs the secure mode after the Petstore. | `df116e5` |
 | FUT-01 | DAST lane `npm run lanes:dast -- --service <pack>`: an OWASP ZAP API scan (pinned `zap` compose service, profile `dast`) of the pack's OpenAPI document, injecting into query, body and path, with the pack's IGNORE / WARN / FAIL rules and URL exclusions; `reports/dast/<pack>.json` feeds `quality_gate.dast`. The `dast` workflow scans both VAmPI modes: secure passes the gate, vulnerable fails on SQL injection (VN-11). | `b941e14` |
 | FUT-02 | Performance lane `npm run lanes:perf -- --service <pack>`: a plan of the pack's `GET` operations built from its tracked contract (values from `perf.json`, examples, defaults or enums; secured, excluded and unfillable operations left out with their reason), sent by k6 (pinned `k6` compose service, profile `perf`) at a constant arrival rate; the lane fails on an unexpected status, and `quality_gate.p95_latency` with `format: k6-summary` judges the p95 of every request. The `perf` workflow runs both packs; the Petstore run feeds the gate. | `6c84b0f` |
+| DOC-06 | The README, the architecture page and the onboarding tour cover what v0.2.0 and v0.3.0 added: the VAmPI pack, the DAST lane with ZAP, the performance lane with k6, the quality gate's sources, the compose services and `reports/`; a diagram of the lanes feeding the quality gate and one of the CI workflows; the service-pack guide documents the `login` strategy instead of calling it open work. | `d713660` |
