@@ -1,0 +1,13 @@
+{
+  "api": {
+    "default_environment": "local",
+    "environments": {
+      "local": {
+        "packs": {
+          "demo": { "base_url": "http://localhost:9000/api/" },
+          "plain": { "base_url": "https://api.example.test/v1" }
+        }
+      }
+    }
+  }
+}

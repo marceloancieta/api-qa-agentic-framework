@@ -103,8 +103,9 @@ as redacted evidence. Results go to `allure-results/` and
 adds to the run before it instead). The optional runner switches (retries, extra reports, a fixed
 seed or clock) are listed in `.env.example`.
 
-The lanes that run outside a normal run (known gaps, published cases, flakiness, destructive cases)
-and the quality gate are described in [quality gates](docs/quality-gates.md#lanes).
+The lanes that run outside a normal run (known gaps, published cases, flakiness, destructive cases,
+the DAST scan and the performance smoke) and the quality gate are described in
+[quality gates](docs/quality-gates.md#lanes).
 
 ## Adoption levels
 

@@ -31,5 +31,12 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+  {
+    // k6 scripts run in k6's own JavaScript runtime, not in Node (scripts/perf-lane.mjs).
+    files: ['scripts/k6/**/*.js'],
+    languageOptions: {
+      globals: { open: 'readonly', __ENV: 'readonly' },
+    },
+  },
   prettier,
 );

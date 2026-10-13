@@ -12,15 +12,13 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { REPO_ROOT } from '../lib/cli.mjs';
+import { PS_ARGS } from '../lib/container.mjs';
 import {
-  PS_ARGS,
-  containerBase,
   dastLane,
   excludePatterns,
   failRuleIds,
   fetchSpec,
   mapZapExit,
-  parseComposePs,
   parseLaneArgs,
   resolveUrls,
   rulesPath,
@@ -34,8 +32,10 @@ const FIXTURES = join(REPO_ROOT, 'scripts', '__fixtures__', 'dast-lane');
 const fixtureText = (name) => readFileSync(join(FIXTURES, name), 'utf8');
 const readFixture = (name) => JSON.parse(fixtureText(name));
 const RULES = fixtureText(join('services', 'demo', 'dast-rules.tsv'));
-const PS_LINES = fixtureText('compose-ps-lines.txt');
-const PS_ARRAY = fixtureText('compose-ps-array.json');
+const PS_LINES = readFileSync(
+  join(REPO_ROOT, 'scripts', '__fixtures__', 'container', 'compose-ps-lines.txt'),
+  'utf8',
+);
 const SPEC_JSON = JSON.stringify({ openapi: '3.0.1', info: {}, servers: [{ url: '' }], paths: {} });
 const SPEC_YAML = 'openapi: 3.0.1\ninfo:\n  title: demo\npaths: {}\n';
 const DEMO = { service: 'demo', target: null, base: null, out: 'demo' };
@@ -231,46 +231,6 @@ test('a spec URL that does not answer, answers non-2xx or returns no OpenAPI doc
       JSON.stringify(body),
     );
   }
-});
-
-// ---------------------------------------------------------------------------------------------
-// The address
-
-test('compose ps output is read as one object per line or as an array', () => {
-  assert.deepEqual(
-    parseComposePs(PS_LINES).map((s) => s.Service),
-    ['zap', 'stopped-api', 'demo-api', 'db'],
-  );
-  assert.deepEqual(
-    parseComposePs(PS_ARRAY).map((s) => s.Service),
-    ['staging-api'],
-  );
-  assert.deepEqual(parseComposePs(''), []);
-  assert.deepEqual(parseComposePs('\r\n'), []);
-});
-
-test('a loopback base becomes the running compose service that publishes its port', () => {
-  const services = parseComposePs(PS_LINES);
-  const base = containerBase('http://localhost:9000/api', services);
-  assert.equal(base.url, 'http://demo-api:8000/api', 'the target port, not the stopped service');
-  assert.match(base.note, /compose service "demo-api" publishes port 9000/);
-  assert.equal(containerBase('http://127.0.0.1:15432', services).url, 'http://db:5432');
-  const array = containerBase('http://127.0.0.1:9001', parseComposePs(PS_ARRAY));
-  assert.equal(array.url, 'http://staging-api:5000');
-});
-
-test('without a compose service on the port the base goes through host.docker.internal', () => {
-  const base = containerBase('http://localhost:9999/v1', parseComposePs(PS_LINES));
-  assert.equal(base.url, 'http://host.docker.internal:9999/v1');
-  assert.match(
-    base.note,
-    /no running compose service publishes port 9999.*Linux.*beyond 127.0.0.1/,
-  );
-  assert.equal(containerBase('http://localhost', []).url, 'http://host.docker.internal');
-  assert.deepEqual(containerBase('https://api.example.test/v1', []), {
-    url: 'https://api.example.test/v1',
-    note: null,
-  });
 });
 
 // ---------------------------------------------------------------------------------------------

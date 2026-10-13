@@ -1,17 +1,19 @@
 # Continuous integration
 
-Three GitHub Actions workflows run the framework's checks against the example packs: `ci.yml` on
-every pull request and every push to `main`, `drift.yml` once a day, and `dast.yml` once a week. Both start the Swagger Petstore
-in Docker on the runner, the same way a contributor does (`npm run petstore:up`). The commands they
-call are described in [quality gates](quality-gates.md), [contract tooling](contract-tooling.md) and
-[test management](test-management.md); this page covers the order and the reasons. The same runs
-exist as Jenkins pipelines ([Jenkins](#jenkins)).
+Four GitHub Actions workflows run the framework's checks against the example packs: `ci.yml` on
+every pull request and every push to `main`, `drift.yml` once a day, and `dast.yml` and `perf.yml`
+once a week. Each starts the APIs it needs in Docker on the runner, the same way a contributor does
+(`npm run petstore:up`, `npm run vampi:up`). The commands they call are described in
+[quality gates](quality-gates.md), [contract tooling](contract-tooling.md) and
+[test management](test-management.md); this page covers the order and the reasons. The `ci.yml`
+and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
 | `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e` and `e2e-vampi` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift` |
 | `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane or VAmPI's DAST policy | `dast (vampi secure)`, `dast (vampi vulnerable)` |
+| `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane, its k6 script, a pack's `perf.json` or the quality gate | `perf (petstore)`, `perf (vampi)` |
 
 ## `ci.yml`
 
@@ -149,6 +151,25 @@ job's own disposable containers.
 Each job uploads `reports/` as `dast-<mode>-<attempt>` (the ZAP JSON and HTML reports, the fetched
 definition, the quality gate's output, and the VAmPI log after a failure).
 
+## `perf.yml`
+
+The performance smoke of each pack (`npm run lanes:perf`, [quality gates](quality-gates.md#lanes)):
+k6 sends the pack's GET operations at a steady rate for 30 seconds against the job's own container.
+It sends only reads, but a load is still a load: the lane runs against the local containers here,
+never against a shared environment. It runs weekly, on demand and on pull requests that touch the
+lane, its k6 script, the container address library, a pack's `perf.json`, the quality gate,
+`docker-compose.yml` or the workflow.
+
+| Job | Passes when |
+|---|---|
+| `perf (petstore)` | every request answers the status its operation declares for success, and `npm run quality:gate` then passes on `reports/perf/petstore.json` (`quality_gate.p95_latency` in `qa-config.example.json`) |
+| `perf (vampi)` | every request answers its expected status. The quality gate reads one latency source, the Petstore's, so this job proves the lane on a second contract without judging its latency |
+
+The thresholds are wide on purpose. A shared runner's latency varies from run to run, and the check
+is there to catch a regression measured in multiples, not in milliseconds. Each job uploads
+`reports/` as `perf-<pack>-<attempt>` (the plan, k6's summary, the quality gate's output, and the
+API log after a failure).
+
 ## Secrets and variables
 
 None are required for the Petstore.
@@ -214,7 +235,8 @@ Each run uploads one artifact, even when a step failed, and keeps it for 14 days
   destructive lane and the report step. `--project=api-*` and the
   lanes collect every pack in `services/`, each against its own base URL and credentials
   ([ADR 0009](adr/0009-per-pack-configuration.md)); `--project=api-<pack>` and a lane's
-  `--service <pack>` narrow a step to one pack.
+  `--service <pack>` narrow a step to one pack. For the performance smoke, add the pack to the
+  `perf.yml` matrix; its `<pack>:up` and `<pack>:down` npm scripts start and stop it.
 - **A deployed environment.** Drop the start and stop steps, and set `QA_ENV` on the job to the
   qa-config environment. Each pack's entry there has a `base_url`, a `spec_url` and the credentials
   its `auth` names, supplied as secrets. `qa-config.json` is per machine and not tracked, so CI

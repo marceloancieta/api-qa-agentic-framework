@@ -13,6 +13,7 @@ import {
   judgeAbove,
   judgeBelow,
   judgeCounts,
+  k6Latency,
   mutationScore,
   percentile,
   renderSummary,
@@ -208,6 +209,84 @@ test('p95-latency on a result without timings is a FAIL that names the file', ()
   assert.match(result.detail, /t1-result\.json: missing or inconsistent start\/stop times/);
 });
 
+const k6 = (settings) =>
+  runCheck(
+    STRATEGIES.p95_latency,
+    { format: 'k6-summary', source: 'k6-summary.json', ...settings },
+    opts,
+  );
+
+test('p95-latency on a k6 summary judges the p95 of every request and names the slowest operation', () => {
+  const result = k6({ fail_above_ms: 100 });
+  assert.equal(result.value, 42.46);
+  assert.equal(result.verdict, 'PASS');
+  assert.equal(
+    result.detail,
+    '120 requests (per request), max 95.25 ms; slowest operation GET /items/{id} p95 61.5 ms; ' +
+      '2 iteration(s) dropped',
+  );
+  assert.equal(k6({ fail_above_ms: 100, review_above_ms: 40 }).verdict, 'REVIEW');
+  assert.equal(k6({ fail_above_ms: 42 }).verdict, 'FAIL');
+});
+
+test('p95-latency on a k6 summary with too few requests, or none configured, is SKIPPED', () => {
+  const few = k6({ fail_above_ms: 100, min_samples: 121 });
+  assert.equal(few.verdict, 'SKIPPED');
+  assert.match(few.detail, /only 120 request\(s\), fewer than min_samples 121/);
+  const unset = runCheck(STRATEGIES.p95_latency, { format: 'k6-summary', fail_above_ms: 1 }, opts);
+  assert.equal(unset.verdict, 'SKIPPED');
+  assert.match(unset.detail, /no source configured; .*performance lane for k6-summary/);
+});
+
+test('k6Latency reads the overall and per-operation figures, slowest p95 first', () => {
+  const latency = k6Latency(JSON.parse(readFileSync(join(FIX, 'k6-summary.json'), 'utf8')));
+  assert.deepEqual(
+    { ...latency, operations: latency.operations.map((o) => [o.name, o.count, o.p95, o.fails]) },
+    {
+      requests: 120,
+      p95: 42.456,
+      max: 95.25,
+      failedChecks: 3,
+      dropped: 2,
+      operations: [
+        ['GET /items/{id}', 60, 61.5, 3],
+        ['GET /items', 60, 15.75, 0],
+      ],
+    },
+  );
+  assert.deepEqual(k6Latency({ metrics: {} }), {
+    requests: 0,
+    p95: null,
+    max: null,
+    operations: [],
+    failedChecks: 0,
+    dropped: 0,
+  });
+});
+
+test('a k6 summary of the wrong shape is a FAIL that says what is missing', (t) => {
+  const dir = scratch(t);
+  const cases = {
+    'not-k6.json': [{ site: [] }, /not a k6 summary \(no "metrics" object\)/],
+    'no-p95.json': [
+      {
+        metrics: { http_reqs: { values: { count: 9 } }, http_req_duration: { values: { max: 3 } } },
+      },
+      /metric http_req_duration has no numeric "p\(95\)"/,
+    ],
+    'bad-count.json': [
+      { metrics: { http_reqs: { values: { count: 'many' } } } },
+      /metric http_reqs has no numeric "count"/,
+    ],
+  };
+  for (const [file, [summary, message]] of Object.entries(cases)) {
+    writeFileSync(join(dir, file), JSON.stringify(summary));
+    const result = k6({ source: join(dir, file), fail_above_ms: 100, min_samples: 1 });
+    assert.equal(result.verdict, 'FAIL', file);
+    assert.match(result.detail, message, file);
+  }
+});
+
 // ---- dast --------------------------------------------------------------------------------------
 
 const dast = (settings) =>
@@ -393,6 +472,18 @@ test('the schema rejects unknown checks, missing thresholds and out-of-range val
   assert.match(errors({ dast: { fail_above: { high: 0 } } }), /required property 'source'/);
   assert.match(errors({ dast: { source: 'z.json', fail_above: {} } }), /fewer than 1 properties/);
   assert.match(errors({ p95_latency: { fail_above_ms: 0 } }), /must be > 0/);
+  assert.match(
+    errors({ p95_latency: { format: 'k6-summary', fail_above_ms: 500 } }),
+    /p95_latency must have required property 'source'/,
+  );
+  assert.match(
+    errors({ p95_latency: { format: 'jmeter', source: 'x.jtl', fail_above_ms: 500 } }),
+    /allowed values/,
+  );
+  assert.equal(
+    errors({ p95_latency: { format: 'k6-summary', source: 'k.json', fail_above_ms: 9 } }),
+    '',
+  );
 });
 
 test('cross-field rules: the review threshold must be stricter than the fail threshold', () => {

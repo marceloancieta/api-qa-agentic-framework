@@ -23,6 +23,12 @@
 # definition live in reports/dast (ZAP's /zap/wrk); each pack's rule policy
 # (services/<pack>/dast-rules.tsv) is mounted read-only. Pinned by tag and digest: the
 # 2026-08-07 build, which ships ZAP 2.17.0.
+#
+# Performance lane: k6, run by `npm run lanes:perf -- --service <pack>`.
+#   docker compose run --rm k6 run ... /k6/smoke.js   (the lane builds the command)
+# It sits in the `perf` profile and reaches the API the same way as ZAP. The lane writes the plan
+# and k6 writes its summary in reports/perf (/perf); the k6 script is mounted read-only from
+# scripts/k6. Pinned by tag and digest: k6 v1.8.0.
 x-vampi: &vampi
   image: erev0s/vampi@sha256:0a5a224b6e14ae7da6a6ea265178ff71286ff903aec74adee98f660bb0e4ca12
   healthcheck:
@@ -70,3 +76,11 @@ services:
     volumes:
       - ./reports/dast:/zap/wrk:rw
       - ./services:/zap/services:ro
+  k6:
+    image: grafana/k6:1.8.0@sha256:b992f241070f3f3a7d78096fa6020db1edcda49297ee8ed9eb0ab847ef3dcb32
+    profiles: [perf]
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./reports/perf:/perf:rw
+      - ./scripts/k6:/k6:ro

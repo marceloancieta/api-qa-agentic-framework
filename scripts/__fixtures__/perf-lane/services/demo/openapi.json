@@ -1,0 +1,113 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "demo", "version": "1" },
+  "components": {
+    "securitySchemes": {
+      "bearer": { "type": "http", "scheme": "bearer" },
+      "key": { "type": "apiKey", "in": "header", "name": "X-Key" }
+    }
+  },
+  "paths": {
+    "/items": {
+      "get": {
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "enum": ["open", "closed"] }
+          },
+          { "name": "q", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "ok" } }
+      },
+      "post": { "responses": { "201": { "description": "created" } } }
+    },
+    "/items/{id}": {
+      "get": {
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "404": { "description": "missing" },
+          "204": { "description": "empty" },
+          "200": { "description": "ok" }
+        }
+      }
+    },
+    "/lookup/{name}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "example": "ex1" }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "default": 20 }
+          }
+        ],
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/tags": {
+      "get": {
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "array", "items": { "type": "string" } }
+          }
+        ],
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/users/{username}": {
+      "get": {
+        "parameters": [
+          { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/secret": {
+      "get": {
+        "security": [{ "bearer": [] }, { "key": [] }],
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/open-secret": {
+      "get": { "security": [{ "key": [] }], "responses": { "200": { "description": "ok" } } }
+    },
+    "/optional": {
+      "get": { "security": [{}, { "bearer": [] }], "responses": { "200": { "description": "ok" } } }
+    },
+    "/reset": {
+      "get": { "responses": { "200": { "description": "ok" } } }
+    },
+    "/no-success": {
+      "get": { "responses": { "default": { "description": "anything" } } }
+    },
+    "/needs-header": {
+      "get": {
+        "parameters": [
+          { "name": "X-Trace", "in": "header", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/unfilled/{ref}": {
+      "get": {
+        "parameters": [
+          { "name": "ref", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "ok" } }
+      }
+    }
+  }
+}

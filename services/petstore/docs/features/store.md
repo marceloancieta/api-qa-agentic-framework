@@ -378,8 +378,9 @@ No body produced the declared `422`, and no wrong-typed field produced `500`.
 ## Out of scope
 
 - An authorization matrix: the service enforces no credential (PN-05); belongs to backlog FUT-07.
-- Latency budgets: none declared by the contract or qa-config; M14 is an observation only (backlog
-  FUT-02 owns performance).
+- Latency budgets: none declared by the contract; M14 is an observation only. Latency is measured
+  by the performance lane and judged by the quality gate's `p95_latency` check
+  ([quality gates](../../../../docs/quality-gates.md#performance-lane)), not by cases.
 - Pet and user operations (features `PET`, `USER`), except as preconditions and read-backs named
   above.
 - The public demo environment: read-only for this suite (qa-config `allow_writes: false`).

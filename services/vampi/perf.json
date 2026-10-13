@@ -1,0 +1,7 @@
+{
+  "$comment": "Performance lane (scripts/perf-lane.mjs): operations the lane must not send. Parameter values come from the contract's examples.",
+  "exclude": {
+    "GET /createdb": "VN-05: it drops and reseeds the database",
+    "GET /users/v1/_debug": "VN-06: it answers with every user's password"
+  }
+}

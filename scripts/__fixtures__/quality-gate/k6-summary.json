@@ -1,0 +1,100 @@
+{
+  "root_group": {
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": []
+  },
+  "options": {
+    "summaryTrendStats": ["avg", "min", "med", "max", "p(90)", "p(95)", "p(99)", "count"]
+  },
+  "state": { "isStdOutTTY": false, "isStdErrTTY": false, "testRunDurationMs": 6012.5 },
+  "metrics": {
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": { "count": 120, "rate": 19.96 }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 12.1,
+        "min": 1.5,
+        "med": 4.2,
+        "max": 95.25,
+        "p(90)": 30.1,
+        "p(95)": 42.456,
+        "p(99)": 80.3,
+        "count": 120
+      }
+    },
+    "http_req_duration{name:GET /items}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 5.1,
+        "min": 1.5,
+        "med": 3.9,
+        "max": 20.5,
+        "p(90)": 12.2,
+        "p(95)": 15.75,
+        "p(99)": 19.9,
+        "count": 60
+      },
+      "thresholds": { "max>=0": { "ok": true } }
+    },
+    "http_req_duration{name:GET /items/{id}}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 19.1,
+        "min": 2.1,
+        "med": 8.4,
+        "max": 95.25,
+        "p(90)": 40.2,
+        "p(95)": 61.5,
+        "p(99)": 90.1,
+        "count": 60
+      },
+      "thresholds": { "max>=0": { "ok": true } }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 12.1,
+        "min": 1.5,
+        "med": 4.2,
+        "max": 95.25,
+        "p(90)": 30.1,
+        "p(95)": 42.456,
+        "p(99)": 80.3,
+        "count": 117
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": { "rate": 0.975, "passes": 117, "fails": 3 }
+    },
+    "checks{name:GET /items}": {
+      "type": "rate",
+      "contains": "default",
+      "values": { "rate": 1, "passes": 60, "fails": 0 },
+      "thresholds": { "rate>=0": { "ok": true } }
+    },
+    "checks{name:GET /items/{id}}": {
+      "type": "rate",
+      "contains": "default",
+      "values": { "rate": 0.95, "passes": 57, "fails": 3 },
+      "thresholds": { "rate>=0": { "ok": true } }
+    },
+    "dropped_iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": { "count": 2, "rate": 0.33 }
+    }
+  }
+}

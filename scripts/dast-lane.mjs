@@ -16,12 +16,9 @@
  * server such as "" against the document's own URL, and every request went to
  * `/openapi.json/<path>` and answered 404.
  *
- * Address. ZAP runs in a container, where `localhost` is the container itself. A base on
- * `localhost` or `127.0.0.1` becomes the compose service that publishes its port
- * (`http://<service>:<target port><path>`), reached over the project network, which works on Linux
- * CI too, where a port bound to 127.0.0.1 is out of reach of `host.docker.internal`. When no
- * running compose service publishes the port, the base becomes `host.docker.internal`; on Linux
- * that needs the API to listen beyond 127.0.0.1. The lane prints the rewrite.
+ * Address. ZAP runs in a container, where `localhost` is the container itself, so a loopback base
+ * is rewritten to the address the container reaches (scripts/lib/container.mjs). The lane prints
+ * the rewrite.
  *
  * Policy. When the pack has `services/<pack>/dast-rules.tsv` (ZAP's own tab-separated format,
  * `<pluginId>\t<IGNORE|WARN|FAIL>\t(<name>)`), ZAP reads it from the read-only mount and fails on
@@ -49,7 +46,6 @@
  * JSON report or one that is not a ZAP report).
  */
 
-import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -62,6 +58,7 @@ import {
   REPO_ROOT,
   servicePacks,
 } from './lib/cli.mjs';
+import { dockerRunner, httpUrl, reachableBase } from './lib/container.mjs';
 import { describeExit, exitCodeOf, spawnFailure } from './lib/spawn.mjs';
 import { InputError, dastCounts } from './quality-gate.mjs';
 
@@ -72,9 +69,8 @@ export const RULES_FILE = 'dast-rules.tsv';
 export const EXCLUDE_FILE = 'dast-exclude.txt';
 /** Query (1), body (2) and URL path (16), as ZAP's scanner.injectable bit set. */
 export const INJECTABLE = 19;
-export const DOCKER_HOST = 'host.docker.internal';
+const ZAP = { name: 'ZAP', service: ZAP_SERVICE };
 const CONTAINER_SERVICES = '/zap/services'; // ./services, mounted read-only
-const LOOPBACK = new Set(['localhost', '127.0.0.1']);
 const OUT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const FETCH_TIMEOUT_MS = 30_000;
 
@@ -104,20 +100,6 @@ export function parseLaneArgs(argv, root = REPO_ROOT) {
     );
   }
   return { service: values.service, target: values.target ?? null, base: values.base ?? null, out };
-}
-
-/** `raw` as a URL; throws unless it is http(s). `what` names it in the message. */
-export function httpUrl(raw, what) {
-  let url;
-  try {
-    url = new URL(raw);
-  } catch {
-    throw new Error(`${what} must be an http(s) URL, got "${raw}"`);
-  }
-  if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new Error(`${what} must be an http(s) URL, got "${raw}"`);
-  }
-  return url;
 }
 
 /**
@@ -214,54 +196,6 @@ export async function fetchSpec(url, fetchImpl = fetch) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// The address ZAP reaches the API at
-
-/** `docker compose ps --format json` output: one object per line (Compose v2.21+) or an array. */
-export function parseComposePs(text) {
-  const trimmed = (text ?? '').trim();
-  if (trimmed === '') return [];
-  if (trimmed.startsWith('[')) return JSON.parse(trimmed);
-  return trimmed
-    .split(/\r?\n/)
-    .filter((line) => line.trim() !== '')
-    .map((line) => JSON.parse(line));
-}
-
-const portOf = (url) => Number(url.port || (url.protocol === 'https:' ? 443 : 80));
-
-/**
- * The base URL as ZAP's container reaches it: `{ url, note }`, `note` null when it is unchanged.
- * A loopback base becomes the running compose service that publishes its port, else
- * `host.docker.internal`. `services` is the parsed `docker compose ps` output.
- */
-export function containerBase(baseUrl, services) {
-  const url = new URL(baseUrl);
-  if (!LOOPBACK.has(url.hostname)) return { url: baseUrl, note: null };
-  const port = portOf(url);
-  const path = url.pathname.replace(/\/+$/, '') + url.search;
-  for (const service of services) {
-    if (service.Service === ZAP_SERVICE || (service.State && service.State !== 'running')) continue;
-    const publisher = (service.Publishers ?? []).find((p) => Number(p.PublishedPort) === port);
-    if (publisher) {
-      return {
-        url: `${url.protocol}//${service.Service}:${publisher.TargetPort}${path}`,
-        note: `compose service "${service.Service}" publishes port ${port}; ZAP reaches it over the project network`,
-      };
-    }
-  }
-  url.hostname = DOCKER_HOST;
-  return {
-    url: url.href.replace(/\/+$/, ''),
-    note:
-      `no running compose service publishes port ${port}, so ZAP goes through ${DOCKER_HOST}; ` +
-      'on Linux that needs the API to listen beyond 127.0.0.1',
-  };
-}
-
-/** `docker` arguments that list the running services of the compose project. */
-export const PS_ARGS = Object.freeze(['compose', 'ps', '--format', 'json']);
-
-// ---------------------------------------------------------------------------------------------
 // The scan
 
 /**
@@ -290,18 +224,6 @@ export function zapArgs({ definition, base, out, pack, rules, excludes = [] }) {
     zapConfig(excludes),
     ...(rules ? ['-c', `${CONTAINER_SERVICES}/${pack}/${RULES_FILE}`] : []),
   ];
-}
-
-/**
- * Run `docker <args>` in `cwd`; a `spawnSync` result. ZAP's output streams through; with
- * `capture`, stdout comes back as text instead.
- */
-export function dockerRunner(args, { cwd, capture = false }) {
-  return spawnSync('docker', args, {
-    cwd,
-    encoding: 'utf8',
-    stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-  });
 }
 
 /**
@@ -371,24 +293,6 @@ export function summaryLines(summary) {
 // ---------------------------------------------------------------------------------------------
 // The lane
 
-/** `{ url, note }` for the base, or `{ error }` when `docker compose ps` cannot tell. */
-function reachableBase(baseUrl, { root, run }) {
-  if (!LOOPBACK.has(new URL(baseUrl).hostname)) return { url: baseUrl, note: null };
-  const ps = run([...PS_ARGS], { cwd: root, capture: true });
-  const failure = spawnFailure(ps);
-  if (failure || exitCodeOf(ps) !== 0) {
-    const why = failure ?? `${describeExit(ps)}: ${(ps.stderr ?? '').trim().split('\n').at(-1)}`;
-    return { error: `docker compose ps ${why}; cannot tell which service publishes the port` };
-  }
-  let services;
-  try {
-    services = parseComposePs(ps.stdout);
-  } catch (error) {
-    return { error: `docker compose ps printed no JSON (${error.message})` };
-  }
-  return containerBase(baseUrl, services);
-}
-
 /**
  * Run one scan and return the lane's exit code; `log` prints. `run` replaces `dockerRunner` and
  * `fetchImpl` replaces `fetch` in tests, so they never start Docker or call a network.
@@ -433,7 +337,7 @@ export async function dastLane(
   writeFileSync(specFile, spec.text);
   log(`dast-lane: definition ${urls.specUrl} (${urls.specFrom}), saved as ${shown(specFile)}`);
 
-  const base = reachableBase(urls.baseUrl, { root, run });
+  const base = reachableBase(urls.baseUrl, { root, run, tool: ZAP });
   if (base.error) {
     log(`dast-lane: ${base.error}; the scan did not run`);
     return 2;

@@ -112,6 +112,13 @@
       "fail_below_pct": 90,
       "review_below_pct": 100
     },
+    "p95_latency": {
+      "format": "k6-summary",
+      "source": "reports/perf/petstore.json",
+      "fail_above_ms": 500,
+      "review_above_ms": 200,
+      "min_samples": 100
+    },
     "dast": {
       "source": "reports/dast/vampi.json",
       "fail_above": { "high": 0, "medium": 0 },
