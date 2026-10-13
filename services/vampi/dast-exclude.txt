@@ -1,0 +1,4 @@
+# URLs the DAST lane keeps out of the scan (scripts/dast-lane.mjs): one regular expression per line.
+# GET /createdb drops and reseeds the database (VN-05). Scanned, it resets the tables while other
+# operations are being attacked, and their answers turn into "no such table" 500s (VN-11).
+^https?://[^/]+/createdb.*$

@@ -37,6 +37,17 @@ CI runs both modes in the `e2e-vampi` job ([CI](../../docs/ci.md#e2e-vampi)): th
 must fail exactly TC-BOOK-02 ([`check-bola-detection.mjs`](check-bola-detection.mjs)), then the
 pack runs on the secure mode. Jenkins runs the secure mode after the Petstore.
 
+## DAST
+
+`npm run lanes:dast -- --service vampi` scans the pack with OWASP ZAP (`QA_ENV=local-vulnerable`
+and `--out vampi-vulnerable` for the vulnerable mode). Its policy lives here:
+[`dast-rules.tsv`](dast-rules.tsv) sets each ZAP rule to IGNORE, WARN or FAIL with its reason, and
+[`dast-exclude.txt`](dast-exclude.txt) keeps `GET /createdb` out of the scan. The secure mode
+passes the quality gate's `dast` check; the vulnerable mode fails on SQL injection (VN-11). The
+scan is not authenticated, so the 6 operations that need a token answer `401` and are not
+attacked. A scan writes to the API: run it only against these local containers, then
+`npm run vampi:up` before the specs.
+
 Authentication is the core `login` strategy: it logs in as the actor's user on its first request
 and logs in again when a token it sent expires (`tokentimetolive` is 60 seconds). Actors are
 `user-a` (also the default credential), `user-b` and the built-in `anonymous`.

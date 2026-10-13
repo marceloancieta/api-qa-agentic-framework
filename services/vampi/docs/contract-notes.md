@@ -18,12 +18,13 @@ known gap linked to its tracker issue.
 | VN-04 | An unknown path answers `404` as `application/problem+json`. No operation declares it; it is the framework's format, not the handlers' `{status, message}`. | `GET /<UNKNOWN_PATH>` | contract gap | `by-design` |
 | VN-05 | `GET /createdb` is not safe: it creates the tables and seeds users and books. It is left out of the smoke spec and out of read-only intake; a case that needs seeded data treats it as a write. | `GET /createdb` (not sent at intake) | contract gap | `by-design` |
 | VN-06 | `GET /users/v1/_debug` returns every user's details, password included, to any caller; the spec's schema has the field, so it conforms to the document while exposing credentials. It is left out of the smoke spec so no run stores passwords in its evidence. Not called at intake. | `GET /users/v1/_debug` (not sent at intake) | information exposure | `untracked` |
-
 | VN-07 | A duplicate registration and a failed login answer `200` with `{status: "fail", message}`, where the spec declares `400`. The pack fixtures register the users of the `login` credentials on every worker and rely on this: a user that already exists is not an error, and its next login proves the password. | `POST /users/v1/register` twice with one username | contract drift (status) | `untracked` |
 | VN-08 | `GET /books/v1/{book_title}` answers `200` with one object `{book_title, owner, secret}`; the spec declares an array of them. Same in both modes. | as the owner, `GET /books/v1/<BOOK_TITLE>` (TC-BOOK-01) | contract drift (shape) | `untracked` |
 | VN-09 | Another user's book: `vampi-secure` answers `404` with the `fail` envelope ("Book not found!"), the same as a title no book has, so not even the book's existence leaks. `vampi-vulnerable` answers `200` with the owner and the secret: Broken Object Level Authorization (OWASP API1:2023), the flaw that mode exists to show. | as another user, `GET /books/v1/<BOOK_TITLE>` (TC-BOOK-02) | authorization (vulnerable mode) | `by-design` |
-
 | VN-10 | A registration answered `500` once, while several workers registered the same users at the same moment (2026-10-12, secure mode); sequential runs never did. The likely cause is the unique username racing between the existence check and the insert. The pack fixtures accept a failed registration only when the same credentials then log in. | several workers sending `POST /users/v1/register` for one username at once | robustness (concurrency) | `untracked` |
+| VN-11 | `vampi-vulnerable` builds the SQL of `GET /users/v1/{username}` from the path segment: a single quote answers `500` with the SQLite syntax error in the debugger page (VN-02). The DAST lane reports it as SQL Injection (ZAP rule 40018, high risk, low confidence) and its 5xx answers as rules 100000 and 100001. `vampi-secure` answers the same input `404` "User not found". ZAP finds it only with URL-path injection on (`scanner.injectable=19`): by default it injects the query and the body, not path segments. | `GET /users/v1/<USERNAME>'` without a token; `QA_ENV=local-vulnerable npm run lanes:dast -- --service vampi` | injection (vulnerable mode) | `by-design` |
+| VN-12 | No answer carries `X-Content-Type-Options: nosniff` or `Cross-Origin-Resource-Policy` (ZAP rules 10021 and 90004, low), and the `Server` header names Werkzeug and Python versions (10036, low; VN-02). A username holding markup is stored and listed unescaped by `GET /users/v1` (40014, low, low confidence): harmless as `application/json` while browsers do not sniff it, which is what the missing `nosniff` leaves open. Same in both modes. | any request, read the headers; the DAST lane in either mode | hardening (headers) | `untracked` |
+| VN-13 | The served `openapi.json` declares `servers: [{url: ""}]` (the tracked `../openapi.yaml` declares `http://localhost:5000`). A relative server resolves against the document's own URL, so a tool that reads the document from its URL sends every operation to `/openapi.json/<path>` and gets `404`: a ZAP scan built that way reached no operation. The DAST lane saves the document and passes the base URL with `-O`. | `GET /openapi.json`, read `servers` | contract gap | `untracked` |
 
 The tracked `../openapi.yaml` is the upstream document with one edit: the example `auth_token` of
 `POST /users/v1/login` (a real-looking JWT) reads `<AUTH_TOKEN>`, so no token-shaped value is
@@ -32,8 +33,14 @@ committed. Examples are not part of the digest.
 VN-01 to VN-04 were measured read-only on both containers on 2026-10-12. VN-05 and VN-06 come from
 the spec and the implementation, without a call. VN-08 and VN-09 were measured by the spec run of
 the book registry in both modes on 2026-10-12; VN-07 comes from the implementation, and the pack
-fixtures depend on it. The feature contracts in [`features/`](features/)
-hold the full measurements and the implementation reading: [books](features/books.md).
+fixtures depend on it. VN-11 to VN-13 come from ZAP 2.17.0 API scans of both containers on
+2026-10-12, run without a token: of the 14 operations, the 6 that need a bearer token
+(`GET /me`, `POST /books/v1`, `GET /books/v1/{book_title}`, `DELETE /users/v1/{username}` and
+the two `PUT /users/v1/{username}/...`) answered `401` before their handlers ran, so the scan
+judged only the other 8. A scan is an active attack that writes (it registers users, and
+`GET /createdb` resets the database), so it runs only against these disposable containers. The
+feature contracts in [`features/`](features/) hold the full measurements and the implementation
+reading: [books](features/books.md).
 
 The error formats themselves are catalogued in `../error-envelopes.json`; VN-01 to VN-04 are why
 `server-error` and `problem` exist there next to the declared `fail`.

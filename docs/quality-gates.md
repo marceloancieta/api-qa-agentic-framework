@@ -48,6 +48,7 @@ matrix, and `traceability:write` writes it to `docs/traceability/<pack>.md`.
 | `npm run lanes:published` | Registry cases with status `published`, zero retries. `lanes:published:changed` runs only those whose endpoints changed against the tracked digest (`:live` compares with the pack's `spec_url` in the environment). |
 | `npm run lanes:destructive` | Every `@destructive` case (L-59), each alone in its own Playwright process in its pack's `api-<pack>` project, followed by the `recovery` command of that pack's entry in the active qa-config environment and a wait until the pack's base URL answers again. Every other run leaves these cases out (each `api-<pack>` project's `grepInvert`), so the known-gap and published lanes skip them too. A failed recovery stops the lane. Before any case runs, it refuses a pack the environment does not configure or whose entry has `allow_writes` false or no recovery. Its results join the latest run in `allure-results/` (same run id, nothing cleared), so `tm:report` reports the shared run and the destructive cases together; `--new-run` starts a run of its own. |
 | `npm run lanes:flake` | A selection repeated N times (`--repeat-each`, default 5) with retries forced to 0. Reports tests whose repeats disagree and what to quarantine or release. |
+| `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack (FUT-01): the OpenAPI document is fetched from the pack's `spec_url`, ZAP (the `zap` compose service, pinned by digest, profile `dast`) attacks the pack's base URL, injecting into the query, the body and the URL path, and writes `reports/dast/<pack>.json` and `.html` for the quality gate's `dast` check. The pack's policy is `services/<pack>/dast-rules.tsv` (ZAP's IGNORE, WARN and FAIL per rule) and `services/<pack>/dast-exclude.txt` (URLs a scan must not call). Exit 1 means an alert of a FAIL rule. An active scan writes to the API: run it only against a disposable environment. The header of `scripts/dast-lane.mjs` has the details. |
 
 Every lane runs the `api-<pack>` project of every pack by default; `--service <pack>` scopes it to
 that pack's project (`npm run lanes:published -- --service petstore`).
@@ -77,7 +78,8 @@ optional, and each one is a separate strategy:
 
 - `pass_rate`, from the Playwright JSON report or Allure results;
 - `p95_latency`, from the duration of API cases;
-- `dast`, from a ZAP JSON report;
+- `dast`, from a ZAP JSON report (`npm run lanes:dast`; the example reads the VAmPI secure-mode
+  scan, so it is SKIPPED wherever that scan did not run);
 - `mutation_score`, from Stryker's JSON report (`npm run mutation`, below).
 
 Each check is PASS, REVIEW or FAIL. A missing source is SKIPPED with its reason, or FAIL when the

@@ -1,7 +1,7 @@
 # Continuous integration
 
-Two GitHub Actions workflows run the framework's checks against the example pack: `ci.yml` on every
-pull request and every push to `main`, and `drift.yml` once a day. Both start the Swagger Petstore
+Three GitHub Actions workflows run the framework's checks against the example packs: `ci.yml` on
+every pull request and every push to `main`, `drift.yml` once a day, and `dast.yml` once a week. Both start the Swagger Petstore
 in Docker on the runner, the same way a contributor does (`npm run petstore:up`). The commands they
 call are described in [quality gates](quality-gates.md), [contract tooling](contract-tooling.md) and
 [test management](test-management.md); this page covers the order and the reasons. The same runs
@@ -11,6 +11,7 @@ exist as Jenkins pipelines ([Jenkins](#jenkins)).
 |---|---|---|
 | `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e` and `e2e-vampi` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift` |
+| `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane or VAmPI's DAST policy | `dast (vampi secure)`, `dast (vampi vulnerable)` |
 
 ## `ci.yml`
 
@@ -131,6 +132,22 @@ alone compares the tracked digest with the pack's tracked contract file, which t
 (`contract:check`), so in CI it would always select nothing. The workflow uses
 `lanes:published:changed:live` (`--live`), which compares with each pack's `spec_url` in the
 environment, and then runs the full published lane as the daily re-run.
+
+## `dast.yml`
+
+An OWASP ZAP API scan of the VAmPI pack (`npm run lanes:dast`, [quality gates](quality-gates.md#lanes)),
+one job per mode. A full scan takes about 13 minutes, so it runs weekly, on demand and on pull
+requests that touch the lane, the quality gate, VAmPI's DAST files, `docker-compose.yml` or the
+workflow; not on every pull request. An active scan writes to the API, so it only ever targets the
+job's own disposable containers.
+
+| Job | Passes when |
+|---|---|
+| `dast (vampi secure)` | the scan completes without an alert of a FAIL rule, and `npm run quality:gate` then passes on `reports/dast/vampi.json` (`quality_gate.dast`: no high or medium alert; more than 5 low alerts is REVIEW) |
+| `dast (vampi vulnerable)` | the lane exits 1 on a FAIL rule and the report holds the SQL injection alert (rule 40018, VN-11): the scan still detects the flaw it exists to detect |
+
+Each job uploads `reports/` as `dast-<mode>-<attempt>` (the ZAP JSON and HTML reports, the fetched
+definition, the quality gate's output, and the VAmPI log after a failure).
 
 ## Secrets and variables
 

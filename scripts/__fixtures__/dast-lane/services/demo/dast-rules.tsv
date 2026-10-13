@@ -1,0 +1,5 @@
+# zap-api-scan rule configuration file (fixture)
+10021	IGNORE	(X-Content-Type-Options Header Missing)
+10038	WARN	(Content Security Policy (CSP) Header Not Set)
+40018	FAIL	(SQL Injection)
+90019	FAIL	(Server Side Code Injection)

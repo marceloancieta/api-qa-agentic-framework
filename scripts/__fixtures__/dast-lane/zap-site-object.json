@@ -1,0 +1,16 @@
+{
+  "@programName": "ZAP",
+  "@version": "2.16.1",
+  "site": {
+    "@name": "https://api.example.test",
+    "alerts": [
+      { "pluginid": "10036", "name": "Server Leaks Version", "riskcode": "1", "count": "3" },
+      {
+        "pluginid": "10049",
+        "name": "Storable and Cacheable Content",
+        "riskcode": "0",
+        "count": "1"
+      }
+    ]
+  }
+}

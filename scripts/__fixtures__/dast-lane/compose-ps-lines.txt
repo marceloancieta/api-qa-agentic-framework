@@ -1,0 +1,4 @@
+{"Name":"proj-zap-run-1","Service":"zap","State":"running","Publishers":[]}
+{"Name":"proj-stopped-1","Service":"stopped-api","State":"exited","Publishers":[{"URL":"127.0.0.1","TargetPort":7000,"PublishedPort":9000,"Protocol":"tcp"}]}
+{"Name":"proj-demo-api-1","Service":"demo-api","State":"running","Publishers":[{"URL":"127.0.0.1","TargetPort":8000,"PublishedPort":9000,"Protocol":"tcp"}]}
+{"Name":"proj-db-1","Service":"db","State":"running","Publishers":[{"URL":"0.0.0.0","TargetPort":5432,"PublishedPort":15432,"Protocol":"tcp"},{"URL":"::","TargetPort":5432,"PublishedPort":15432,"Protocol":"tcp"}]}

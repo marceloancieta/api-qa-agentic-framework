@@ -111,6 +111,11 @@
       "source": "allure-results",
       "fail_below_pct": 90,
       "review_below_pct": 100
+    },
+    "dast": {
+      "source": "reports/dast/vampi.json",
+      "fail_above": { "high": 0, "medium": 0 },
+      "review_above": { "low": 5 }
     }
   }
 }
