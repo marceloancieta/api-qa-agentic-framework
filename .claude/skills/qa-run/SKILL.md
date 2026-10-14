@@ -20,10 +20,14 @@ description: >-
    none), say so and stop; never widen it on your own. `@destructive` cases are left out of every
    run by the Playwright config; run them only with `npm run lanes:destructive`, last, which follows
    each with its pack's recovery (L-59) and adds its results to the run before it, so step 5 reports
-   both.
-2. **Check the environment**: `QA_ENV`, and the pack's entry in it: `base_url` and `allow_writes`
-   (`.claude/rules/service-packs.md`), and reachability (`.claude/rules/reachability.md`). Never run
-   against an environment the user did not choose.
+   both. The tool lanes of [quality gates](../../../docs/quality-gates.md#lanes) run outside
+   Playwright, each with `-- --service <pack> [--actor <name>]`: `npm run lanes:dast`,
+   `npm run lanes:perf` and `npm run lanes:diff` (which also needs `--reference <env>`); then
+   `npm run quality:gate` judges the DAST and performance reports.
+2. **Check the environment**: `QA_ENV`, and the pack's entry in it: `base_url`, `allow_writes` and
+   the variables its `auth` and `actors` name (`.claude/rules/service-packs.md`; a `login` pack's
+   lanes need its users registered first, see the pack skill), and reachability
+   (`.claude/rules/reachability.md`). Never run against an environment the user did not choose.
 3. **Data gate.** State what data the selection needs and which cases will skip without it (the
    registry `test_data`, `skipUnless` reasons). For a write-heavy selection, show the environment and
    wait for "go".

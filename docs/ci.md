@@ -1,9 +1,11 @@
 # Continuous integration
 
 Five GitHub Actions workflows run the framework's checks against the example packs: `ci.yml` on
-every pull request and every push to `main`, `drift.yml` once a day, and `dast.yml` and `perf.yml`
-once a week. Each starts the APIs it needs in Docker on the runner, the same way a contributor does
-(`npm run petstore:up`, `npm run vampi:up`). The commands they call are described in
+every pull request and every push to `main`, `drift.yml` once a day, and `dast.yml`, `perf.yml` and
+`diff.yml` once a week. Each starts the APIs it needs in Docker on the runner, the same way a
+contributor does (`npm run petstore:up`, `npm run vampi:up`, `npm run petstore:reference:up`). The
+other three workflows (CodeQL, the secret scan, the AI review) are in
+[CI security and review](ci-security.md). The commands they call are described in
 [quality gates](quality-gates.md), [contract tooling](contract-tooling.md) and
 [test management](test-management.md); this page covers the order and the reasons. The `ci.yml`
 and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
@@ -12,9 +14,12 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 |---|---|---|
 | `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e` and `e2e-vampi` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift` |
-| `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane or a pack's DAST policy | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
-| `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane, its k6 script, a pack's `perf.json` or the quality gate | `perf (petstore)`, `perf (vampi)` |
-| `.github/workflows/diff.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane, the comparison or plan it shares, a pack's `diff.json` or `perf.json` | `diff (petstore)` |
+| `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
+| `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `perf (petstore)`, `perf (vampi)` |
+| `.github/workflows/diff.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `diff (petstore)` |
+
+A workflow's `paths` list, in the workflow file, owns which files trigger it on a pull request: the
+lane, the libraries it uses, the pack files it reads, `docker-compose.yml` and the workflow itself.
 
 ```mermaid
 flowchart LR
@@ -192,8 +197,7 @@ environment, and then runs the full published lane as the daily re-run.
 
 An OWASP ZAP API scan of the VAmPI pack (`npm run lanes:dast`, [quality gates](quality-gates.md#lanes)),
 one job per mode, and of the Petstore pack. A full VAmPI scan takes about 13 minutes, so the
-workflow runs weekly, on demand and on pull requests that touch the lane, the quality gate, a
-pack's DAST files or `service.json`, `docker-compose.yml` or the workflow; not on every pull
+workflow runs weekly, on demand and on pull requests that touch its `paths`; not on every pull
 request. An active scan writes to the API, so it only ever targets the job's own disposable
 containers. The secure job scans as the pack's default actor (FUT-10): it
 generates throwaway users, as `e2e-vampi` does, and registers them with `npm run vampi:users`. The
@@ -202,7 +206,7 @@ that mode (VN-15).
 
 | Job | Passes when |
 |---|---|
-| `dast (vampi secure)` | the scan completes without an alert of a FAIL rule, and `npm run quality:gate` then passes on `reports/dast/vampi.json` (`quality_gate.dast`: no high or medium alert; more than 5 low alerts is REVIEW) |
+| `dast (vampi secure)` | the scan completes without an alert of a FAIL rule, and `npm run quality:gate` then passes on `reports/dast/vampi.json` (`quality_gate.dast` in `qa-config.example.json`) |
 | `dast (vampi vulnerable)` | the lane exits 1 on a FAIL rule and the report holds the SQL injection alert (rule 40018, VN-11): the scan still detects the flaw it exists to detect |
 | `dast (petstore)` | the scan completes and the Petstore answers again after the lane's recovery restarts it. The pack has no rule policy, so every alert is a warning; the job proves the lane on a base URL with a path (`/api/v3`), an API key in a header, one scan thread (`workers`, PN-26) and a known false positive (PN-27) |
 
@@ -215,9 +219,8 @@ failure).
 The performance smoke of each pack (`npm run lanes:perf`, [quality gates](quality-gates.md#lanes)):
 k6 sends the pack's GET operations at a steady rate for 30 seconds against the job's own container.
 It sends only reads, but a load is still a load: the lane runs against the local containers here,
-never against a shared environment. It runs weekly, on demand and on pull requests that touch the
-lane, its k6 script, the container address library, a pack's `perf.json`, the quality gate,
-`docker-compose.yml` or the workflow. Each job sends its pack's default credential (FUT-10): any
+never against a shared environment. It runs weekly, on demand and on pull requests that touch its
+`paths`. Each job sends its pack's default credential (FUT-10): any
 `API_KEY` for the Petstore, throwaway users registered by `npm run vampi:users` for VAmPI.
 
 | Job | Passes when |
@@ -236,9 +239,7 @@ The differential lane (`npm run lanes:diff`, [quality gates](quality-gates.md#di
 the job starts the pinned Petstore (`npm run petstore:up`, environment `local`) and an earlier
 release (`npm run petstore:reference:up`, the `petstore-reference` compose service, environment
 `reference`), then compares them. 1.0.26 is the newest release that answers differently from 1.0.28
-(PN-29). It runs weekly, on demand and on pull requests that touch the lane, the comparison it shares
-with the specs, the performance lane's plan, the digest, a pack's `diff.json` or `perf.json`,
-`docker-compose.yml` or the workflow.
+(PN-29). It runs weekly, on demand and on pull requests that touch its `paths`.
 
 | Job | Passes when |
 |---|---|
@@ -301,6 +302,7 @@ Each run uploads one artifact, even when a step failed, and keeps it for 14 days
 | `e2e-reports-<attempt>` | `reports/allure-report/index.html` (the Allure report of the run, one file that opens from disk), `allure-results/` (the run, with redacted evidence), `playwright-report/`, `reports/` (the quality gate's JSON and Markdown, `reports/tm/`, and the Petstore log after a failure) |
 | `e2e-vampi-reports-<attempt>` | the same for the VAmPI job, plus `reports/vampi-vulnerable.json` (the vulnerable-mode run the detection reads) and the VAmPI log after a failure |
 | `drift-reports-<attempt>` | `reports/drift/` (digest report and lane tables), `reports/allure-report/index.html`, the Allure and Playwright output of the last lane run, and the Petstore log after a failure |
+| `dast-<mode>-<attempt>`, `dast-petstore-<attempt>`, `perf-<pack>-<attempt>`, `diff-petstore-<attempt>` | each lane job's `reports/`, described in its section above |
 
 ## Adapting to a new pack or environment
 
@@ -314,7 +316,10 @@ Each run uploads one artifact, even when a step failed, and keeps it for 14 days
   `--service <pack>` narrow a step to one pack. For the performance smoke, add the pack to the
   `perf.yml` matrix; its `<pack>:up` and `<pack>:down` npm scripts start and stop it. For the DAST
   scan, copy the `dast (petstore)` job: the lane needs `allow_writes: true` and restarts the
-  service afterwards when the entry has a `recovery`.
+  service afterwards when the entry has a `recovery`. For the differential lane, add a reference
+  deployment (a pinned compose service in the `diff` profile, or a deployed environment), a
+  qa-config environment with an entry for the pack at its URL, and the pack's `diff.json`; then
+  copy the `diff (petstore)` job.
 - **A deployed environment.** Drop the start and stop steps, and set `QA_ENV` on the job to the
   qa-config environment. Each pack's entry there has a `base_url`, a `spec_url` and the credentials
   its `auth` names, supplied as secrets. `qa-config.json` is per machine and not tracked, so CI
@@ -364,7 +369,8 @@ under `act` as a defect, repeat the suite with `npm run lanes:flake`.
 ## Jenkins
 
 `Jenkinsfile` and `Jenkinsfile.drift` at the repository root run the same steps as `ci.yml` and
-`drift.yml`, in the same order and for the same reasons, as declarative pipelines.
+`drift.yml`, in the same order and for the same reasons, as declarative pipelines. The DAST,
+performance and differential lanes run only in GitHub Actions.
 
 | File | Trigger | Stages |
 |---|---|---|
@@ -400,8 +406,8 @@ variable named exactly like a parameter would be hidden.
 The build publishes the JUnit report (`reports/junit.xml`), prints the quality gate summary and
 archives `reports/` (with the single-file Allure report, `reports/allure-report/index.html`),
 `playwright-report/` and `allure-results/`. With `PUBLISH_ALLURE`, the Allure plugin also shows the
-report in the build page; it needs an Allure Commandline tool configured in Jenkins. It stops the
-Petstore in every case, and on failure archives its log.
+report in the build page; it needs an Allure Commandline tool configured in Jenkins. It stops both
+APIs in every case, and on failure archives their logs.
 
 ### Scheduled builds
 

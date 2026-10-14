@@ -14,8 +14,9 @@ Which pack and environment a request means, and what a pack holds, are set by
 ## Before you start
 
 - **The contract.** An OpenAPI document as a file or a URL. The tools read it through one normalizer
-  ([ADR 0003](../adr/0003-openapi-normalizer.md)); [contract tooling](../contract-tooling.md) lists
-  the versions and formats it accepts.
+  ([ADR 0003](../adr/0003-openapi-normalizer.md)); the
+  [spec-version table](../../README.md#spec-version-compatibility) lists the versions and formats it
+  accepts.
 - **An environment you may test.** Testing is limited to the environments qa-config names, and
   never production. Know whether writes are allowed there, and how the service is brought back if a
   case breaks it.
@@ -43,6 +44,7 @@ Options:
 | `--title <text>` | the pack's display title; by default the contract's `info.title` |
 | `--write` | write the planned files |
 | `--skill-only` | with `--write`: write only the `<pack>-api` skill, for a pack that exists without one |
+| `--skip-smoke "<METHOD /path>"` | repeatable: leave a parameterless `GET` out of the smoke spec |
 
 Settle the name and the version before anything is published: every case's identity is
 `<pack>-<version>-TC-<FEATURE>-NN`, and changing either part later turns every published case into
@@ -175,9 +177,9 @@ A pack's `auth` and each of its actors select a strategy in `helpers/auth.ts`. T
 | `oauth2_client_credentials` | `Authorization: Bearer <token>`, where the token comes from the OAuth 2.0 client credentials grant: a form post to `token_url` (an absolute URL, since a token server is often another host) with the client id and secret from `client_id_env` and `client_secret_env`, sent as HTTP basic (`client_auth: basic`, the default) or as form fields (`client_auth: body`), and `scope` when set |
 
 `login` and `oauth2_client_credentials` obtain their token over HTTP. Each one asks for it on the
-first request it decorates, shares that request between concurrent callers and reuses the token;
-`oauth2_client_credentials` asks for a new one shortly before the `expires_in` of the answer runs
-out. When a request it
+first request it decorates, shares that request between concurrent callers and reuses the token.
+Each one asks for a new token shortly before it expires: at the `expires_in` of an OAuth 2.0
+answer, otherwise at the `exp` claim of a JWT. A token with neither is kept until a `401`. When a request it
 decorated answers `401`, `BaseClient` asks it for a new token and sends the request once more, so a
 token that expires during a run is renewed; a `401` to a credential the caller set is returned as
 it is. The token exchange is never recorded as evidence, because it carries the password or the
@@ -285,9 +287,10 @@ them current. Link to the pack's files instead of copying their facts.
   `dast-false-positives.tsv`, the performance smoke its `perf.json`, and the differential lane its
   `diff.json` and the plan of `perf.json`; all work without them
   ([quality gates](../quality-gates.md#lanes)). Run `npm run lanes:perf -- --service <pack>` once:
-  it prints every `GET` it leaves out and why, which tells you what `perf.json` needs. Both lanes
-  send the credential of the pack's default actor; `--actor` picks another one, and
-  `--actor anonymous` sends none ([credentials in the lanes](../quality-gates.md#credentials-in-the-dast-and-performance-lanes)).
+  it prints every `GET` it leaves out and why, which tells you what `perf.json` needs. The
+  differential lane also needs a second qa-config environment with an entry for the pack, named by
+  `--reference`. All three lanes send the credential of the pack's default actor; `--actor` picks
+  another one, and `--actor anonymous` sends none ([credentials in the lanes](../quality-gates.md#credentials-in-the-dast-and-performance-lanes)).
 - **Commits.** One logical change each, following
   [ADR 0008](../adr/0008-branching-and-traceability.md): the scaffolded pack, then each phase's
   artifact after its gate.

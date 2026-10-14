@@ -28,7 +28,8 @@ Defects found in any phase are triaged and filed separately
 
 **Design and execution never mix** (`.claude/rules/modes.md`):
 
-- Design calls the API read-only, apart from running the specs it is writing.
+- Design calls the API read-only, apart from running the specs it is writing and the credential
+  exchange of the pack's auth strategy.
 - Execution never edits specs, registries or definitions.
 
 A request that needs both is split, and each half stops at its own gate.

@@ -21,7 +21,8 @@ you are authorized to test, as named in qa-config; never production.
 
 Beyond the functional suite, two lanes run tools in containers against a pack: an OWASP ZAP security
 scan driven by the pack's OpenAPI document, and a k6 performance smoke of its `GET` operations.
-Their reports feed the quality gate next to the test results ([lanes](docs/quality-gates.md#lanes)).
+Their reports feed the quality gate next to the test results. A third lane sends the same read-only
+requests to two deployments of a pack and reports every difference ([lanes](docs/quality-gates.md#lanes)).
 
 The project is before 1.0: names and formats can still change between minor versions. Architecture
 decisions are recorded in [`docs/adr/`](docs/adr/README.md).
@@ -52,7 +53,8 @@ non-empty value. The Petstore accepts any key; the preflight refuses an empty on
 ignored by git and read only on your machine.
 
 You do not need a `qa-config.json` yet. Without one, `qa-config.example.json` applies: it targets the
-local Petstore, allows writes there, and keeps test-management and tracker data in local files.
+local Petstore and VAmPI, allows writes there, and keeps test-management and tracker data in local
+files.
 Copy it to `qa-config.json` when you want per-machine changes.
 
 **3. Run the gates.** They need no API, so they work before anything is started:
@@ -65,8 +67,11 @@ npm run gates
 
 ```sh
 npm run petstore:up      # http://localhost:8080/api/v3; waits for the container's healthcheck
-npm test                 # unit tests, each pack's preflight, then every API spec
+npx playwright test --project=unit --project=api-petstore   # unit tests, the Petstore's preflight, its specs
 ```
+
+`npm test` runs every pack. The example configuration also has VAmPI, whose preflight fails until
+`npm run vampi:up` has started it and the `VAMPI_USER_*` variables of `.env.example` are set.
 
 **5. Read the results.** The terminal lists every case. `playwright-report/` holds the HTML report,
 and `allure-results/` holds the raw results with the redacted request and response of every call.
@@ -107,22 +112,27 @@ environment, and `QA_<PACK>_BASE_URL` and `QA_<PACK>_SPEC_URL` (for example
 as redacted evidence. Results go to `allure-results/` and
 `playwright-report/`. A Playwright run clears `allure-results/` when it starts (the destructive lane
 adds to the run before it instead). The optional runner switches (retries, extra reports, a fixed
-seed or clock) are listed in `.env.example`.
+seed or clock, traces) are listed in `.env.example`.
 
-Lanes run outside a normal run, and the quality gate judges their outputs together. Both are
-described in [quality gates](docs/quality-gates.md#lanes):
+Lanes run outside a normal run. The quality gate judges the test results and the DAST and
+performance reports together; the other lanes fail on their own. Both are described in
+[quality gates](docs/quality-gates.md#lanes):
 
 | Command | Runs |
 |---|---|
 | `npm run lanes:known-gap`, `lanes:published`, `lanes:flake`, `lanes:destructive` | Playwright selections: armed known gaps, published cases, repeats to find flaky cases, `@destructive` cases one at a time with a recovery after each. |
-| `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack, with the pack's rules, into `reports/dast/<pack>.json`. |
-| `npm run lanes:perf -- --service <pack>` | A k6 performance smoke of the pack's `GET` operations at a steady rate, into `reports/perf/<pack>.json`. |
+| `npm run lanes:dast -- --service <pack> [--actor <name>]` | An OWASP ZAP API scan of the pack, with the pack's rules, into `reports/dast/<pack>.json`. |
+| `npm run lanes:perf -- --service <pack> [--actor <name>]` | A k6 performance smoke of the pack's `GET` operations at a steady rate, into `reports/perf/<pack>.json`. |
 | `npm run lanes:diff -- --service <pack> --reference <env>` | The same read-only requests to two deployments of the pack, every difference in answers and contract reported, into `reports/diff/<pack>.json`. |
 | `npm run quality:gate` | PASS, REVIEW or FAIL per check in qa-config `quality_gate`: pass rate, p95 latency, DAST alerts, mutation score. |
 
+The lanes send the credential of the pack's default actor; `--actor` names another, or `anonymous`
+for none ([credentials in the lanes](docs/quality-gates.md#credentials-in-the-dast-and-performance-lanes)).
 ZAP and k6 run from compose services pinned by digest (profiles `dast` and `perf`, so
-`docker compose up` never starts them). Both send real traffic, and a ZAP scan writes: point them at
-local containers or an environment meant for it. The DAST lane refuses an environment whose pack
+`docker compose up` never starts them; [ADR 0010](docs/adr/0010-container-lanes.md)). Locally,
+`npm run petstore:reference:up` starts an earlier Petstore release (profile `diff`) as the example's
+`reference` environment. ZAP and k6 send real traffic, and a ZAP scan writes: point them at local
+containers or an environment meant for it. The DAST lane refuses an environment whose pack
 entry has `allow_writes` false, and restarts the service afterwards when the entry names a
 `recovery`.
 
@@ -137,8 +147,8 @@ redaction, schema validation and controlled test data.
 
 | | |
 |---|---|
-| **Uses** | `helpers/` (base client, evidence and redaction, schema validation, state comparison, resource guards, known gaps, seeded data and clock), `fixtures/` (the core fixtures, global setup, preflight), `playwright.config.ts`, and one service pack per API with its clients, builders, flows and specs ([ADR 0007](docs/adr/0007-layered-test-architecture.md)). |
-| **Needs** | Node, the npm dependencies, a qa-config environment and its credentials, and `scripts/lib/`: the core imports the contract normalizer and the log and text helpers from it. |
+| **Uses** | `helpers/` (base client, authentication strategies, evidence and redaction, schema validation, state comparison, resource guards, known gaps, seeded data and clock), `fixtures/` (the core fixtures, global setup, preflight), `playwright.config.ts`, and one service pack per API with its clients, builders, flows and specs ([ADR 0007](docs/adr/0007-layered-test-architecture.md)). |
+| **Needs** | Node, the npm dependencies, a qa-config environment and its credentials, and `scripts/lib/`: the core imports the contract normalizer, token issuing (`auth-tokens.mjs`), variable-name redaction (`env-names.mjs`), the state comparison and the log and text helpers from it. |
 | **Start a pack** | `npm run scaffold:service -- --name <pack> --spec <file\|url>` prints the plan; add `--write` to create the pack. |
 | **You can skip** | `.claude/`, `AGENTS.md` and `CLAUDE.md`, registries, the contract and lint scripts, the test-management and tracker adapters, CI. |
 
@@ -218,7 +228,8 @@ None of these is needed for a green run. Turn on what your project uses.
 - **Issue trackers.** Defects are searched, filed and re-read through `tracker.provider`; the example
   uses a local tracker kept in `docs/tracker/local/`. `none` turns every tracker call off. Same page.
 - **CI workflows.** `.github/workflows/` runs the gates and the end-to-end suite of each pack, a
-  daily drift check, and weekly DAST and performance runs ([continuous integration](docs/ci.md)),
+  daily drift check, and weekly DAST, performance and differential runs
+  ([continuous integration](docs/ci.md)),
   plus CodeQL, a secret scan, Dependabot and an optional AI pull-request review
   ([CI security and review](docs/ci-security.md)). Keep the ones you want; each
   page says how to turn a workflow on or off. On Jenkins, `Jenkinsfile` and `Jenkinsfile.drift` run
@@ -234,9 +245,9 @@ None of these is needed for a green run. Turn on what your project uses.
   passes, so a fresh clone loses nothing by ignoring it. The pre-commit and commit-msg hooks run the
   same scan on staged changes and on the message, `npm run scan:denylist:history` scans the whole
   history, and `npm run gates` runs only the scanner's self-test.
-- **Security scan and performance smoke.** A pack opts into the DAST lane's policy with
-  `dast-rules.tsv` and `dast-exclude.txt`, and into the performance lane's values and exclusions
-  with `perf.json`; without them both lanes still run on the contract alone
+- **Security scan, performance smoke and differential lane.** A pack opts into each lane's policy
+  with its optional files ([what a pack holds](.claude/rules/service-packs.md#what-a-pack-holds));
+  without them the DAST and performance lanes still run on the contract alone
   ([optional lanes](docs/guides/add-a-service-pack.md)).
 - **Quality gate checks.** Every check in `qa-config` `quality_gate` is optional
   ([quality gates](docs/quality-gates.md#quality-gate)).

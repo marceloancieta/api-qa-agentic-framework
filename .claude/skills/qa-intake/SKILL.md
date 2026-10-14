@@ -13,12 +13,13 @@ description: >-
 # qa-intake: write the feature contract
 
 **Mode: design** (`.claude/rules/modes.md`). Read-only calls to the API are allowed and expected.
-Write requests are not.
+Write requests are not; the credential exchange of the pack's auth strategy is the one exception.
 
 ## Inputs
 
-- The pack (`.claude/rules/service-packs.md`) and its contract `services/<pack>/openapi.json`, or the
-  pack's live `spec_url` with `--live --service <pack>`.
+- The pack (`.claude/rules/service-packs.md`) and its tracked contract (the file in
+  `services/<pack>/` that `service.json` `spec` names), or the pack's live `spec_url` with
+  `--live --service <pack>`.
 - Optional: an issue key (read it with `npm run tracker -- get <KEY>`), or an intake request written
   from [the intake template](../../../docs/templates/intake.md).
 - The pack's skill `.claude/skills/<pack>-api/SKILL.md`, if there is one, and
@@ -40,7 +41,8 @@ Write requests are not.
    contradicts the spec is a drift candidate (L-38).
 5. **Measure, read-only.** Probe what the spec cannot tell you with safe calls (`GET`, `HEAD`,
    `OPTIONS`) through a throwaway script in the scratchpad that reads credentials from the
-   environment. Record each measurement with its request and date. A measurement outranks a reading
+   environment (a `login` or OAuth 2.0 pack obtains its token through `laneCredential`, the one
+   `POST` design may send). Record each measurement with its request and date. A measurement outranks a reading
    of the spec, and the doc says where they differ. Behaviour of writes is left marked
    **unmeasured**. If it matters before design, propose an execution-mode run against data that
    run creates (`qa-run`), and write its result back here.

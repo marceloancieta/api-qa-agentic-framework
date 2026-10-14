@@ -13,7 +13,7 @@ Runs before every push (pre-push hook) and needs no API:
 | `lint`, `format:check`, `types:check` | ESLint, Prettier, TypeScript |
 | `config:check` | qa-config against its schema, plus cross-field rules |
 | `test:hooks`, `test:scripts` | the Claude Code hooks and every script and library |
-| `contract:check` | tracked digest, probe matrix and value sets are current ([contract tooling](contract-tooling.md)) |
+| `contract:check` | tracked digest, probe matrix, value sets and decision tables are current ([contract tooling](contract-tooling.md)) |
 | `lint:qa` | `lint-harness`, `lint-suite`, `lint-docs`, `lint-layers` on the repository, then each linter's self-test |
 | `coverage:status` | every registry row against the specs and the latest run of its spec |
 | `test:unit` | offline unit tests of helpers and packs |
@@ -54,10 +54,12 @@ matrix, and `traceability:write` writes it to `docs/traceability/<pack>.md`.
 
 Every Playwright lane runs the `api-<pack>` project of every pack by default; `--service <pack>`
 scopes it to that pack's project (`npm run lanes:published -- --service petstore`). The DAST and
-performance lanes run in a container against one pack, so they need `--service`.
+performance lanes run in a container against one pack, and the differential lane compares one
+pack's deployments, so all three need `--service`.
 
-In CI the destructive lane runs after the suite on every pull request, and the known-gap and
-published lanes run daily ([continuous integration](ci.md)).
+In CI the destructive lane runs after the suite on every pull request, the known-gap and published
+lanes run daily, and the DAST, performance and differential lanes run weekly and on pull requests
+that touch them ([continuous integration](ci.md)).
 
 ### Credentials in the DAST and performance lanes
 
@@ -68,7 +70,9 @@ the same code the test runner's strategies use, so every `auth` type works excep
 the query, which a lane refuses (exit 2): a tool's requests can carry a fixed header, not a query
 parameter. A `login` or OAuth 2.0 token is due for renewal a margin before it expires (10% of its
 lifetime, at most 30 s), from the `expires_in` of the answer or the `exp` claim of a JWT. The lanes
-print the actor, the auth type and the header name, never the value.
+print the actor, the auth type and the header name, never the value. A message about a missing
+variable names it only when the name has the shape of one (`scripts/lib/env-names.mjs`), so a
+secret pasted into a `*_env` field by mistake is never printed.
 
 - **DAST.** ZAP's API is published on a loopback port of the host. Once it answers, about a minute
   after the container starts, the lane obtains a fresh credential and sets a replacer rule that
@@ -87,7 +91,7 @@ print the actor, the auth type and the header name, never the value.
 **Liveness.** During every DAST scan, with or without a credential, the lane requests the pack's
 base URL from the host every 15 s (10 s timeout; any HTTP status is an answer). After four checks
 in a row without an answer it stops the scan container and exits 1: an availability finding, not
-an alert of a FAIL rule, and without a report. An authenticated payload can hang a fragile API
+an alert of a FAIL rule, whether or not ZAP wrote a report (one that exists may be incomplete). An authenticated payload can hang a fragile API
 (VAmPI's vulnerable mode, VN-15), and ZAP would otherwise wait for it indefinitely.
 
 Every Playwright lane refuses a non-zero `QA_RETRIES`: a retry turns an intermittent failure into a
@@ -156,7 +160,9 @@ or not, so each one is reviewed. `scripts/diff-lane.mjs` has the details in its 
 **The two sides** are qa-config environments with an entry for the pack: `--reference <env>`, and
 `--candidate <env>` or the active environment. The `QA_<PACK>_BASE_URL` and `QA_<PACK>_SPEC_URL`
 overrides apply to the candidate only. Both sides get the credential of the same actor
-(`--actor`, as in the other lanes) and `Accept: application/json`.
+(`--actor`, as in the other lanes) and `Accept: application/json`. The lane refuses (exit 2) when
+the two sides are the same environment or one of them has no `spec_url`. `--out <name>` names the
+report (default: the pack).
 
 **What it compares.**
 
@@ -175,7 +181,7 @@ overrides apply to the candidate only. Both sides get the credential of the same
 **What it judges.** `diff.json` `accepted` lists the differences the pack has reviewed, keyed as the
 lane prints them, each with the contract note that explains it. The lane exits 1 for a difference
 not accepted and for an accepted one that no longer shows up (stale: the change it describes is
-gone), 0 otherwise, and 2 when it cannot run. The report lands in `reports/diff/<pack>.json`.
+gone), 0 otherwise, and 2 when it cannot run. The report lands in `reports/diff/<out>.json`.
 
 ## Quality gate
 
@@ -191,9 +197,26 @@ optional, and each one is a separate strategy:
 - `mutation_score`, from Stryker's JSON report (`npm run mutation`, below).
 
 Each check is PASS, REVIEW or FAIL. A missing source is SKIPPED with its reason, or FAIL when the
-check is `required`; malformed input is a FAIL with the reason. The worst check decides the verdict.
-REVIEW writes the artifact (`reports/quality-gate.json`) and a Markdown summary without failing the
-build; `--fail-on-review` makes it fail.
+check is `required`; malformed input is a FAIL with the reason. A latency source with fewer than
+`min_samples` samples is SKIPPED, even when the check is `required`. The worst check decides the
+verdict; SKIPPED checks do not count, and a run where every check was skipped is SKIPPED. REVIEW
+writes the artifact (`reports/quality-gate.json`) and a Markdown summary without failing the build;
+`--fail-on-review` makes it fail.
+
+The keys of each check, whose values qa-config holds:
+
+| Key | Checks | Means |
+|---|---|---|
+| `source`, `format` | every check (`format` for `pass_rate` and `p95_latency`) | where the input is and how to read it |
+| `required` | every check | a missing source is FAIL instead of SKIPPED |
+| `fail_below_pct`, `review_below_pct` | `pass_rate`, `mutation_score` | FAIL or REVIEW when the percentage is strictly below the value |
+| `fail_above_ms`, `review_above_ms` | `p95_latency` | FAIL or REVIEW when the 95th percentile is above the value |
+| `min_samples` | `p95_latency` | fewest timed samples to judge (default 5) |
+| `fail_above`, `review_above` | `dast` | per risk level, FAIL or REVIEW when the count of alerts is above the value; a risk with no value has no limit |
+
+Exit codes: 0 for PASS, REVIEW and SKIPPED, 1 for FAIL (and for REVIEW with `--fail-on-review`), 2
+for a usage or configuration error. `--config <file>`, `--out <file>` and `--summary <file.md>`
+change the inputs and outputs (`scripts/quality-gate.mjs` has the details in its header).
 
 ## Mutation testing
 

@@ -24,19 +24,17 @@ and completed by hand from the pack. Facts the pack already owns are linked, not
 
 ## Environments and writes
 
-qa-config gives the `petstore` pack an entry in two environments
+qa-config gives the `petstore` pack an entry in three environments
 (`api.environments.<env>.packs.petstore`): `local` (the Docker image started with
-`npm run petstore:up`, the system under test for every write) and `public`, the demo, which is
-read-only for this suite. The
-seed pets 1 to 10 are shared data: a case that changes one runs inside `withResourceGuard` with
+`npm run petstore:up`, the system under test for every write), `reference` (an earlier release for
+the differential lane, started with `npm run petstore:reference:up`, read-only) and `public`, the
+demo, which is read-only for this suite. The seed pets 1 to 10 are shared data: a case that changes one runs inside `withResourceGuard` with
 `seedPet(pets, id)` (`services/petstore/guards.ts`).
 
 ## Authentication and actors
 
-The contract declares `petstore_auth` (OAuth2) and `api_key` (header `api_key`). The service accepts
-any `api_key` value and does not require it for the operations the suite uses, so Petstore cannot
-demonstrate an authorization matrix. Authorization cases belong to an API that enforces access
-(backlog FUT-07).
+The contract declares `petstore_auth` (OAuth2) and `api_key` (header `api_key`). The service does
+not enforce `api_key` (PN-05), so authorization matrices are shown on the VAmPI pack (`vampi-api`).
 
 ## Resources
 
@@ -44,7 +42,7 @@ demonstrate an authorization matrix. Authorization cases belong to an API that e
 |---|---|---|---|---|
 | `pet` | `PetClient` (`clients/pet-client.ts`) | `pets` | 8 | `PET` |
 | `store` | `StoreClient` (`clients/store-client.ts`) | `store` | 4 | `STOR` |
-| `user` | none yet | none yet | 7 | `USER` |
+| `user` | `UserClient` (`clients/user-client.ts`) | `users` | 7 | `USER` |
 
 Codes are confirmed at the first design gate and are permanent once a case is published
 (`.claude/rules/registry.md`).
@@ -52,7 +50,7 @@ Codes are confirmed at the first design gate and are permanent once a case is pu
 ## Data
 
 - Identity fields pseudonymized in evidence: `service.json` `identity_fields` (the user fields).
-- Builders: `aPet`, `anOrder` and the `PetMother` in `services/petstore/builders/`.
+- Builders: `aPet`, `anOrder`, `aUser` and the `PetMother` in `services/petstore/builders/`.
 - Value sets (pet and order status): `services/petstore/generated/enums.ts`.
 
 ## Errors
@@ -64,3 +62,10 @@ formats. Input errors name the field only inside the message, so cases assert th
 
 A write is confirmed by reading the resource back and comparing it with the field models in
 `services/petstore/state-models.ts` (`expectSameState`, `expectOnlyChanged`).
+
+## Lanes
+
+The service loses data under parallel writers, so `service.json` sets `workers: 1` (PN-26), which
+also limits the DAST lane's scan threads. The `local` entry's `recovery` restarts the container
+after the destructive and DAST lanes. The lane files (`dast-false-positives.tsv`, `perf.json`,
+`diff.json`) are listed in the layout of `services/petstore/README.md`.

@@ -72,6 +72,7 @@ Three rules keep ratings consistent:
 |---|---|
 | Class | label `class:<name>`, for example `class:silent-write` |
 | Severity | label `severity:<S1..S4>`, or the tracker's own severity field when the project has one |
+| Not yet reproduced | label `type:unconfirmed-finding`, severity proposed in the description ([bug reporting](bug-reporting.md#1-confirmed-unconfirmed-or-unknown)) |
 | Reasoning | one clause in the description's Environment section: the criterion that applied and the reach |
 
 Labels need no tracker administration and can be filtered in every supported tracker:

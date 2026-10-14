@@ -28,6 +28,7 @@ Each fact below has one owner. Other files link to it or name it; they never res
 | Defect classes and severity | `docs/references/defect-rubric.md` |
 | How to complete a contract and choose techniques | `docs/references/contract-analysis.md` |
 | Quality gate thresholds | `qa-config` `quality_gate`; meaning in `docs/quality-gates.md` |
+| Auth strategies | `helpers/auth.ts` (`createAuth`); config shape in `schemas/qa-config.schema.json` |
 | Where an API departs from its contract | `services/<pack>/docs/contract-notes.md` |
 | Whether a cited issue is still open | the tracker itself, re-read by `npm run cited:status` (L-11) |
 
@@ -67,6 +68,7 @@ A disagreement between two files about a fact missing from this table means the 
 | a phase skill | `CLAUDE.md` (the pipeline table), the skills before and after it |
 | an agent in `.claude/agents/` | `CLAUDE.md` (the agents table), the skills that launch it, `scripts/__tests__/agent-guide.test.mjs` |
 | a variable in `.env.example` or qa-config | `README.md` setup, the docs that name it, `schemas/qa-config.schema.json` |
+| an auth strategy in `helpers/auth.ts` | `scripts/lib/auth-tokens.mjs` (`laneCredential`, for the lanes), `schemas/qa-config.schema.json`, `scripts/scaffold-service.mjs` (the `auth` it suggests), `docs/quality-gates.md` (credentials in the lanes) |
 
 A linter sees statements that conflict, not updates that were never made, so this table is walked by
 hand. Each missing pair you discover becomes a new row.

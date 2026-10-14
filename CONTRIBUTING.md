@@ -34,8 +34,9 @@ writes it.
    ```
 
    They need no API and must pass. What they run is described in
-   [quality gates](docs/quality-gates.md). When you change a spec, also run it against the local
-   Petstore (`npm run petstore:up`, then `npm test`) and include what you saw in the pull request.
+   [quality gates](docs/quality-gates.md). When you change a spec, also run its pack against that pack's
+   local service (`npm run petstore:up` or `npm run vampi:up`, then
+   `npx playwright test --project=api-<pack>`) and include what you saw in the pull request.
 4. **Update the documentation in the same commit** (see [Documentation](#documentation)).
 
 ### New checks
@@ -77,7 +78,8 @@ The denylist is a private, untracked list of terms you must never publish, kept 
 
 In Claude Code, the project also registers its own hooks: `secret-guard` refuses prompts and tool
 calls that carry credentials, `git-policy` applies the commit and pull-request rules configured in
-qa-config `policies` (inactive until configured), and `session-probe` reports the setup state when a
+qa-config `policies` (the example configuration turns on the subject check and the protected
+`main`), and `session-probe` reports the setup state when a
 session starts ([hooks README](.claude/hooks/README.md)).
 
 ## Branches and pull requests

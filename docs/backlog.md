@@ -38,17 +38,23 @@ and DOC-06 for the overview pages. Released as `v0.3.0`.
 
 Extensibility and distribution, in this order. FUT-04, FUT-10, FUT-03 and FUT-06 are in **Done**, and
 so are GATE-18 and GATE-19, which came out of their pull requests. DOC-07 reviews the documentation
-once the code has settled, and FUT-05 comes last.
+once the code has settled; GATE-20 and PET-04 came out of that review and are small enough to land
+before the release. FUT-05 comes last.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
 | DOC-07 | A full documentation review: README, `docs/`, the pack READMEs, the rules and the skills read against the code, with a new ADR recording the container lanes (tools pinned in compose services; the lane judges statuses, the quality gate judges thresholds). | plan | todo |
+| GATE-20 | CodeQL alert 13 (`js/http-to-file-access`, `scripts/dast-lane.mjs`) is open on `main`: the lane writes the definition it fetched from the pack's `spec_url` to `reports/dast/`. Decide from the data flow whether the write needs a guard (size, content type, an OpenAPI shape check before saving) or is the lane's purpose, and fix it or record why it is accepted, without a dismissal that the code does not explain. | exp | todo |
+| PET-04 | The `petstore` compose service is pinned by tag only (`1.0.28`), while the differential lane uses it as the candidate: a re-pushed tag would change it silently. Pin it by tag and digest, as `petstore-reference` is ([ADR 0010](adr/0010-container-lanes.md)). | exp | todo |
 | FUT-05 | The repository as a GitHub template, with a guide to adopting it from the template; reversible, unlike an npm package (FUT-11). | plan | todo |
 
 ## v0.5.0
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
+| TM-09 | `npm run tracker -- update <key>`: change an issue's title and labels through the verified wrapper, with a read-back. Promoting an unconfirmed finding and re-scoping a defect ([bug reporting](references/bug-reporting.md)) are done today with a comment and a manual edit that nothing reads back. | exp | todo |
+| GATE-21 | The quality gate skips a latency check with fewer than `min_samples` samples even when the check says `required: true` ([quality gates](quality-gates.md#quality-gate)). Decide whether `required` should make it FAIL, as it does for a missing source, and test both. | exp | todo |
+| GATE-22 | `lint-docs` checks that every cited lesson (`L-NN`) exists, but not the contract-note ids (`PN-NN`, `VN-NN`, a pack's own prefix): add a rule that every cited note id exists in its pack's `contract-notes.md`, with fixtures and look-alikes. | exp | todo |
 | FUT-11 | `npx create-api-qa`: the scaffolder published as an npm package. Publishing needs the owner's npm account and cannot be fully undone, so it waits for its own approval. | plan | todo |
 
 ---

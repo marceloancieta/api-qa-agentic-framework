@@ -43,7 +43,9 @@ flowchart TB
   gates["Gates and linters<br/>npm run gates"]
   scan["DAST lane<br/>OWASP ZAP in a container"]
   perf["Performance lane<br/>k6 in a container"]
+  diff["Differential lane<br/>two deployments compared"]
   reports["reports/<br/>DAST and performance reports"]
+  diffReport["reports/diff/<br/>differences, own verdict"]
   qgate["Quality gate<br/>PASS, REVIEW or FAIL"]
 
   subgraph agentic["Agentic layer - .claude/"]
@@ -78,6 +80,9 @@ flowchart TB
   perf -->|steady load| api
   scan --> reports
   perf --> reports
+  norm -->|GET plan| diff
+  diff -->|same GETs| api
+  diff --> diffReport
   results --> qgate
   reports --> qgate
   gates -.->|check| specs
@@ -111,10 +116,12 @@ Reading the diagram from the top:
   case manifest joins them with the registries and feeds the configured test-management adapter
   ([ADR 0004](adr/0004-test-management-adapters.md)). Defects go to the configured tracker through
   another adapter. Both are described in [test management](test-management.md).
-- **Lanes and the quality gate.** Two lanes test a pack with tools that are not Playwright: OWASP
-  ZAP scans the operations of the OpenAPI document, and k6 sends a plan of `GET` requests built
-  from the normalized contract. Their reports and the test results feed the quality gate, which
-  gives each configured check a verdict ([lanes and the quality gate](#lanes-and-the-quality-gate)).
+- **Lanes and the quality gate.** Three lanes test a pack without Playwright: OWASP ZAP scans the
+  operations of the OpenAPI document, k6 sends a plan of `GET` requests built from the normalized
+  contract, and the differential lane sends the same plan to two deployments and compares their
+  answers. The DAST and performance reports and the test results feed the quality gate, which gives
+  each configured check a verdict; the differential lane gives its own
+  ([lanes and the quality gate](#lanes-and-the-quality-gate)).
 - **Gates.** `npm run gates` checks the specs, the registries, the docs and the freshness of the
   contract outputs without calling the API ([quality gates](quality-gates.md)).
 - **Agentic layer.** Rules, phase skills, subagents and hooks let a coding agent run the phases with
@@ -296,7 +303,8 @@ Notes on the steps:
 
 - **Projects.** `npm test` runs the projects defined in `playwright.config.ts`: `unit`, and for
   each pack under `services/` (a folder with a `service.json`) a `preflight-<pack>` setup project
-  and an `api-<pack>` project that depends on it. `--project=api-<pack>` runs one pack and
+  and an `api-<pack>` project that depends on it (and, only under `npm run auth:live`, the
+  `auth-live` project). `--project=api-<pack>` runs one pack and
   `--project=api-*` every pack. Each `api-<pack>` project leaves out `@destructive` cases, which
   `npm run lanes:destructive` runs alone ([lanes](quality-gates.md#lanes)).
 - **Configuration per pack.** A pack's projects read its entry in the active environment
@@ -314,11 +322,11 @@ Notes on the steps:
   `helpers/case-meta.ts`, which gives each result its suite, its run id and, when the title starts
   with a case id, the identity `<service>-<version>-<TC id>`. What a result carries is set by
   [the reporting rule](../.claude/rules/reporting.md).
-- **Authentication.** The strategy the pack's `auth` or the actor names decorates each request in
-  step 16 (`helpers/auth.ts`). The `login` strategy logs in on its first request and reuses the
-  token; when a request it decorated answers `401`, `BaseClient` asks it for a new token and sends
-  the request once more, so a token that expires mid-run is renewed. The login exchange is not
-  recorded as evidence ([authentication strategies](guides/add-a-service-pack.md#4-authentication-strategies)).
+- **Authentication.** The strategy the pack's `auth` or the actor names decorates each request
+  (`helpers/auth.ts`). The token strategies (`login`, `oauth2_client_credentials`) obtain a token on
+  their first request, reuse it and renew it shortly before it expires; when a request they
+  decorated answers `401`, `BaseClient` asks for a new token and sends the request once more. The
+  token exchange is not recorded as evidence ([authentication strategies](guides/add-a-service-pack.md#4-authentication-strategies)).
 - **Evidence.** `BaseClient.send` calls `attachExchange` in `helpers/evidence.ts` for every request.
   Secrets are masked and identity fields are pseudonymized with a per-run salt (`helpers/redact.ts`)
   before anything is attached. Playwright traces are not redacted; [CI](ci.md#secrets-and-variables)
@@ -332,14 +340,16 @@ Notes on the steps:
 
 A normal run proves what the cases assert. Lanes answer other questions about the same pack, and
 the quality gate turns their outputs into one verdict. The Playwright lanes (known gaps, published
-cases, flakiness, destructive cases) select and repeat specs; two more run tools that are not
-Playwright. [Quality gates](quality-gates.md#lanes) owns what each lane does and how it exits.
+cases, flakiness, destructive cases) select and repeat specs. Two more run tools that are not
+Playwright, and a third compares two deployments. [Quality gates](quality-gates.md#lanes) owns what
+each lane does and how it exits; [ADR 0010](adr/0010-container-lanes.md) records why the tools run
+in containers and why the gate, not the lane, judges thresholds.
 
 ```mermaid
 flowchart LR
   subgraph packFiles["services/pack-name/"]
     contract["Tracked contract<br/>the spec file in service.json"]
-    dastPolicy["dast-rules.tsv<br/>dast-exclude.txt"]
+    dastPolicy["dast-rules.tsv<br/>dast-exclude.txt<br/>dast-false-positives.tsv"]
     perfPolicy["perf.json"]
   end
 
@@ -355,7 +365,7 @@ flowchart LR
     k6["k6 compose service<br/>scripts/k6/smoke.js"]
   end
 
-  specUrl --> zap
+  specUrl -->|fetched on the host,<br/>excluded paths removed| zap
   dastPolicy --> zap
   contract --> plan
   perfPolicy --> plan
@@ -380,36 +390,89 @@ flowchart LR
 
 - **Tools in containers.** ZAP and k6 run from compose services pinned by digest, behind the
   profiles `dast` and `perf`, so their versions live in `docker-compose.yml` and no one installs
-  them. Inside a container `localhost` is the container itself, so `scripts/lib/container.mjs`
+  them ([ADR 0010](adr/0010-container-lanes.md)). Inside a container `localhost` is the container itself, so `scripts/lib/container.mjs`
   rewrites a loopback base URL to the compose service that publishes its port, or to
   `host.docker.internal`, and the lane prints the rewrite.
-- **The contract drives both.** ZAP reads the pack's OpenAPI document from its `spec_url` and
-  attacks every operation at the pack's base URL. The performance lane builds its plan from the
+- **The contract drives both.** The DAST lane fetches the pack's OpenAPI document from its
+  `spec_url` on the host, removes the paths `dast-exclude.txt` matches and hands ZAP the saved
+  file, which attacks every operation at the pack's base URL. The performance lane builds its plan from the
   tracked contract through the normalizer: every `GET` with values from `perf.json`, the schema's
   examples, defaults or enums, and every operation it leaves out printed with its reason.
 - **Each pack sets its own policy.** `dast-rules.tsv` sets each ZAP rule to IGNORE, WARN or FAIL,
-  `dast-exclude.txt` keeps URLs out of a scan, and `perf.json` gives parameter values and keeps out
-  operations that reset data or expose secrets. The VAmPI pack has all three.
+  `dast-exclude.txt` keeps URLs out of a scan, `dast-false-positives.tsv` filters alerts shown to
+  be false, and `perf.json` gives parameter values and keeps out operations that reset data or
+  expose secrets. Every file is optional: the VAmPI pack has the DAST files and `perf.json`; the
+  Petstore has `dast-false-positives.tsv`, `perf.json` and the differential lane's `diff.json`.
 - **The pack's credential goes along.** Both lanes send the credential of one of the pack's actors,
   obtained on the host by `scripts/lib/auth-tokens.mjs`, the code the test runner's strategies use.
   For ZAP the lane sets it as a replacer rule through ZAP's API and renews it during the scan; for
   k6 it travels in the container's environment, never on disk
   ([credentials in the lanes](quality-gates.md#credentials-in-the-dast-and-performance-lanes)).
 - **The lane judges what it can, the gate judges thresholds.** A lane fails on what is wrong in
-  itself: an alert of a FAIL rule, a request that answered an unexpected status. Counts and
+  itself: an alert of a FAIL rule, an API that stopped answering during a scan, a request that
+  answered an unexpected status, a difference the pack has not accepted. Counts and
   percentiles are judged once, by the quality gate's strategies in `scripts/quality-gate.mjs`, with
   the thresholds in qa-config `quality_gate`.
 - **Two deployments, compared.** The differential lane (`npm run lanes:diff`) sends the
   performance lane's `GET` plan to two qa-config environments of a pack and compares the answers
   with the bucket model of `scripts/lib/state-compare.mjs`, the code `helpers/state-compare.ts`
   gives the specs, and the two contracts with the digest. It needs no tool container and feeds no
-  check of the gate: a difference the pack has not accepted in `diff.json` fails the lane.
+  check of the gate: a difference the pack has not accepted in `diff.json` fails the lane. The
+  diagram below shows it.
 - **A scan writes, so it asks the environment first.** The DAST lane scans only where the pack's
   entry has `allow_writes: true`, uses the pack's `workers` as ZAP's threads per host, and runs the
   entry's `recovery` afterwards, the same settings the specs and the destructive lane obey.
 - **CI runs them on a schedule.** `dast.yml` scans both VAmPI modes and the Petstore, `perf.yml`
   runs both packs and `diff.yml` compares the Petstore with an earlier release every week, and on
   pull requests that touch them ([continuous integration](ci.md)).
+
+The differential lane compares a candidate deployment with a reference. Both are qa-config
+environments with an entry for the pack; the `QA_<PACK>_*` overrides move the candidate only.
+
+```mermaid
+flowchart LR
+  subgraph packFiles["services/pack-name/"]
+    contract["Tracked contract<br/>and perf.json"]
+    diffModel["diff.json<br/>field buckets per operation<br/>accepted differences with their note"]
+  end
+
+  subgraph envs["qa-config environments"]
+    refEnv["--reference env<br/>base_url, spec_url, actor"]
+    candEnv["--candidate env<br/>default: the active one"]
+  end
+
+  reference[("Reference deployment<br/>e.g. petstore-reference, 1.0.26")]
+  candidate[("Candidate deployment<br/>e.g. petstore, 1.0.28")]
+
+  subgraph diffLane["npm run lanes:diff"]
+    plan["GET plan of the performance lane<br/>plus each request without each<br/>required query parameter"]
+    send["Same requests, same actor's<br/>credential, to both sides"]
+    answers["Compare each answer<br/>status, media type, body<br/>bucket model of state-compare.mjs"]
+    contracts["Compare the two spec_url<br/>documents by digest"]
+    accepted["Match differences against<br/>diff.json accepted"]
+  end
+
+  contract --> plan
+  plan --> send
+  refEnv --> send
+  candEnv --> send
+  send --> reference
+  send --> candidate
+  reference --> answers
+  candidate --> answers
+  refEnv -->|spec_url| contracts
+  candEnv -->|spec_url| contracts
+  diffModel --> answers
+  answers --> accepted
+  contracts --> accepted
+  diffModel --> accepted
+  accepted --> report["reports/diff/pack.json<br/>exit 0 nothing new, 1 a new or stale<br/>difference, 2 could not run"]
+```
+
+- **Read-only on both sides.** Only `GET` requests are sent, so the lane may run against shared
+  environments. The report names the field paths that differ, never their values.
+- **A reviewed difference stays reviewed.** An accepted difference that no longer shows up fails
+  the lane too, so `diff.json` cannot keep entries for changes that are gone.
 
 ## Patterns used
 
@@ -461,7 +524,7 @@ Each pattern below is in the code today; the path is where to read it.
 | Adapter with a shared contract test: trackers | `scripts/tracker/adapters/`, `scripts/tracker/contract.mjs` | GitHub, Jira and the local store behave the same behind one interface. |
 | Read-back after every write | `verifiedTracker` in `scripts/tracker/tracker.mjs` (a decorator over any tracker adapter), `assertReadBack` in `scripts/tm/adapter.mjs` | A write that says it worked is checked against what the tool now holds. |
 | Strategy: quality-gate checks | `STRATEGIES` in `scripts/quality-gate.mjs` | Each metric reads and judges its own source; the worst verdict wins. A check can read more than one format: `p95_latency` takes a k6 summary or Allure results. |
-| Tools pinned in containers | the `zap` and `k6` services in `docker-compose.yml`, behind profiles | A scanner or a load tool has one version, pinned by digest, and nothing to install on a machine or a CI runner. |
+| Tools pinned in containers | the `zap`, `k6` and `petstore-reference` services in `docker-compose.yml`, behind profiles ([ADR 0010](adr/0010-container-lanes.md)) | A scanner, a load tool or a reference deployment has one version, pinned by digest, and nothing to install on a machine or a CI runner. |
 | Address translation for containerised tools | `reachableBase` in `scripts/lib/container.mjs`, used by `scripts/dast-lane.mjs` and `scripts/perf-lane.mjs` | A base URL that works on the host is rewritten once, the same way for every tool, and printed. |
 | Exact self-tests for linters | `scripts/lib/lint.mjs`, `scripts/__fixtures__/` | A linter passes only when it reports exactly the marked lines, so missed defects and false alarms both fail. |
 | Design and execution separation | `.claude/rules/modes.md` | Design never writes to the system under test; a run never edits what defines it. |
@@ -473,8 +536,9 @@ Each pattern below is in the code today; the path is where to read it.
   [add a service pack](guides/add-a-service-pack.md) guide.
 - **A new test case:** the [add a test case](guides/add-a-test-case.md) guide, from the contract
   doc to a reported run.
-- **An authentication scheme:** a new entry in `factories` in `helpers/auth.ts`, with its config
-  type and schema branch
+- **An authentication scheme:** a new entry in `factories` in `helpers/auth.ts` for a scheme that
+  sends one variable's secret, or its own builder in `createAuth` for a credential pair or a token;
+  either way with its config type and schema branch, and `laneCredential` for the lanes
   ([authentication strategies](guides/add-a-service-pack.md#4-authentication-strategies)).
 - **A test-management tool:** copy `scripts/tm/adapters/local/index.mjs`, register it in
   `scripts/tm/adapters/index.mjs` and pass `scripts/tm/contract.mjs`
@@ -482,8 +546,9 @@ Each pattern below is in the code today; the path is where to read it.
 - **An issue tracker:** an adapter in `scripts/tracker/adapters/`, registered in
   `scripts/tracker/index.mjs`, that passes `scripts/tracker/contract.mjs`
   ([issue trackers](test-management.md#issue-trackers)).
-- **A pack's DAST and performance policy:** `dast-rules.tsv`, `dast-exclude.txt` and `perf.json` in
-  the pack folder ([lanes](quality-gates.md#lanes)); the VAmPI pack has all three.
+- **A pack's lane policy:** the optional files of
+  [what a pack holds](../.claude/rules/service-packs.md#what-a-pack-holds), in the pack folder
+  ([lanes](quality-gates.md#lanes)).
 - **A quality-gate check:** a new strategy in `STRATEGIES` in `scripts/quality-gate.mjs`, with its
   settings in `schemas/qa-config.schema.json` ([quality gate](quality-gates.md#quality-gate)).
 - **Consumer-driven contracts:** not implemented; a provider verification lane with provider states

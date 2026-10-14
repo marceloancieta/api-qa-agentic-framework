@@ -9,13 +9,13 @@ that owns the detail.
 
 | Path | Holds | Changes when |
 |---|---|---|
-| `helpers/` | The execution core: the base client every pack client extends, evidence and redaction, schema validation, error envelopes, state comparison, resource guards, known gaps, seeded random data and clock, case metadata. | rarely; it never imports from a pack |
+| `helpers/` | The execution core: the base client every pack client extends, the authentication strategies, evidence and redaction, schema validation, error envelopes, state comparison, resource guards, known gaps, seeded random data and clock, case metadata. | rarely; it never imports from a pack |
 | `fixtures/` | The core Playwright fixtures, the global setup and teardown, and the preflight that each pack's `preflight-<pack>` project runs. | rarely |
-| `playwright.config.ts` | The `unit` project, one `preflight-<pack>` and one `api-<pack>` project per pack, the reporters, and the switches read from the environment. | rarely |
+| `playwright.config.ts` | The `unit` project, one `preflight-<pack>` and one `api-<pack>` project per pack, the `auth-live` project under `npm run auth:live` only, the reporters, and the switches read from the environment. | rarely |
 | `scripts/` | Every command behind `package.json`: contract tooling, linters, lanes, the quality gate, the scaffolder, the test-management (`scripts/tm/`) and tracker (`scripts/tracker/`) adapters. Shared code is in `scripts/lib/`, tests in `scripts/__tests__/`, linter and contract fixtures in `scripts/__fixtures__/`, and the fixed k6 script of the performance lane in `scripts/k6/`. | when a check or a tool changes |
-| `services/<pack>/` | One API under test: its contract, clients, builders, flows, decision tables, registries, feature contracts, contract notes and specs, and optionally its DAST and performance policy. The pack's `README.md` is its map. | with every feature you test |
-| `docker-compose.yml` | The local APIs (the Petstore, VAmPI in its secure and vulnerable modes) and the tools of the DAST and performance lanes (ZAP and k6, behind the profiles `dast` and `perf`), each pinned. | when an image or a pack changes |
-| `reports/` | Untracked outputs: the lanes' reports (`dast/`, `perf/`), the quality gate's verdict, test-management runs (`tm/`), the single-file Allure report. | every run; never committed |
+| `services/<pack>/` | One API under test: its contract, clients, builders, flows, decision tables, registries, feature contracts, contract notes and specs, and optionally its DAST, performance and differential-lane files. The pack's `README.md` is its map. | with every feature you test |
+| `docker-compose.yml` | The local APIs (the Petstore, VAmPI in its secure and vulnerable modes), the earlier Petstore release the differential lane compares with (behind the profile `diff`) and the tools of the DAST and performance lanes (ZAP and k6, behind the profiles `dast` and `perf`), each pinned ([ADR 0010](adr/0010-container-lanes.md)). | when an image or a pack changes |
+| `reports/` | Untracked outputs: the lanes' reports (`dast/`, `perf/`, `diff/`), the mutation report (`mutation/`), the quality gate's verdict, test-management runs (`tm/`), the single-file Allure report. | every run; never committed |
 | `schemas/` | The JSON schema of qa-config. | when a configuration key is added |
 | `qa-config.example.json` | The example configuration: environments with one entry per pack (base URL, contract URL, auth, actors), test-management and tracker providers, policies, quality gate. A per-machine `qa-config.json` overrides it. | when a key is added |
 | `.claude/` | The agentic process: `rules/`, `skills/`, `agents/`, `hooks/` and their registration in `settings.json`. | when the process changes |
@@ -29,7 +29,8 @@ inside a pack (specs over flows over actors over clients) are explained in
 [the service-pack rule](../.claude/rules/service-packs.md) and in
 [the Petstore pack's README](../services/petstore/README.md). The second pack,
 [VAmPI](../services/vampi/README.md), shows what changes for an API with login, several actors and
-a known vulnerability, and it is the example for the DAST and performance policy files.
+a known vulnerability, and it is the example for the DAST rule and exclusion files. The Petstore is
+the example for the differential lane's `diff.json`.
 
 ## The phases, on the Petstore pack
 
@@ -155,7 +156,8 @@ Two consequences you will meet early:
   databases; started any other way, every read that touches storage answers `500` (VN-01 in the
   [contract notes](../services/vampi/docs/contract-notes.md)).
 - **A DAST scan writes to the API.** ZAP's active scan sends attacks, so run it only against the
-  local containers, and run `npm run vampi:up` again before the specs.
+  local containers. Run `npm run vampi:up` again before the VAmPI specs; the lane restarts the
+  Petstore itself through its `recovery`.
 - **Inside a container, `localhost` is the container.** The DAST and performance lanes rewrite a
   loopback base URL to the compose service that publishes its port, or to `host.docker.internal`,
   and print the rewrite. When a lane cannot reach the API, read that line first.

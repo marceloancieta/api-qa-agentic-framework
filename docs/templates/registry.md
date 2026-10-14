@@ -43,4 +43,5 @@ One section per case, written at design time:
 - **Request**: method, path, body summary.
 - **Expected**: status, schema or error envelope, and the business fields asserted.
 - **Verification**: response only, a follow-up read, or a state comparison.
+- **Cleanup**: for a write, what the case removes and the read that confirms it.
 - **Tags**: one layer tag plus any category tags (the tagging rule).

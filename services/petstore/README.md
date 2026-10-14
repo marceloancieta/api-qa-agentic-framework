@@ -8,7 +8,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 
 | Path | Holds | Status |
 |---|---|---|
-| `service.json` | Name, API version (part of every case identity), identity fields to pseudonymize in evidence, contract file. | present |
+| `service.json` | Name, API version (part of every case identity), identity fields to pseudonymize in evidence, contract file, and `workers: 1`: the service is not thread-safe (PN-26). | present |
 | `openapi.json` | The contract under test (Petstore 1.0.28, OpenAPI 3.0.4, Apache-2.0). Response bodies are validated against its schemas. | present |
 | `generated/` | Contract outputs (do not edit): `value-sets.json`, `enums.ts`, `probe-matrix.json`. See `docs/contract-tooling.md`. | present |
 | `error-envelopes.json` | The error formats this API answers with, by kind, for `expectErrorEnvelope`. | present |
@@ -25,9 +25,22 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `rules/` | Decision tables as YAML, generated into `generated/decision-tables.ts` (`npm run contract:decision-tables`). | present |
 | `registry/` | Designed test cases and their status, one or more files per feature code (see Feature contracts below). | present |
 | `docs/` | `contract-notes.md`: observed departures from the contract and their status. `features/`: the feature contracts written at intake, one per registry code. | present |
-| `dast-false-positives.tsv` | The DAST lane's known false positive (`npm run lanes:dast -- --service petstore`): SQL injection, which the image cannot have (PN-27). The scan writes, so the lane restarts the container afterwards (the entry's `recovery`). See [the lanes](../../docs/quality-gates.md#lanes). | present |
+| `dast-false-positives.tsv` | The DAST lane's known false positive (`npm run lanes:dast -- --service petstore`): SQL injection, which the image cannot have (PN-27). The scan writes, so the lane restarts the container afterwards (the entry's `recovery`). The pack has no `dast-rules.tsv`, so every alert only warns; the cross-domain alert is by design (PN-28). See [the lanes](../../docs/quality-gates.md#lanes). | present |
 | `diff.json` | What the differential lane needs (`npm run lanes:diff -- --service petstore --reference reference`, after `npm run petstore:reference:up`): the seed orders' `shipDate` as volatile, and the differences from release 1.0.26 already reviewed (PN-29). See [the differential lane](../../docs/quality-gates.md#differential-lane). | present |
 | `perf.json` | What the performance lane needs beyond the contract (`npm run lanes:perf -- --service petstore`): seed ids and the seed user for path parameters, the three `GET`s the contract secures that answer without credentials (PN-05), and the session operations it must not send. See [the performance lane](../../docs/quality-gates.md#performance-lane). | present |
+
+## Running
+
+The qa-config example gives the pack an entry in three environments:
+
+| Environment | Service | Base URL | Writes | Up / down |
+|---|---|---|---|---|
+| `local` | `petstore` (1.0.28) | `http://localhost:8080/api/v3` | allowed; `recovery` restarts the container | `npm run petstore:up` / `npm run petstore:down` |
+| `reference` | `petstore-reference` (1.0.26, compose profile `diff`) | `http://localhost:8081/api/v3` | read-only | `npm run petstore:reference:up` / `npm run petstore:reference:down` |
+| `public` | the public instance | `https://petstore3.swagger.io/api/v3` | read-only | none |
+
+`PETSTORE_PORT` and `PETSTORE_REFERENCE_PORT` move the local host ports (`docker-compose.yml`).
+`npx playwright test --project=api-petstore` runs the pack in the active environment (`QA_ENV`).
 
 ## Writing a spec
 
