@@ -36,14 +36,10 @@ and DOC-06 for the overview pages. Released as `v0.3.0`.
 
 ## v0.4.0
 
-Extensibility and distribution, in this order. FUT-04, FUT-10, FUT-03 and FUT-06 are in **Done**, and
-so are GATE-18 and GATE-19, which came out of their pull requests, DOC-07, the documentation
-review, and GATE-20 and PET-04, which came out of that review. FUT-05 comes last.
-
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| DOC-08 | A second documentation review before the release, after GATE-20 and PET-04: the docs, rules, skills, guides, packs and workflows read against the code again, by area. | exp | in-progress |
-| FUT-05 | The repository as a GitHub template, with a guide to adopting it from the template; reversible, unlike an npm package (FUT-11). | plan | in-progress |
+Extensibility and distribution. Every item is in **Done**: FUT-04, FUT-10, FUT-03 and FUT-06 for
+the extension points, GATE-18 and GATE-19, which came out of their pull requests, DOC-07 and DOC-08,
+the documentation reviews, GATE-20 and PET-04, which came out of the first one, and FUT-05 for the
+GitHub template.
 
 ## v0.5.0
 
@@ -165,3 +161,5 @@ review, and GATE-20 and PET-04, which came out of that review. FUT-05 comes last
 | DOC-07 | Documentation review: README, `docs/`, the pack READMEs, the rules, skills, agents and hooks read against the code by four reviewers, 99 of 100 findings applied. [ADR 0010](adr/0010-container-lanes.md) records the container lanes; `architecture.md` draws the differential lane; `modes.md` allows the credential exchange in design and places the lanes in execution. GATE-20, PET-04, TM-09, GATE-21 and GATE-22 came out of it. | `342a0ad` |
 | GATE-20 | The DAST lane's definition download is capped (`MAX_SPEC_BYTES`, 16 MiB, cut off while streaming) and `fetchSpec` documents why saving it for ZAP is accepted: fixed file name, OpenAPI parse, size cap, read only by ZAP. A `codeql[js/http-to-file-access]` comment, with the `AlertSuppression` query added to the CodeQL workflow, records the acceptance in the SARIF; GitHub kept alert 13 open regardless, so it was dismissed as "won't fix" pointing to that code ([CI security](ci-security.md#codeql)). | `764f467` |
 | PET-04 | The `petstore` compose service is pinned by tag and digest (`1.0.28@sha256:dc991f…`), checked against the registry, Docker Hub and the local image, like `petstore-reference`. | `3181e28` |
+| FUT-05 | The repository as a GitHub template: `docs/guides/adopt-the-template.md` from **Use this template** to green gates (settings, the adoption pull request, taking a later release as a diff from the framework commit), `docs/templates/backlog.md`, the `main` ruleset as `.github/rulesets/main.json` kept equal to the `ci.yml` job names by a test, and one `closing-commit` finding for a history that holds none of the cited hashes; each step walked through on a single-commit copy. | `4a516ee` |
+| DOC-08 | Second documentation review: four reviewers by area read the docs, rules, skills, agents, guides, packs and workflows against the code, 76 findings applied, recorded (GATE-23, CI-09) or left as history; drift lanes scoped to the Petstore, lane workflows triggered by what they import, `Edit` denied wherever `Read` is, `SECURITY.md`, the VAmPI MIT notice. | `ce9b9a2` |
