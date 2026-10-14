@@ -1,6 +1,6 @@
 # Continuous integration
 
-Four GitHub Actions workflows run the framework's checks against the example packs: `ci.yml` on
+Five GitHub Actions workflows run the framework's checks against the example packs: `ci.yml` on
 every pull request and every push to `main`, `drift.yml` once a day, and `dast.yml` and `perf.yml`
 once a week. Each starts the APIs it needs in Docker on the runner, the same way a contributor does
 (`npm run petstore:up`, `npm run vampi:up`). The commands they call are described in
@@ -14,6 +14,7 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift` |
 | `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane or a pack's DAST policy | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
 | `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane, its k6 script, a pack's `perf.json` or the quality gate | `perf (petstore)`, `perf (vampi)` |
+| `.github/workflows/diff.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane, the comparison or plan it shares, a pack's `diff.json` or `perf.json` | `diff (petstore)` |
 
 ```mermaid
 flowchart LR
@@ -46,6 +47,10 @@ flowchart LR
     perfVampi["vampi<br/>k6 smoke"]
   end
 
+  subgraph diffWf["diff.yml"]
+    diffPet["petstore<br/>1.0.28 against 1.0.26"]
+  end
+
   pr --> title
   pr --> gatesJob
   push --> gatesJob
@@ -55,8 +60,10 @@ flowchart LR
   weekly --> dastPet
   weekly --> perfPet
   weekly --> perfVampi
+  weekly --> diffPet
   pr -.->|"only when the lane's files change"| dastWf
   pr -.->|"only when the lane's files change"| perfWf
+  pr -.->|"only when the lane's files change"| diffWf
 ```
 
 Solid arrows are the regular triggers; every scheduled workflow also runs on `workflow_dispatch`.
@@ -222,6 +229,22 @@ The thresholds are wide on purpose. A shared runner's latency varies from run to
 is there to catch a regression measured in multiples, not in milliseconds. Each job uploads
 `reports/` as `perf-<pack>-<attempt>` (the plan, k6's summary, the quality gate's output, and the
 API log after a failure).
+
+## `diff.yml`
+
+The differential lane (`npm run lanes:diff`, [quality gates](quality-gates.md#differential-lane)):
+the job starts the pinned Petstore (`npm run petstore:up`, environment `local`) and an earlier
+release (`npm run petstore:reference:up`, the `petstore-reference` compose service, environment
+`reference`), then compares them. 1.0.26 is the newest release that answers differently from 1.0.28
+(PN-29). It runs weekly, on demand and on pull requests that touch the lane, the comparison it shares
+with the specs, the performance lane's plan, the digest, a pack's `diff.json` or `perf.json`,
+`docker-compose.yml` or the workflow.
+
+| Job | Passes when |
+|---|---|
+| `diff (petstore)` | every difference between the two releases is one `services/petstore/diff.json` accepts, and each accepted one still shows up |
+
+The job uploads `reports/diff/` as `diff-petstore-<attempt>`.
 
 ## Secrets and variables
 

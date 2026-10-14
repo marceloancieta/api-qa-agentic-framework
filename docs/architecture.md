@@ -399,11 +399,17 @@ flowchart LR
   itself: an alert of a FAIL rule, a request that answered an unexpected status. Counts and
   percentiles are judged once, by the quality gate's strategies in `scripts/quality-gate.mjs`, with
   the thresholds in qa-config `quality_gate`.
+- **Two deployments, compared.** The differential lane (`npm run lanes:diff`) sends the
+  performance lane's `GET` plan to two qa-config environments of a pack and compares the answers
+  with the bucket model of `scripts/lib/state-compare.mjs`, the code `helpers/state-compare.ts`
+  gives the specs, and the two contracts with the digest. It needs no tool container and feeds no
+  check of the gate: a difference the pack has not accepted in `diff.json` fails the lane.
 - **A scan writes, so it asks the environment first.** The DAST lane scans only where the pack's
   entry has `allow_writes: true`, uses the pack's `workers` as ZAP's threads per host, and runs the
   entry's `recovery` afterwards, the same settings the specs and the destructive lane obey.
-- **CI runs them on a schedule.** `dast.yml` scans both VAmPI modes and the Petstore, and `perf.yml`
-  runs both packs every week, and on pull requests that touch them ([continuous integration](ci.md)).
+- **CI runs them on a schedule.** `dast.yml` scans both VAmPI modes and the Petstore, `perf.yml`
+  runs both packs and `diff.yml` compares the Petstore with an earlier release every week, and on
+  pull requests that touch them ([continuous integration](ci.md)).
 
 ## Patterns used
 

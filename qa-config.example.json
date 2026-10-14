@@ -71,6 +71,16 @@
           }
         }
       },
+      "reference": {
+        "packs": {
+          "petstore": {
+            "base_url": "http://localhost:8081/api/v3",
+            "spec_url": "http://localhost:8081/api/v3/openapi.json",
+            "allow_writes": false,
+            "auth": { "type": "api_key", "in": "header", "name": "api_key", "env": "API_KEY" }
+          }
+        }
+      },
       "public": {
         "packs": {
           "petstore": {

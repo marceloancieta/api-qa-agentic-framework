@@ -1,0 +1,48 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "shop",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/items": {
+      "get": {
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "book"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "items"
+          }
+        }
+      }
+    },
+    "/items/{itemId}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "an item"
+          }
+        }
+      }
+    }
+  }
+}
