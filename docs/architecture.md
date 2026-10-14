@@ -480,6 +480,9 @@ Each pattern below is in the code today; the path is where to read it.
   the pack folder ([lanes](quality-gates.md#lanes)); the VAmPI pack has all three.
 - **A quality-gate check:** a new strategy in `STRATEGIES` in `scripts/quality-gate.mjs`, with its
   settings in `schemas/qa-config.schema.json` ([quality gate](quality-gates.md#quality-gate)).
+- **Consumer-driven contracts:** not implemented; a provider verification lane with provider states
+  built from the pack's layers, and a gate check on its report, is designed in
+  [consumer-driven contracts](guides/consumer-driven-contracts.md).
 - **A linter rule:** a rule in `scripts/lint-harness.mjs`, `scripts/lint-suite.mjs`,
   `scripts/lint-docs.mjs` or `scripts/lint-layers.mjs`, with fixtures in `scripts/__fixtures__/` that contain the defect and
   look-alikes that do not ([linters](quality-gates.md#linters)).
