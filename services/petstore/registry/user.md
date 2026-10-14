@@ -62,7 +62,7 @@ they point at, so the same id means the same rule in all three files.
 - **`@destructive` cases** run alone on `local`, after every other case, each followed by its
   recovery: `npm run lanes:destructive` restarts the service container (the pack's `recovery` in
   qa-config) and waits for the API to answer. Each such case first confirms that
-  `<UNKNOWN_USERNAME>` reads `404` (tagging rule).
+  `<UNKNOWN_USERNAME>` reads `404`, so a later `500` is the case's own.
 - **Actors** are `default` and `anonymous` only. The service enforces no credential (PN-05,
   by-design), so object-level authorization (one user acting on another's record) cannot be shown
   on this API; that matrix belongs to backlog FUT-07. Cases here never assert against PN-05.

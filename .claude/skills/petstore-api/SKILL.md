@@ -35,6 +35,8 @@ demo, which is read-only for this suite. The seed pets 1 to 10 are shared data: 
 
 The contract declares `petstore_auth` (OAuth2) and `api_key` (header `api_key`). The service does
 not enforce `api_key` (PN-05), so authorization matrices are shown on the VAmPI pack (`vampi-api`).
+The pack's `auth` is `api_key` in the `api_key` header, read from `API_KEY` (any non-blank value).
+Actors: `default` and `anonymous`; no environment declares other `actors`.
 
 ## Resources
 
@@ -44,7 +46,7 @@ not enforce `api_key` (PN-05), so authorization matrices are shown on the VAmPI 
 | `store` | `StoreClient` (`clients/store-client.ts`) | `store` | 4 | `STOR` |
 | `user` | `UserClient` (`clients/user-client.ts`) | `users` | 7 | `USER` |
 
-Codes are confirmed at the first design gate and are permanent once a case is published
+Codes are agreed at the feature's first intake and are permanent once a case is published
 (`.claude/rules/registry.md`).
 
 ## Data

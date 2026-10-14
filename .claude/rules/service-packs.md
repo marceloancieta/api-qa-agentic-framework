@@ -36,6 +36,9 @@ Each API under test is a pack in `services/<name>/` (ADR 0007). The core (`helpe
 | `generated/` | contract outputs; regenerate with the `contract:*` scripts, never edit |
 | `error-envelopes.json` | the error formats the API answers with |
 | `clients/`, `fixtures.ts`, `flows/`, `builders/`, `state-models.ts`, `guards.ts`, `assertions.ts` | the layers of `.claude/rules/generation.md` |
+| `types.ts` | optional: request and response interfaces, and aliases of the generated value sets |
+| `__tests__/` | optional: offline unit tests of the pack (`*.spec.ts`), run by the `unit` project in `npm run gates` |
+| `*.mjs` | optional: provisioning or CI checks specific to this API, run through `package.json` scripts or a workflow, never imported by the core |
 | `rules/` | decision tables as YAML |
 | `registry/` | designed cases (`.claude/rules/registry.md`) |
 | `services/<name>/docs/features/` | feature contracts written at intake |

@@ -18,7 +18,8 @@ current by every later phase. Facts the pack already owns are linked, not copied
 - Tracked copy: `services/vampi/openapi.yaml` (openapi-3.0, 14 operations). Its digest is
   `docs/discovery/vampi-digest.json`; `npm run contract:digest:live -- --service vampi` compares
   it with the deployed contract.
-- Declared servers: `http://localhost:5000`.
+- Declared servers: `http://localhost:5000` in the tracked copy; the served `openapi.json` declares
+  `""` (VN-13).
 - Departures from the contract: `services/vampi/docs/contract-notes.md`.
 
 ## Environments and writes
@@ -65,7 +66,7 @@ Security schemes declared by the contract: `bearerAuth` (http, bearer, JWT).
 | `books` | `BooksClient` | `books` | 3 | `BOOK` (confirmed) |
 
 Feature codes become permanent once a case is published (`.claude/rules/registry.md`). The others
-are suggestions until their first design gate.
+are suggestions until their feature's first intake.
 
 ## Data
 

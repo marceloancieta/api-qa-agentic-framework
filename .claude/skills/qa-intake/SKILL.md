@@ -33,8 +33,8 @@ Write requests are not; the credential exchange of the pack's auth strategy is t
    never design for an operation that does not exist, and never quietly swap in a similar one.
 2. **Check reachability** of what you are about to call (`.claude/rules/reachability.md`).
 3. **Read the contract** for these endpoints: parameters, bodies, responses, declared errors, security.
-   Run `npm run contract:value-sets`, `npm run contract:floor` and `npm run contract:probes` for
-   the pack and keep their output: they are the computed part of the analysis.
+   Run `npm run contract:value-sets`, `npm run contract:floor` and `npm run contract:probes`, each
+   with `-- --service <pack>`, and keep their output: they are the computed part of the analysis.
 4. **Complete the contract** with the source order in
    [contract analysis](../../../docs/references/contract-analysis.md#completing-a-constraint).
    For every constraint the spec leaves open, record which source answered. A completion that

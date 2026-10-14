@@ -12,7 +12,7 @@ The layout and the layers follow `services/petstore/`, the worked example.
 | `users` | `clients/users-client.ts` | `users` | 9 | `USERS` |
 | `books` | `clients/books-client.ts` | `books` | 3 | `BOOKS` |
 
-Suggested codes are confirmed at the first design gate and are permanent once a case is published.
+Suggested codes are agreed at the feature's first intake and are permanent once a case is published.
 The book cases use `BOOK`.
 
 ## Layout
@@ -56,6 +56,9 @@ VAmPI runs in two modes from one pinned image (`docker-compose.yml`), each on lo
    it runs against vulnerable mode, where TC-BOOK-02 fails: that failure is the finding the
    authorization matrix exists to show (VN-09).
 4. `npm run vampi:down` removes both containers.
+
+`VAMPI_SECURE_PORT` and `VAMPI_VULNERABLE_PORT` move the host ports (`create-db.mjs` follows them);
+point `QA_VAMPI_BASE_URL` and `QA_VAMPI_SPEC_URL` at the moved port of the environment you run.
 
 CI runs both modes in the `e2e-vampi` job ([CI](../../docs/ci.md#e2e-vampi)): the vulnerable mode
 must fail exactly TC-BOOK-02 ([`check-bola-detection.mjs`](check-bola-detection.mjs)), then the

@@ -25,7 +25,7 @@ add a tag, change that file and this table in the same commit; a test keeps them
 | `@data-integrity` | category | the case reads state back: round trips, preserved fields, cascades, state after an error |
 | `@contract-drift` | category | the case documents a difference between the contract and the service |
 | `@known-gap` | category | the case is armed with `knownGap(key, why)` because an open issue keeps it red |
-| `@quarantine` | category | the flake lane confirmed the case is flaky; gate lanes leave it out until the linked fix lands |
+| `@quarantine` | category | the flake lane confirmed the case is flaky; the published lane leaves it out until the linked fix lands (the other runs still include it, GATE-23) |
 | `@destructive` | category | the case leaves the service in a state no API call can undo, or breaks a read for every other caller while its record exists; it never runs next to other cases (L-59) |
 
 Rules of thumb:

@@ -22,9 +22,10 @@ writes it.
 1. **One logical change per commit.** A fix and an unrelated clean-up are two commits.
 2. **Write the commit message** as `type(scope): <BACKLOG-ID> summary`
    ([ADR 0008](docs/adr/0008-branching-and-traceability.md)), for example
-   `feat(core): CORE-04 actor fixture bound to a credential`. The type is a Conventional Commits
-   type (`feat`, `fix`, `docs`, `test`, `refactor`, `build`, `ci`, `chore` and the others the
-   specification defines); the scope names the area touched. Dependency updates opened by
+   `feat(core): CORE-04 actor fixture bound to a credential`. The type is one of `COMMIT_TYPES` in
+   `scripts/changelog.mjs` (`feat`, `fix`, `perf`, `docs`, `test`, `ci`, `build`, `refactor`,
+   `style`, `chore`, `revert`); the changelog lists any other type under "Not conventional". The
+   scope names the area touched. Dependency updates opened by
    Dependabot are the one exception: they carry no backlog id
    ([CI security](docs/ci-security.md#dependabot)).
 3. **Run the gates before committing:**
@@ -34,7 +35,8 @@ writes it.
    ```
 
    They need no API and must pass. What they run is described in
-   [quality gates](docs/quality-gates.md). When you change a spec, also run its pack against that pack's
+   [quality gates](docs/quality-gates.md). When `format:check` fails, `npm run format` rewrites the
+   files. When you change a spec, also run its pack against that pack's
    local service (`npm run petstore:up` or `npm run vampi:up`, then
    `npx playwright test --project=api-<pack>`) and include what you saw in the pull request.
 4. **Update the documentation in the same commit** (see [Documentation](#documentation)).
@@ -105,13 +107,18 @@ before a commit straight onto `main` and checks the subject's shape (qa-config `
 `CHANGELOG.md` is built from the commit messages by `scripts/changelog.mjs`, which reads them since
 the latest `vX.Y.Z` tag and groups them by type:
 
-1. `npm run changelog` prints the next section and the version it proposes from the commits
-   (breaking or feature: minor while the version is below 1.0, patch otherwise). Read it; a commit
-   listed under "Not conventional" needs an explanation or a better message before the release.
+1. `npm run changelog` prints the next section and the version it proposes from the commits (below
+   1.0, a breaking change or a feature gives a minor bump and anything else a patch; from 1.0,
+   breaking gives major, feature minor, anything else patch). Read it; a commit listed under "Not
+   conventional" needs an explanation or a better message before the release.
 2. `npm run changelog:write` adds the section to `CHANGELOG.md`; it refuses a version that is
    already there. For a version other than the proposed one, run
    `node scripts/changelog.mjs --version <x.y.z> --write`.
-3. Commit it as `docs(changelog): <BACKLOG-ID> release <x.y.z>`, then tag that commit `v<x.y.z>`.
+3. Set the version in `package.json` with `npm version <x.y.z> --no-git-tag-version`.
+4. Open a pull request titled `docs(changelog): <BACKLOG-ID> release <x.y.z>` with those changes,
+   and the version's section of the [backlog](docs/backlog.md) saying it was released.
+   After the squash merge, tag the resulting commit on `main` as `v<x.y.z>` and push the tag, with
+   the owner's approval ([AGENTS.md](AGENTS.md)).
 
 ## Reporting a problem
 

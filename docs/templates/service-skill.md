@@ -40,8 +40,8 @@ pack's `actors`): _pending_.
 |---|---|---|---|---|
 {{RESOURCES}}
 
-Feature codes become permanent once a case is published (`.claude/rules/registry.md`). Confirm them
-at the first design gate.
+Feature codes become permanent once a case is published (`.claude/rules/registry.md`). Agree each
+one at the feature's first intake.
 
 ## Data
 

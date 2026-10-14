@@ -121,5 +121,6 @@ exercises a different endpoint than the one the issue was found on.
 - **Nothing about the case can execute** (no operation to call, no way to create its data): status
   `blocked` with the key (L-57).
 - **When an issue is re-scoped or closed as a duplicate**, move the cases that cited the old key in
-  the same change: the registry row and the `knownGap()` arm together. Otherwise `npm run
-  cited:status` reports a case waiting on a closed issue.
+  the same change: the registry row and the `knownGap()` arm together. Otherwise
+  `npm run cited:status` reports a `knownGap()` arm waiting on a closed issue. It does not read the
+  registry's Defect column, so a row left on the old key is not reported.

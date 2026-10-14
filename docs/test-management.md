@@ -65,6 +65,7 @@ A variable set in the real environment wins over the file.
 | `token_env` | `ALLURE_TOKEN` (default name) | the variable holding an API token (profile, API tokens) |
 | `resultsDir` | | results to upload from (default `allure-results`) |
 | `wait_seconds` | | how long to wait for TestOps to process an upload (default 120) |
+| `poll_ms` | | how often to poll the launch while waiting, in milliseconds (default 2000) |
 
 `tm:report` creates a launch tagged `run-<run id>` and uploads, for each attributed result:
 
@@ -78,7 +79,9 @@ upload in the background, so the adapter polls the launch until every identity s
 was sent with, then closes the launch and reads it back. `publish` is skipped: TestOps creates the
 test cases from the results.
 
-`npm run tm:contract:live` runs the adapter contract against the configured instance. It deletes the
+`npm run tm:contract:live` runs the adapter contract against the instance that `ALLURE_ENDPOINT`,
+`ALLURE_PROJECT_ID` and `ALLURE_TOKEN` name, from the environment or the local env file; it does not
+read qa-config, and it skips when one of them is missing. It deletes the
 launches it creates and the test cases TestOps made from them. The offline contract
 (`npm run test:scripts`) runs against a fake built from the instance's OpenAPI (`/api-docs/`) and from
 what the instance did when it was used.

@@ -9,6 +9,11 @@
 // answers 500 (VN-14). Each call drops and reseeds the tables with new titles, so a 5xx is tried
 // again, a few times; anything else, or a 5xx every time, fails provisioning.
 
+import { loadLocalEnv } from '../../scripts/lib/env.mjs';
+
+// The ports may be moved in the local env file, as docker compose reads them from it.
+loadLocalEnv();
+
 const PORTS = {
   secure: process.env.VAMPI_SECURE_PORT || '5001',
   vulnerable: process.env.VAMPI_VULNERABLE_PORT || '5002',

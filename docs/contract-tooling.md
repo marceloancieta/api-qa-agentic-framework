@@ -4,11 +4,12 @@ Scripts that read an API description and tell you what to test and what changed.
 the same normalized model (`scripts/lib/openapi.mjs`, ADR 0003), so Swagger 2.0, OpenAPI 3.0 and
 OpenAPI 3.1, in JSON or YAML, give the same results.
 
-Every tool takes the same source flags:
+Every tool except `contract:check` and `contract:decision-tables`, which take only `--service`
+and cover every pack without it, takes the same source flags:
 
 | Flag | Source |
 |---|---|
-| `--service <name>` | The pack's `services/<name>/service.json` names its document. Default when there is one pack. |
+| `--service <name>` | The pack's `services/<name>/service.json` names its document. Needed when the repository has more than one pack, as it does with the two example packs: `npm run contract:digest -- --service petstore`. |
 | `--spec <file\|url>` | An explicit document. |
 | `--live` | The pack's `spec_url` in the active qa-config environment (`api.environments.<env>.packs.<pack>`; `QA_ENV` selects the environment, `QA_<PACK>_SPEC_URL` overrides the URL for one run). Needs a pack: `--service`, or the only one. |
 
@@ -19,12 +20,15 @@ Every tool takes the same source flags:
 | `npm run contract:digest` | What does the contract look like now? | `docs/discovery/<service>-digest.json` (tracked) |
 | `npm run contract:digest:check` | Did the contract change since it was tracked? Exits 1 on structural drift; text-only drift is a notice. | report by drift class |
 | `npm run contract:digest:live` | Has the deployed contract moved away from the tracked one? | same report |
-| `npm run contract:probes` | Which negative and boundary probes does each operation deserve, and which are covered by a spec? `--gaps` lists the uncovered ones. | table; `--write` updates `generated/probe-matrix.json` |
+| `npm run contract:probes -- --service <pack>` | Which negative and boundary probes does each operation deserve, and which are covered by a spec? `--gaps` lists the uncovered ones. | table; `npm run contract:probes:write -- --service <pack>` updates `generated/probe-matrix.json` |
 | `npm run contract:value-sets` | Which closed value sets (enums, literal patterns) does the contract define? | `generated/value-sets.json` and `generated/enums.ts` |
 | `npm run contract:floor` | How many cases does each operation need at least? Every term of the formula is printed. | table; `--json` |
 | `npm run contract:codes` | Which declared response codes were never reached, and which answers were not declared? Reads the latest run's evidence in `allure-results/`. `--strict` fails on undeclared answers. | table; `--json` |
 | `npm run contract:decision-tables` | Are the pack's decision tables complete and consistent? Writes the module specs read them from. | `generated/decision-tables.ts` |
 | `npm run contract:check` | Are the tracked digest, probe matrix, value sets and decision tables of every pack current? Runs in `npm run gates`. | exit code |
+
+`npm run contract:probes:check` and `npm run contract:value-sets:check` run one of the checks of
+`contract:check` on their own, for one pack (`-- --service <pack>`).
 
 ## Probes
 
@@ -38,7 +42,7 @@ Probes come in three classes:
 
 Each probe has a stable id (`p-` and ten hex digits). A spec covers a probe by containing
 `probe:<id>`, usually at the end of the test title. After adding or removing such references, run
-`npm run contract:probes:write` so the tracked matrix records the new coverage.
+`npm run contract:probes:write -- --service <pack>` so the tracked matrix records the new coverage.
 
 ## Decision tables
 

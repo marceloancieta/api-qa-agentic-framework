@@ -5,7 +5,8 @@ description: >-
   them to the registry services/<pack>/registry/<feature>.md with TC-<FEATURE>-NN ids, a technique
   and a priority per case, status draft, then stops at a review gate. Use when the user asks to design
   or plan test cases, asks what should be tested for an endpoint, or wants coverage of a feature
-  reviewed. Produces Markdown only: no specs, no API calls, no test-management writes.
+  reviewed. Produces Markdown and decision-table YAML only: no specs, no API calls, no
+  test-management writes.
 ---
 
 # qa-design: write the registry
@@ -18,8 +19,8 @@ description: >-
   offer `qa-intake` first.
 - [Contract analysis](../../../docs/references/contract-analysis.md): techniques, security and
   integrity cases, priorities.
-- `npm run coverage:status` for the floor of the endpoints, and `npm run contract:probes -- --gaps`
-  for the probes no spec covers yet.
+- `npm run coverage:status` for the floor of the endpoints, and
+  `npm run contract:probes -- --service <pack> --gaps` for the probes no spec covers yet.
 - An existing registry for the feature, if there is one: extend it, never restart its numbering.
 
 ## Steps
@@ -27,7 +28,10 @@ description: >-
 1. **Derive cases** for every rule and every constrained field, across these categories: positive,
    negative, boundary, security, integrity and performance where the contract or owner states a
    budget. Each case names one technique from the registry list. Use a decision table (a YAML file
-   under `services/<pack>/rules/`) when a result depends on a combination of conditions.
+   under `services/<pack>/rules/`) when a result depends on a combination of conditions, then run
+   `npm run contract:decision-tables -- --service <pack>`, which refuses a table with a missing or
+   contradictory rule and generates the module specs read it from; `npm run gates` fails while that
+   module is stale.
 2. **Ask the integrity questions** for each write (L-20, L-25, L-35, L-37):
    - *Who else writes this field?* Find every operation that stores it or shares its code path, and
      cover them, or note them as out of scope.

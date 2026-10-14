@@ -62,9 +62,10 @@ Without an agent you follow the same phases by hand: the skills are readable ins
 ## Design versus execution
 
 The phases fall into two modes that never mix. Design (intake to publish) calls the API read-only,
-apart from running the specs it is writing; execution (run) never edits a spec, a registry or a
-definition because of what a run showed. A request that needs both is split, and each half stops at
-its own gate. The table and the reasons are in [the modes rule](../.claude/rules/modes.md).
+apart from running the specs it is writing and the credential exchange of the pack's auth strategy;
+execution (run) never edits a spec, a registry or a definition because of what a run showed. A
+request that needs both is split, and each half stops at its own gate. The table and the reasons are
+in [the modes rule](../.claude/rules/modes.md).
 
 ## Where each fact lives
 
@@ -80,7 +81,7 @@ Two consequences you will meet early:
   coverage of a registry from `npm run coverage:status`; nobody types them into a document.
 - Generated files are never edited. Everything under `services/<pack>/generated/` and the tracked
   digest in `docs/discovery/` are rewritten by the `contract:*` scripts, and `npm run gates` fails
-  when the digest, the probe matrix or the value sets are stale
+  when the digest, the probe matrix, the value sets or the decision tables are stale
   ([contract tooling](contract-tooling.md)).
 
 ## A suggested reading order
@@ -158,6 +159,9 @@ Two consequences you will meet early:
 - **A DAST scan writes to the API.** ZAP's active scan sends attacks, so run it only against the
   local containers. Run `npm run vampi:up` again before the VAmPI specs; the lane restarts the
   Petstore itself through its `recovery`.
+- **The lanes log in without Playwright.** Against a fresh VAmPI, run `npm run vampi:users` before
+  `lanes:dast` or `lanes:perf`; the specs register their users themselves
+  ([VAmPI README](../services/vampi/README.md)).
 - **Inside a container, `localhost` is the container.** The DAST and performance lanes rewrite a
   loopback base URL to the compose service that publishes its port, or to `host.docker.internal`,
   and print the rewrite. When a lane cannot reach the API, read that line first.

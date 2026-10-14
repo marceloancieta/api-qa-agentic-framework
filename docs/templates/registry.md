@@ -43,5 +43,11 @@ One section per case, written at design time:
 - **Request**: method, path, body summary.
 - **Expected**: status, schema or error envelope, and the business fields asserted.
 - **Verification**: response only, a follow-up read, or a state comparison.
+- **Departure**: when the service departs from the contract here, the contract note (`<PREFIX>-NN`)
+  and what it answers today; leave the bullet out when nothing departs.
+- **Probes**: the contract probes the case covers (`p-<hash>`), the ids its title carries as
+  `probe:<id>`; leave the bullet out when it covers none.
 - **Cleanup**: for a write, what the case removes and the read that confirms it.
+- **Recovery**: only for a `@destructive` case, and required for one (`lint-docs`
+  destructive-recovery): how the service gets back to a usable state, and the read that confirms it.
 - **Tags**: one layer tag plus any category tags (the tagging rule).

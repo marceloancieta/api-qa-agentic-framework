@@ -12,14 +12,15 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e` and `e2e-vampi` |
-| `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift` |
+| `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e (petstore)` and `e2e (vampi)` |
+| `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift (petstore)` |
 | `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
 | `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `perf (petstore)`, `perf (vampi)` |
 | `.github/workflows/diff.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `diff (petstore)` |
 
 A workflow's `paths` list, in the workflow file, owns which files trigger it on a pull request: the
-lane, the libraries it uses, the pack files it reads, `docker-compose.yml` and the workflow itself.
+lane, the scripts it imports and `scripts/lib/`, the pack files it reads, `qa-config.example.json`,
+`docker-compose.yml` and the workflow itself.
 
 ```mermaid
 flowchart LR
@@ -160,19 +161,19 @@ periodically even when it does not (L-31).
 |---|---|
 | `npm run petstore:up` | The lanes run against it. |
 | `npm run contract:digest:live -- --service petstore` | Compares the contract the pack's `spec_url` serves with `docs/discovery/<pack>-digest.json`. 0: no structural drift. 1: drift, recorded; the job fails in the last step, after both lanes. 2: could not compare (no digest, contract not reachable); the step fails at once. |
-| `npm run lanes:known-gap` | Each armed known gap alone. A gap that starts passing fails the job, for investigation before the arm is removed. |
-| `npm run lanes:published:changed:live` | Only when the digest moved: the published cases whose operations changed in the compared contract, first, so their results name what the move broke. |
-| `npm run lanes:published` | Every published case, zero retries. |
+| `npm run lanes:known-gap -- --service petstore` | Each armed known gap alone. A gap that starts passing, runs without reaching its arm, errors or does not run fails the job, for investigation before the arm is removed. |
+| `npm run lanes:published:changed:live -- --service petstore` | Only when the digest moved: the published cases whose operations changed in the compared contract, first, so their results name what the move broke. |
+| `npm run lanes:published -- --service petstore` | Every published case, zero retries. |
 | Fail on contract drift | When the digest moved, prints what moved and fails the job. |
 
 The two lanes run whatever the digest step found, because they need only the Petstore. The job
-summary shows the digest report and both lane tables. A drift is never only a warning: the run turns
+summary shows the digest report and the lane tables. A drift is never only a warning: the run turns
 red, and an annotation points to the summary. Text-only drift (operation descriptions) is printed
 but does not fail, as in `contract:digest:live` itself.
 
 To clear a drift, review the change, update the pack's contract and refresh the digest
-(`npm run contract:digest`) in a pull request. A behaviour change goes through the intake phase
-before any case changes.
+(`npm run contract:digest -- --service <pack>`) in a pull request. A behaviour change goes through
+the intake phase before any case changes.
 
 ### Which contract is compared
 
@@ -295,31 +296,31 @@ credential holding the token), `ALLURE_ENDPOINT` and `ALLURE_PROJECT_ID` ([Jenki
 
 ## Artifacts
 
-Each run uploads one artifact, even when a step failed, and keeps it for 14 days:
+Each job uploads one artifact, even when a step failed, and keeps it for 14 days:
 
 | Artifact | Holds |
 |---|---|
-| `e2e-reports-<attempt>` | `reports/allure-report/index.html` (the Allure report of the run, one file that opens from disk), `allure-results/` (the run, with redacted evidence), `playwright-report/`, `reports/` (the quality gate's JSON and Markdown, `reports/tm/`, and the Petstore log after a failure) |
+| `e2e-reports-<attempt>` | `reports/allure-report/index.html` (the Allure report of the run, one file that opens from disk), `allure-results/` (the run, with redacted evidence), `playwright-report/` (the HTML report of the last Playwright process, which is the last destructive case: every process rewrites it), `reports/` (the quality gate's JSON and Markdown, `reports/tm/`, and the Petstore log after a failure) |
 | `e2e-vampi-reports-<attempt>` | the same for the VAmPI job, plus `reports/vampi-vulnerable.json` (the vulnerable-mode run the detection reads) and the VAmPI log after a failure |
 | `drift-reports-<attempt>` | `reports/drift/` (digest report and lane tables), `reports/allure-report/index.html`, the Allure and Playwright output of the last lane run, and the Petstore log after a failure |
-| `dast-<mode>-<attempt>`, `dast-petstore-<attempt>`, `perf-<pack>-<attempt>`, `diff-petstore-<attempt>` | each lane job's `reports/`, described in its section above |
+| `dast-<mode>-<attempt>`, `dast-petstore-<attempt>`, `perf-<pack>-<attempt>`, `diff-petstore-<attempt>` | each lane job's `reports/` (`reports/diff/` for the differential job), described in its section above |
 
 ## Adapting to a new pack or environment
 
-- **Another pack against a containerised API.** Add its service to `docker-compose.yml` and an
-  entry for the pack under each qa-config environment that serves it
-  (`api.environments.<env>.packs.<pack>`), with a `recovery.command` if it has `@destructive`
-  cases. Then change the start step, the suite's `--project=api-<pack>` and `--service` in the
-  destructive lane and the report step. `--project=api-*` and the
-  lanes collect every pack in `services/`, each against its own base URL and credentials
-  ([ADR 0009](adr/0009-per-pack-configuration.md)); `--project=api-<pack>` and a lane's
-  `--service <pack>` narrow a step to one pack. For the performance smoke, add the pack to the
-  `perf.yml` matrix; its `<pack>:up` and `<pack>:down` npm scripts start and stop it. For the DAST
-  scan, copy the `dast (petstore)` job: the lane needs `allow_writes: true` and restarts the
-  service afterwards when the entry has a `recovery`. For the differential lane, add a reference
-  deployment (a pinned compose service in the `diff` profile, or a deployed environment), a
-  qa-config environment with an entry for the pack at its URL, and the pack's `diff.json`; then
-  copy the `diff (petstore)` job.
+- **Another pack against a containerised API.** Add its service to `docker-compose.yml` and an entry
+  for the pack under each qa-config environment that serves it
+  (`api.environments.<env>.packs.<pack>`), with a `recovery.command` if it has `@destructive` cases.
+  Then change the start step, the suite's `--project=api-<pack>` and `--service` in the destructive
+  lane and the report step. `--project=api-*` and the lanes collect every pack in `services/`, each
+  against its own base URL and credentials ([ADR 0009](adr/0009-per-pack-configuration.md));
+  `--project=api-<pack>` and a lane's `--service <pack>` narrow a step to one pack. For the
+  performance smoke, add the pack to the `perf.yml` matrix and give it a branch in the
+  `Provide the credentials` step, which knows only `petstore` and `vampi`; its `<pack>:up` and
+  `<pack>:down` npm scripts start and stop it. For the DAST scan, copy the `dast (petstore)` job:
+  the lane needs `allow_writes: true` and restarts the service afterwards when the entry has a
+  `recovery`. For the differential lane, add a reference deployment (a pinned compose service in the
+  `diff` profile, or a deployed environment), a qa-config environment with an entry for the pack at
+  its URL, and the pack's `diff.json`; then copy the `diff (petstore)` job.
 - **A deployed environment.** Drop the start and stop steps, and set `QA_ENV` on the job to the
   qa-config environment. Each pack's entry there has a `base_url`, a `spec_url` and the credentials
   its `auth` names, supplied as secrets. `qa-config.json` is per machine and not tracked, so CI
@@ -358,6 +359,8 @@ What `act` does not reproduce:
 | Job or step | Why |
 |---|---|
 | Upload reports | `act`'s artifact server lacks the `upload-artifact` v7 protocol; the step is skipped when `ACT` is set. The reports stay in the job container. |
+| `ci.yml` `e2e-vampi` | not tried under `act`: both VAmPI modes publish their ports on `127.0.0.1` only, so `host.docker.internal` does not reach them, and `.actrc` sets no `QA_VAMPI_*` overrides |
+| `dast.yml`, `perf.yml`, `diff.yml` | not tried under `act`: each starts ZAP, k6 or the reference Petstore with `docker compose` from inside the job, and the reference also binds `127.0.0.1`. Run the lanes on the host instead (`npm run lanes:dast`, `lanes:perf`, `lanes:diff`) |
 | `codeql.yml` | needs GitHub code scanning to receive the results |
 | `pr-review.yml` `review` | needs `ANTHROPIC_API_KEY` and a pull request on GitHub to read and comment on |
 | `schedule` triggers | run the scheduled job with `workflow_dispatch` instead |
@@ -368,13 +371,13 @@ under `act` as a defect, repeat the suite with `npm run lanes:flake`.
 
 ## Jenkins
 
-`Jenkinsfile` and `Jenkinsfile.drift` at the repository root run the same steps as `ci.yml` and
-`drift.yml`, in the same order and for the same reasons, as declarative pipelines. The DAST,
-performance and differential lanes run only in GitHub Actions.
+`Jenkinsfile` and `Jenkinsfile.drift` at the repository root run the steps of `ci.yml` and
+`drift.yml` for the same reasons, as declarative pipelines; the VAmPI stage differs (below). The
+DAST, performance and differential lanes run only in GitHub Actions.
 
 | File | Trigger | Stages |
 |---|---|---|
-| `Jenkinsfile` | the job's own triggers (a webhook, SCM polling or a schedule, [below](#scheduled-builds)) | Node, Install, Gates, `e2e (petstore)`, `e2e (vampi)` (the secure mode; its results join the Petstore run) |
+| `Jenkinsfile` | the job's own triggers (a webhook, SCM polling or a schedule, [below](#scheduled-builds)) | Node, Install, Gates, `e2e (petstore)`, `e2e (vampi)` (the secure-mode suite only, without the BOLA detection; it runs after the test-management report, coverage and quality gate of the Petstore stage, so a VAmPI failure fails the build and its results join the archived report, but neither the quality gate nor the test-management report covers them) |
 | `Jenkinsfile.drift` | `cron('H 5 * * *')` | Node, Install, `Drift (petstore)` |
 
 **Agent.** Any agent with git, Node at the major version in `.nvmrc` on the `PATH` (the Node stage
@@ -386,12 +389,12 @@ Timestamper; Allure is optional, but `PUBLISH_ALLURE` is on by default (see the 
 `Jenkinsfile` or `Jenkinsfile.drift`. Parameters appear after the first build has read the file;
 until then every parameter takes its default.
 
-Every text parameter left empty falls back to the Jenkins environment variable `DEFAULT_<name>`
-(`DEFAULT_PETSTORE_PORT`, `DEFAULT_ALLURE_ENDPOINT`, ...), set globally (Manage Jenkins, System,
-Global properties) or on the agent (its node's Environment variables). Set the values that describe
-a machine there, once, and leave the parameters for a one-off change. The prefix is needed: Jenkins
-also exposes every parameter as a variable of its own name, empty when the parameter is, so a
-variable named exactly like a parameter would be hidden.
+Every text parameter except `AGENT_LABEL` left empty falls back to the Jenkins environment variable
+`DEFAULT_<name>` (`DEFAULT_PETSTORE_PORT`, `DEFAULT_ALLURE_ENDPOINT`, ...), set globally (Manage
+Jenkins, System, Global properties) or on the agent (its node's Environment variables). Set the
+values that describe a machine there, once, and leave the parameters for a one-off change. The
+prefix is needed: Jenkins also exposes every parameter as a variable of its own name, empty when the
+parameter is, so a variable named exactly like a parameter would be hidden.
 
 | Parameter | Use |
 |---|---|
@@ -405,7 +408,9 @@ variable named exactly like a parameter would be hidden.
 
 The build publishes the JUnit report (`reports/junit.xml`), prints the quality gate summary and
 archives `reports/` (with the single-file Allure report, `reports/allure-report/index.html`),
-`playwright-report/` and `allure-results/`. With `PUBLISH_ALLURE`, the Allure plugin also shows the
+`playwright-report/` and `allure-results/`. Every Playwright process rewrites `reports/junit.xml`
+and `playwright-report/`, so both hold the last one, the VAmPI stage; the Allure results hold the
+whole build (CI-09). With `PUBLISH_ALLURE`, the Allure plugin also shows the
 report in the build page; it needs an Allure Commandline tool configured in Jenkins. It stops both
 APIs in every case, and on failure archives their logs.
 

@@ -12,11 +12,14 @@ on:
     paths:
       - 'scripts/perf-lane.mjs'
       - 'scripts/k6/**'
-      - 'scripts/lib/auth-tokens.mjs'
-      - 'scripts/lib/container.mjs'
       - 'scripts/quality-gate.mjs'
+      - 'scripts/config-check.mjs'
+      - 'scripts/lib/**'
       - 'services/*/perf.json'
       - 'services/vampi/register-users.mjs'
+      - 'services/*/openapi.*'
+      - 'services/*/service.json'
+      - 'qa-config.example.json'
       - 'docker-compose.yml'
       - '.github/workflows/perf.yml'
 

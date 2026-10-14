@@ -18,7 +18,7 @@ ADR 0007; `services/petstore/` is the worked example.
 | Request data | `builders/` and the Object Mother, with the `faker`, `rng` and `clock` fixtures | never uses `Math.random` or `Date.now()` (L-27) |
 | Literal values of the contract | `generated/enums.ts` (`npm run contract:value-sets`) | never types a value set from memory (L-36) |
 | Error formats | `error-envelopes.json` | asserts with `expectErrorEnvelope` |
-| Combinations of conditions | `rules/<id>.yaml`, generated into `generated/decision-tables.ts` | iterates the table in one test, one step per rule |
+| Combinations of conditions | `rules/<id>.yaml`, generated into `generated/decision-tables.ts` (`npm run contract:decision-tables`) | iterates the table in one test, one step per rule |
 | State comparison | `state-models.ts` | uses `expectSameState` and `expectOnlyChanged` (L-53) |
 | Shared records | `guards.ts` with `withResourceGuard` | wraps every write to data it did not create (L-39) |
 | Checks several specs share (an inline schema with no name) | `assertions.ts` | imports them; never imports another spec |
@@ -32,7 +32,9 @@ ADR 0007; `services/petstore/` is the worked example.
    case still reports where it belongs (L-16).
 3. **Preconditions next.** Use `skipUnless` or `requireData` for missing data or a read-only
    environment. A skip carries its reason, and data in the wrong state fails instead of skipping
-   (L-40).
+   (L-40). A case that writes calls
+   `` skipUnless(qa.allowWrites, `environment "${qa.environment}" does not allow writes`) `` after
+   its metadata; nothing else stops a write in an environment whose `allow_writes` is `false`.
 4. **Steps** are optional; a short case reads fine without them. When used, they are named for what
    they do: `Arrange`, `Act`, `Assert`, and `Record` for a step that keeps evidence without judging
    it. A step called `Assert` must assert.
@@ -49,13 +51,15 @@ ADR 0007; `services/petstore/` is the worked example.
 8. **Known gaps** arm right before the action: `test.fail(true, await knownGap('<KEY>', why))`, with
    `@known-gap` in the title (L-13, L-14).
 9. **Probes** the case covers are referenced as `probe:<id>` in the title. Run
-   `npm run contract:probes:write` afterwards.
+   `npm run contract:probes:write -- --service <pack>` afterwards.
 
 ## Data and secrets
 
-- No real identifiers, personal data or credentials in specs, registries or docs. Use placeholders in
-  prose and builders in code. `npm run lint:suite` checks emails, phone numbers, hosts and long digit
-  runs (L-41).
+- No real identifiers, personal data or credentials anywhere in a pack, its skill or the docs. Use
+  placeholders in prose and builders in code. `npm run lint:suite` checks the files under `docs/`
+  and each pack's `specs/`, `registry/` and `docs/` for tokens, emails, hosts, IP addresses, phone
+  numbers, UUIDs and long digit runs (L-41); the rest of a pack (its README, builders, flows) and
+  its skill are reviewed by hand.
 - Evidence is attached by the clients, redacted, with identity fields pseudonymized (L-42). A spec
   does not attach raw bodies itself.
 - Modules do no I/O at import time, so a failure cannot abort collection of the whole lane (L-24).

@@ -59,8 +59,10 @@ Requirement ids are the contract's business rules: `REQ-PET-NN` is rule NN of th
   They never assert a `401`. Here they are TC-PET-26 and TC-PET-27.
 - **Defects are designed as defects.** A case asserts the contract's behaviour, or the security
   expectation where the contract is silent. Its details record the observed departure and its
-  contract note. No `PET` note is tracked yet, so the Defect column is empty, and each departure
-  reads "Departure: PN-NN (untracked)". Automate decides whether to file it or tolerate it.
+  contract note. No `PET` case maps to a tracked note (PN-26, tracked as `LOCAL-5`, is avoided by
+  running the pack on one worker, not designed as a case), so the Defect column is empty, and each
+  departure reads "Departure: PN-NN (untracked)". Automate decides whether to file it or tolerate
+  it.
 - **Tolerated notes** (`by-design`): PN-03 (the field is named only inside the message, so cases
   assert the error kind), PN-05, PN-14 (an unsupported `Accept` answers JSON), PN-16 (lenient path
   ids). No case asserts against them.

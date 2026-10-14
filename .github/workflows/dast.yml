@@ -14,14 +14,15 @@ on:
   pull_request:
     paths:
       - 'scripts/dast-lane.mjs'
-      - 'scripts/lib/auth-tokens.mjs'
-      - 'scripts/lib/container.mjs'
-      - 'scripts/lib/zap-auth.mjs'
       - 'scripts/quality-gate.mjs'
       - 'scripts/destructive-lane.mjs'
+      - 'scripts/known-gap-lane.mjs'
+      - 'scripts/config-check.mjs'
+      - 'scripts/lib/**'
       - 'services/*/dast-*'
       - 'services/*/service.json'
       - 'services/vampi/register-users.mjs'
+      - 'qa-config.example.json'
       - 'docker-compose.yml'
       - '.github/workflows/dast.yml'
 

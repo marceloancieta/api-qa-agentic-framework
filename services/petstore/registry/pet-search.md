@@ -46,8 +46,8 @@ numbering of [`pet.md`](pet.md), which holds the design notes that apply to ever
 - **Cleanup.** Every case deletes its pets and confirms each delete with a `404` read (PN-22).
 - **Decision tables.** TC-PET-55 is the table in `rules/find-by-status.yaml`; its earlier example
   test without a case id became TC-PET-55 in `specs/pet-search.spec.ts`.
-  TC-PET-60 is the new `rules/pet-find-by-tags.yaml`; its generated module is integrated by the
-  lead.
+  TC-PET-60 is the table in `rules/pet-find-by-tags.yaml`, generated into
+  `generated/decision-tables.ts`.
 
 ## Cases
 

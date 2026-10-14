@@ -10,7 +10,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 |---|---|---|
 | `service.json` | Name, API version (part of every case identity), identity fields to pseudonymize in evidence, contract file, and `workers: 1`: the service is not thread-safe (PN-26). | present |
 | `openapi.json` | The contract under test (Petstore 1.0.28, OpenAPI 3.0.4, Apache-2.0). Response bodies are validated against its schemas. | present |
-| `generated/` | Contract outputs (do not edit): `value-sets.json`, `enums.ts`, `probe-matrix.json`. See `docs/contract-tooling.md`. | present |
+| `generated/` | Contract outputs (do not edit): `value-sets.json`, `enums.ts`, `probe-matrix.json`, `decision-tables.ts`. See [contract tooling](../../docs/contract-tooling.md). | present |
 | `error-envelopes.json` | The error formats this API answers with, by kind, for `expectErrorEnvelope`. | present |
 | `types.ts` | Request and response interfaces, written by hand, and aliases of the enum value sets generated in `generated/enums.ts`. | present |
 | `clients/` | One client per resource, extending `helpers/base-client.ts`. Paths with parameters use `this.route('pet/{petId}', { petId })`. Methods return the raw response. | present |
@@ -39,7 +39,13 @@ The qa-config example gives the pack an entry in three environments:
 | `reference` | `petstore-reference` (1.0.26, compose profile `diff`) | `http://localhost:8081/api/v3` | read-only | `npm run petstore:reference:up` / `npm run petstore:reference:down` |
 | `public` | the public instance | `https://petstore3.swagger.io/api/v3` | read-only | none |
 
-`PETSTORE_PORT` and `PETSTORE_REFERENCE_PORT` move the local host ports (`docker-compose.yml`).
+The pack's `auth` sends the `api_key` header from `API_KEY` in the local env file (`.env.example`).
+Any non-blank value works, because the service ignores it (PN-05).
+
+`PETSTORE_PORT` moves the local host port (`docker-compose.yml`); point `QA_PETSTORE_BASE_URL` and
+`QA_PETSTORE_SPEC_URL` at it. `PETSTORE_REFERENCE_PORT` moves the reference's port; those overrides
+apply only to the candidate side of the differential lane, so change the `reference` entry of your
+`qa-config.json` instead.
 `npx playwright test --project=api-petstore` runs the pack in the active environment (`QA_ENV`).
 
 ## Writing a spec
@@ -90,9 +96,11 @@ for two actors side by side.
   report the field in a key; Petstore's do not, so its cases assert the kind only.
 - **Identity.** A title that starts with a case id (`TC-PET-01 ...`) gives the result the stable
   identity `petstore-v3-TC-PET-01`; tags in the title or `{ tag }` reach the results unchanged.
-- **Probe coverage.** `npm run contract:probes` lists the contract probes of every operation. A spec
+- **Probe coverage.** `npm run contract:probes -- --service petstore` lists the contract probes of
+  every operation. A spec
   covers one by containing `probe:<id>`, usually at the end of the test title; `--gaps` lists the
-  uncovered ones, and `npm run contract:probes:write` records new coverage.
+  uncovered ones, and
+  `npm run contract:probes:write -- --service petstore` records new coverage.
 - **Known gaps.** When an open issue keeps a case red, mark it with `test.fail` and take its
   reason from `knownGap(key, why)`, which also adds the issue link to the result. It needs
   `tracker.key_pattern` and `tracker.issue_url` in qa-config.

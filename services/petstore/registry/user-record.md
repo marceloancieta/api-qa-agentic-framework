@@ -52,8 +52,9 @@ update (TC-USER-44, TC-USER-45) and the exposure of the password (TC-USER-39, TC
 
 **The declared `400` "Invalid username supplied"** of the read and the delete was produced by no
 input at intake (G12). TC-USER-37 and TC-USER-60 accept `400` or `404` for malformed names, so the
-code stays reachable by design while what triggers it is unknown; `npm run contract:codes` will
-keep reporting it as never seen until a run produces it.
+code stays reachable by design while what triggers it is unknown;
+`npm run contract:codes -- --service petstore` will keep reporting it as never seen until a run
+produces it.
 
 ## Cases
 

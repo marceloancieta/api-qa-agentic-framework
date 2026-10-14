@@ -28,8 +28,9 @@ fails TC-BOOK-02, which is the flaw the matrix exists to detect.
 
 - **Users** are registered by the pack fixtures from the `login` credentials in qa-config (VN-07);
   no case relies on the sample data `GET /createdb` seeds (VN-05).
-- **Books cannot be deleted**: VAmPI has no operation for it. Each case adds a book under a title
-  no other run uses, and the local containers are recreated by `npm run vampi:up`.
+- **Books cannot be deleted**: VAmPI has no operation for it. Each case adds a book under a title no
+  other run uses, and `npm run vampi:up` recreates the database (`create-db.mjs` calls
+  `GET /createdb`, which drops and reseeds the tables, VN-05).
 - **The secret is masked in evidence** (`redact.ts` treats `secret` as a secret key), so a report
   never shows it, even when a case proves it leaked.
 
