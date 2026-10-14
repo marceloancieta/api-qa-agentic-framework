@@ -52,9 +52,10 @@ the comments in step.
 - **An accepted finding is explained in the code.** Fix an alert when the code can change. When the
   flagged behaviour is the code's purpose, guard it, explain why next to it, and put
   `// codeql[<rule id>]` on the line above the flagged line; the `AlertSuppression` query the
-  workflow adds turns that comment into a suppression. Example: the DAST lane saves the definition
-  it fetched (`js/http-to-file-access`, GATE-20). Dismissing an alert by hand leaves no trace in
-  the code, so it is the last resort.
+  workflow adds records that comment in the uploaded SARIF as an accepted suppression. GitHub keeps
+  the alert open all the same, so dismiss it as "won't fix" with a comment that names the backlog
+  item and the code that explains it. Example: the DAST lane saves the definition it fetched
+  (`js/http-to-file-access`, alert 13, GATE-20). Never dismiss an alert the code does not explain.
 - **Cost.** Free for public repositories. A private repository needs GitHub's code security
   licence; without it the upload step fails.
 - **Enable or remove.** It runs once the file is on the default branch. Do not also enable CodeQL
