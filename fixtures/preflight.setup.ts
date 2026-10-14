@@ -13,6 +13,7 @@ import {
   requiredEnvVars,
   type QaRuntime,
 } from '../helpers/config';
+import { redactUnlessVariableName } from '../scripts/lib/env-names.mjs';
 import { projectPack } from './index';
 
 const REACHABILITY_TIMEOUT_MS = 5_000;
@@ -32,7 +33,9 @@ setup('required environment variables are set', () => {
     }
   }
   if (missing.size > 0) {
-    const listed = [...missing].map(([name, actors]) => `${name} (${actors.join(', ')})`);
+    const listed = [...missing].map(
+      ([name, actors]) => `${redactUnlessVariableName(name)} (${actors.join(', ')})`,
+    );
     throw new Error(
       `Missing environment variables for pack "${qa.pack}": ${listed.join(', ')}. They are named ` +
         `in ${qa.source} at api.environments.${qa.environment}.packs.${qa.pack} (auth, actors). ` +

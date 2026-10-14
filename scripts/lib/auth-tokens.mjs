@@ -9,7 +9,9 @@
 //
 // Requests go through `post(url, { data | form, headers })`, which answers `{ ok, status, body }`
 // (`body` parsed JSON or null): the runner adapts Playwright's request context to it, the lanes use
-// `fetchPost`. Error messages name variables, never their values.
+// `fetchPost`. Error messages name variables, never their values (scripts/lib/env-names.mjs).
+
+import { missingVariableMessage, redactUnlessVariableName } from './env-names.mjs';
 
 /** `text` as base64, from its UTF-8 bytes. */
 export const base64 = (text) => Buffer.from(text, 'utf8').toString('base64');
@@ -53,10 +55,11 @@ export async function issueLoginToken({ config, url, username, password, post, n
   const response = await post(url, { data: { username, password }, headers: {} });
   const token = response.body?.[field];
   if (!response.ok || typeof token !== 'string' || !token) {
+    const user = redactUnlessVariableName(config.username_env);
     throw new Error(
-      `Login at ${config.path} as the user in ${config.username_env} answered ` +
-        `${response.status} without a "${field}" string; check the credentials in ` +
-        `${config.username_env} and ${config.password_env}.`,
+      `Login at ${config.path} as the user in ${user} answered ${response.status} without a ` +
+        `"${field}" string; check the credentials in ${user} and ` +
+        `${redactUnlessVariableName(config.password_env)}.`,
     );
   }
   return { value: token, renewAt: renewAtFor(token, issuedAt) };
@@ -68,7 +71,8 @@ export async function issueLoginToken({ config, url, username, password, post, n
  * `access_token` must be a bearer token.
  */
 export async function issueOAuth2Token({ config, clientId, clientSecret, post, now = Date.now }) {
-  const variables = `${config.client_id_env} and ${config.client_secret_env}`;
+  const client = redactUnlessVariableName(config.client_id_env);
+  const variables = `${client} and ${redactUnlessVariableName(config.client_secret_env)}`;
   const form = { grant_type: 'client_credentials' };
   if (config.scope) form.scope = config.scope;
   const headers = { Accept: 'application/json' };
@@ -87,7 +91,7 @@ export async function issueOAuth2Token({ config, clientId, clientSecret, post, n
     const code = body?.error; // RFC 6749 5.2
     throw new Error(
       `${answered}${typeof code === 'string' ? ` "${code}"` : ''} to the client in ` +
-        `${config.client_id_env}; check the client credentials in ${variables}` +
+        `${client}; check the client credentials in ${variables}` +
         `${config.scope ? ` and the scope "${config.scope}"` : ''}.`,
     );
   }
@@ -150,11 +154,7 @@ export async function laneCredential(
 ) {
   if (auth.type === 'none') return null;
   const missing = variablesOf(auth).find((name) => !env[name]?.trim());
-  if (missing) {
-    throw new Error(
-      `Auth "${auth.type}" needs the environment variable ${missing}, which is not set.`,
-    );
-  }
+  if (missing) throw new Error(missingVariableMessage(`Auth "${auth.type}"`, missing));
   const value = (name) => env[name];
   const fixed = (header, credential) => {
     const self = { type: auth.type, header, value: credential, renewAt: undefined };

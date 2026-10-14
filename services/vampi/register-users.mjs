@@ -7,6 +7,7 @@
 
 import { packEnvironment } from '../../scripts/lib/cli.mjs';
 import { loadLocalEnv } from '../../scripts/lib/env.mjs';
+import { redactUnlessVariableName } from '../../scripts/lib/env-names.mjs';
 
 loadLocalEnv();
 const environment = packEnvironment('vampi');
@@ -29,10 +30,13 @@ const done = new Set();
 for (const auth of logins) {
   const username = process.env[auth.username_env]?.trim();
   const password = process.env[auth.password_env];
+  const user = redactUnlessVariableName(auth.username_env);
   if (!username || !password) {
     if (done.has(auth.username_env)) continue;
     done.add(auth.username_env);
-    console.error(`vampi users: ${auth.username_env} and ${auth.password_env} must be set`);
+    console.error(
+      `vampi users: ${user} and ${redactUnlessVariableName(auth.password_env)} must be set`,
+    );
     failed = true;
     continue;
   }
@@ -46,7 +50,7 @@ for (const auth of logins) {
   const login = await post(auth.path, { username, password });
   const ok = typeof login.body?.auth_token === 'string';
   console.log(
-    `vampi users: the user in ${auth.username_env}: register ${registered.status} ` +
+    `vampi users: the user in ${user}: register ${registered.status} ` +
       `(${registered.body?.status ?? 'no status'}), login ${ok ? 'works' : `failed (${login.status})`}`,
   );
   if (!ok) failed = true;

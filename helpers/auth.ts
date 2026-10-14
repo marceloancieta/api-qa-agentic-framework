@@ -23,6 +23,7 @@ import {
   type Issued,
   type Post,
 } from '../scripts/lib/auth-tokens.mjs';
+import { missingVariableMessage } from '../scripts/lib/env-names.mjs';
 
 export type QueryParams = Record<string, string | number | boolean>;
 
@@ -225,11 +226,7 @@ export function createAuth(
   options: AuthOptions = {},
 ): AuthStrategy {
   const [missing] = missingEnvVars(requiredEnvVars(config), env);
-  if (missing) {
-    throw new Error(
-      `Auth "${config.type}" needs the environment variable ${missing}, which is not set.`,
-    );
-  }
+  if (missing) throw new Error(missingVariableMessage(`Auth "${config.type}"`, missing));
   const value = (name: string): string => env[name] as string;
   switch (config.type) {
     case 'none':

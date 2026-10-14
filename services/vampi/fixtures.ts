@@ -13,6 +13,7 @@ import { applyCaseMeta } from '../../helpers/case-meta';
 import { loadEnvelopeCatalog, type EnvelopeCatalog } from '../../helpers/error-envelope';
 import type { RedactionPolicy } from '../../helpers/redact';
 import { createSchemaValidator, type SchemaValidator } from '../../helpers/schema';
+import { redactUnlessVariableName } from '../../scripts/lib/env-names.mjs';
 import { loadService, type ServicePack } from '../../helpers/service';
 import { DbInitClient } from './clients/db-init-client';
 import { HomeClient } from './clients/home-client';
@@ -112,7 +113,7 @@ export const test = core.extend<VampiFixtures, VampiWorkerFixtures>({
           ?.auth_token;
         if (typeof token !== 'string') {
           throw new Error(
-            `Registering the user in ${auth.username_env} answered ${response.status()} and its ` +
+            `Registering the user in ${redactUnlessVariableName(auth.username_env)} answered ${response.status()} and its ` +
               `login ${login.status()} without a token; has the database been created ` +
               '(npm run vampi:up)?',
           );
