@@ -1,7 +1,8 @@
 // Obtaining credentials from qa-config `auth` entries, shared by the test runner (helpers/auth.ts,
-// which applies them per request) and the lanes that send traffic with a tool of their own (the
-// DAST and performance lanes, which put one credential on everything the tool sends). One place
-// decides how a token is requested and when it is due for renewal, so both sides behave alike.
+// which applies them per request) and the lanes that send traffic of their own (the DAST and
+// performance lanes, which put one credential on everything their tool sends, and the differential
+// lane). One place decides how a token is requested and when it is due for renewal, so both sides
+// behave alike.
 //
 // A token is renewed a margin before it expires: 10% of its lifetime, at most 30 s. The lifetime
 // comes from the `expires_in` of an OAuth 2.0 answer, otherwise from the `exp` claim when the token

@@ -11,8 +11,9 @@
  * Quarantine convention.
  *   - A test confirmed flaky by this lane gets the tag `@quarantine` (in the title or in
  *     `{ tag: '@quarantine' }`) together with a link to the issue that tracks the fix.
- *   - Gate lanes run with `--grep-invert @quarantine`, so a quarantined test cannot turn a gate red,
- *     and with zero retries, so nothing else can hide behind a retry.
+ *   - The published lane runs with `--grep-invert @quarantine`; the suite, the known-gap and the
+ *     destructive lanes still run quarantined tests until GATE-23 leaves them out of every gate.
+ *     Gate lanes run with zero retries, so nothing can hide behind a retry.
  *   - Quarantine is temporary: this lane keeps running the quarantined tests, and a quarantined test
  *     that passes every one of its N repeats is reported as a candidate for release.
  *

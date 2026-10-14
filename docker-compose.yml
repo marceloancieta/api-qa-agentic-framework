@@ -14,15 +14,16 @@
 # The image only publishes `latest`, so it is pinned by digest (upstream commit f16052d).
 # tokentimetolive is the JWT lifetime in seconds. Ports are bound to 127.0.0.1: the vulnerable
 # mode is deliberately insecure and must not be reachable from the network.
-# VAMPI_SECURE_PORT and VAMPI_VULNERABLE_PORT move the host ports when 5001 or 5002 are taken.
+# VAMPI_SECURE_PORT and VAMPI_VULNERABLE_PORT move the host ports when 5001 or 5002 are taken
+# (point QA_VAMPI_BASE_URL and QA_VAMPI_SPEC_URL at the moved port of the mode you run).
 #
 # DAST lane: OWASP ZAP's API scan, run by `npm run lanes:dast -- --service <pack>`.
 #   docker compose run --rm zap zap-api-scan.py ...   (the lane builds the command)
 # It sits in the `dast` profile, so `docker compose up` never starts it. ZAP runs in the
 # project network: the lane points it at the compose service that publishes a localhost port,
 # else at host.docker.internal (extra_hosts maps it on Linux too). Reports and the fetched
-# definition live in reports/dast (ZAP's /zap/wrk); each pack's rule policy
-# (services/<pack>/dast-rules.tsv) is mounted read-only. Pinned by tag and digest: the
+# definition live in reports/dast (ZAP's /zap/wrk); services/ is mounted read-only, for each
+# pack's rule policy (services/<pack>/dast-rules.tsv). Pinned by tag and digest: the
 # 2026-08-07 build, which ships ZAP 2.17.0.
 #
 # Performance lane: k6, run by `npm run lanes:perf -- --service <pack>`.

@@ -97,7 +97,7 @@ jobs:
         if: ${{ !cancelled() && steps.petstore.outcome == 'success' }}
         run: |
           mkdir -p reports/drift
-          npm run --silent lanes:known-gap 2>&1 | tee reports/drift/known-gap.txt
+          npm run --silent lanes:known-gap -- --service petstore 2>&1 | tee reports/drift/known-gap.txt
 
       # When the deployed contract moved, the cases on the changed operations first, so their result
       # names what the move broke (L-31). --live diffs each pack's tracked digest against that pack's
@@ -109,14 +109,14 @@ jobs:
           QA_ENV: ${{ inputs.contract_env || vars.QA_DRIFT_CONTRACT_ENV }}
         run: |
           mkdir -p reports/drift
-          npm run --silent lanes:published:changed:live 2>&1 | tee reports/drift/published-changed.txt
+          npm run --silent lanes:published:changed:live -- --service petstore 2>&1 | tee reports/drift/published-changed.txt
 
       # Every published case, every day (L-31), whether or not the contract moved.
       - name: Published-case lane
         if: ${{ !cancelled() && steps.petstore.outcome == 'success' }}
         run: |
           mkdir -p reports/drift
-          npm run --silent lanes:published 2>&1 | tee reports/drift/published.txt
+          npm run --silent lanes:published -- --service petstore 2>&1 | tee reports/drift/published.txt
 
       # One index.html of the lanes above that opens from disk (allurerc.mjs), in the artifact.
       - name: Allure report
@@ -133,6 +133,7 @@ jobs:
           echo "## Drift" >> "$GITHUB_STEP_SUMMARY"
           section "Live contract against the tracked digest" reports/drift/digest.txt
           section "Known-gap lane" reports/drift/known-gap.txt
+          section "Published cases on changed operations" reports/drift/published-changed.txt
           section "Published-case lane" reports/drift/published.txt
 
       - name: Fail on contract drift

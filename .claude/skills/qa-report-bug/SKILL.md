@@ -50,8 +50,12 @@ severity. Wait for approval.
    npm run tracker -- create --title "<title>" --body-file <file> \
      --label class:<class> --label severity:<S1-S4>
    ```
-   Add a comment to an existing issue with `npm run tracker -- comment <KEY> --body-file <file>`.
-   The wrapper reads every write back and checks that placeholders survived rendering (L-04, L-47).
+   An unconfirmed finding takes `--label class:<class> --label type:unconfirmed-finding` instead,
+   with no `severity:` label: its title ends with `(unconfirmed)` and its description proposes the
+   severity ([bug
+   reporting](../../../docs/references/bug-reporting.md#1-confirmed-unconfirmed-or-unknown)). Add a
+   comment to an existing issue with `npm run tracker -- comment <KEY> --body-file <file>`. The
+   wrapper reads every write back and checks that placeholders survived rendering (L-04, L-47).
 3. Add the supporting detail as the first comment, the same way.
 4. Map the cases. Every affected case cites the one key: in the registry Defect column, and in a
    `knownGap('<KEY>', why)` arm with `@known-gap` for cases that still run. Their status does not

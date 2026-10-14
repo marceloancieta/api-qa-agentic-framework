@@ -25,12 +25,15 @@ not results.
    result without an identity is listed with its reason (L-05, L-17). Fix a missing identity in the
    spec, never by editing the manifest.
 3. **Dry run**: `npm run tm:publish -- --service <pack> --dry-run` lists what would be published and
-   what is held back (drafts, blocked cases).
+   what is held back (draft, approved and blocked rows, and spec tests no registry lists), each
+   with its reason.
 4. **Gate.** Show the dry run and wait for approval. Confirm that no case id changed since the last
    publish: a changed id creates a duplicate (`.claude/rules/registry.md`).
 5. **Publish**: `npm run tm:publish -- --service <pack>`. The adapter reads every write back (L-04).
    A results-first tool (Allure TestOps, an Allure report) has no definitions step. Its cases are
-   created from the next reported run, so continue with `qa-run` and publish the rows after that run.
+   created from the next reported run, so hand off to `qa-run` now. Once it has reported, resume
+   `qa-publish` (design mode; `qa-run` never edits a registry) and do step 6 for the rows whose
+   identities `reports/tm/report-<provider>.json` lists.
 6. **Record**: published rows move to `published`. From now on their feature code is frozen.
 7. **Hand off** to `qa-run`, with the list of published identities and their links from
    `reports/tm/publish-<provider>.json`.

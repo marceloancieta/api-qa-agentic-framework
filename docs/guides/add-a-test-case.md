@@ -235,8 +235,9 @@ identity in the spec, never in the manifest. Check the dry run before the real p
 publish, set the row to `published`. From then on its id is frozen.
 
 A results-first tool (the `allure-report` and `allure-testops` providers) has no definitions step:
-the case is created from the next reported run, so do step 5 and set the row to `published` after
-it.
+the case is created from the next reported run, so do step 5 first. Then resume `qa-publish` to set
+the row to `published` for the identities `reports/tm/report-<provider>.json` lists; the run itself
+never edits a registry.
 
 ## 5. Run and report
 
@@ -271,7 +272,7 @@ what `npm run gates` runs. These are the findings a new case usually meets:
 | `npm run lint:harness` | a tag outside the taxonomy or not exactly one layer tag; `operation` after a skip; an assertion only reached when the response looks right; a write to a seed record outside a resource guard; I/O at import time; `@known-gap` without its `knownGap()` arm; a `@destructive` case next to other cases | each pattern makes a case pass, skip or report itself wrongly while the API is not really checked |
 | `npm run lint:suite` | a real-looking e-mail, host, IP, phone number, UUID, token or long digit run in a spec, registry or doc | nothing real or personal is committed; use builders and `<PLACEHOLDERS>` |
 | `npm run coverage:status` | a `draft` or `approved` row whose id a spec already carries; an `automated` row whose Spec file lacks exactly one enabled test with the id; a `published` row with no result in the latest run of its spec; a spec test whose id no registry lists; fewer cases than the floor | the registry is a claim and the specs and results are the evidence; the floor comes from `scripts/derive-floor.mjs` |
-| `npm run contract:check` | the probe matrix is out of date | a `probe:<id>` was added or removed without `npm run contract:probes:write` |
+| `npm run contract:check` | the probe matrix is out of date | a `probe:<id>` was added or removed without `npm run contract:probes:write -- --service <pack>` |
 
 Two consequences of how results are kept:
 

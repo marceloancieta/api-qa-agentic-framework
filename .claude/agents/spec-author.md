@@ -23,8 +23,7 @@ missing instead of guessing:
 - **pack** and **environment** (`QA_ENV` value);
 - **registry file** and the **case ids** assigned to you, each with status `approved`;
 - **spec file paths** you own, under `services/<pack>/specs/`;
-- **data range** you may create and delete: an id range, a name prefix or both;
-- whether a `@destructive` case **may be run**, alone.
+- **data range** you may create and delete: an id range, a name prefix or both.
 
 ## Read first
 
@@ -59,7 +58,9 @@ A case that needs a client method, builder variant, flow, error envelope kind, s
 that does not exist is **not** solved inside the spec (ADR 0007): no URLs, headers, hand-built JSON
 for a contract type, or local helpers standing in for a layer. Write the test with its metadata,
 park it with `test.fixme(true, 'needs <block>')`, and list the block under **Needs** in your report
-with the signature or shape the case requires. The main conversation builds it and resumes you.
+with the signature or shape the case requires. The main conversation builds it and resumes you. A
+park is a working state: the gates fail while it stays (`coverage:status`, stale-status), so the
+main conversation either resumes you or removes the test.
 
 ## Writing each case
 
@@ -89,9 +90,9 @@ the case goes back to `qa-design` through the main conversation.
 
 A `@destructive` case goes in its own spec file and cleans up in `finally` what an API call can
 remove; the pack's recovery in the environment covers the rest. Every other run leaves it out
-(L-59). Run it, with `npm run lanes:destructive -- --service <pack>`, only if the launch prompt
-allows it; otherwise report it as
-`written, not run`.
+(L-59). Never run the destructive lane: it runs every `@destructive` case of the pack and restarts
+the service after each, which reaches other authors' runs. Report the case as
+`written, not run (destructive: run by qa-automate step 5)`.
 
 ## Checks, then the run
 

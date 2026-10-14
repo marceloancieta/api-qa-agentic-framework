@@ -58,8 +58,8 @@ Each area has an id for the report.
    helpers, fixtures, configuration, `.github/`, `.claude/`).
 6. **`workflow-security`: GitHub Actions.** `pull_request_target` or `workflow_run` with secrets;
    `${{ github.event.* }}` text interpolated into `run:` or a prompt; an action not pinned by full
-   commit SHA with its version in a comment; `permissions` broader than the job needs, or set at the
-   top level instead of per job; secrets available to steps that run pull-request code;
+   commit SHA with its version in a comment; `permissions` broader than the job needs, or anything
+   beyond `contents: read` at the top level; secrets available to steps that run pull-request code;
    `persist-credentials` left on; a downloaded binary without a pinned checksum.
 7. **`hook-security`: Claude Code hooks, rules and settings.** A hook that allows what it could not
    evaluate (fails open); a shell-form registration instead of the exec form

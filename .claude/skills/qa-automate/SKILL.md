@@ -32,9 +32,9 @@ the pack has `allow_writes` true.
    and launch one `spec-author` agent per file, in parallel when neither the files nor the data
    ranges overlap. Its launch prompt names the pack, the environment, the registry file, the case
    ids, the spec files it owns, the data range it may create (an id range or a name prefix no other
-   author uses) and whether a `@destructive` case may be run alone. When an author reports
-   **Needs**, build those blocks here (step 1) and resume the same author. Its candidate findings go
-   to `qa-report-bug`.
+   author uses). Authors write `@destructive` cases but never run them; step 5 runs the lane. When
+   an author reports **Needs**, build those blocks here (step 1) and resume the same author. Its
+   candidate findings go to `qa-report-bug`.
 3. **Known defects**: a case the registry maps to an open issue arms
    `test.fail(true, await knownGap('<KEY>', why))` right before the action and carries `@known-gap`.
    Finding a new defect while automating goes through `qa-report-bug`; the case keeps its status.
@@ -45,10 +45,11 @@ the pack has `allow_writes` true.
    npm run types:check
    npm run lint
    npm run lint:qa
-   npx playwright test services/<pack>/specs/<file> --list --grep @regression
+   npx playwright test services/<pack>/specs/<file> --list
    ```
-   Every designed case appears exactly once across the layer tags. `@destructive` cases are left
-   out of every run and listing; add `QA_DESTRUCTIVE=1` to list them.
+   Every designed case of the file appears exactly once in the listing; `lint:qa` (the harness
+   linter's tag taxonomy) already holds each title to exactly one layer tag. `@destructive` cases
+   are left out of every run and listing; add `QA_DESTRUCTIVE=1` to list them.
 5. **Run** the new specs together against the environment
    (`npx playwright test services/<pack>/specs/<file> ...`), then the `@destructive` ones with
    `npm run lanes:destructive -- --service <pack>`, which runs each alone and follows it with the
@@ -59,8 +60,9 @@ the pack has `allow_writes` true.
    and never the author, whose context carries its own assumptions. Fix every `blocker` and `major`
    (resume the author with the report, or fix here), run again and re-review until the verdict is
    `approve`. A `minor` may be accepted with a reason that goes into the gate summary.
-7. **Record**: covered probes with `npm run contract:probes:write`, then each automated row moves to
-   `automated` with its Spec column filled. `npm run coverage:status` must not report the feature.
+7. **Record**: covered probes with `npm run contract:probes:write -- --service <pack>`, then each
+   automated row moves to `automated` with its Spec column filled. `npm run coverage:status` must
+   not report the feature.
 8. **Review gate.** Show the spec files with their reviewer verdicts and accepted minors, the run
    summary (passed, failed as armed, skipped with reasons), data left behind and the registry diff.
    Wait for approval. Agents never hold this gate (`CLAUDE.md`, Skill or agent).
@@ -70,8 +72,11 @@ the pack has `allow_writes` true.
 
 - Rows move to `automated` only for specs that exist, ran and were approved by the reviewer. Never
   mark ahead of the code.
-- A spec that cannot be finished is removed, or parked with `test.fixme` and its row left `approved`.
-  `coverage:status` reports a parked case, so nothing hides.
+- A spec that cannot be finished is removed before the gate, and its row stays `approved`. A
+  `test.fixme` park is a working state between an author's report and the next step, never a
+  commit: `coverage:status` reports a test of an `approved` row as `stale-status` and
+  `npm run gates` fails until the test is removed or the row moves to `automated` with the test
+  enabled.
 - Data the run created that it could not clean up is listed in the summary, with how to remove it.
 
 ## Do not

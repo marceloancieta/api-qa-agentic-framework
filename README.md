@@ -98,7 +98,7 @@ Next: the [onboarding tour](docs/onboarding.md), then the guides to
 
 | Command | Runs |
 |---|---|
-| `npm test` | Every Playwright project: `unit`, then `preflight-<pack>` and `api-<pack>` for each pack in `services/`. |
+| `npm test` | Every Playwright project: `unit`, and for each pack in `services/` `preflight-<pack>` then `api-<pack>`. |
 | `npx playwright test --project=api-<pack>` | One pack's specs, after its preflight. `--project=api-*` runs every pack. |
 | `npm run test:unit` | Core and pack unit tests only. No network; part of `npm run gates`. |
 | `npm run test:smoke` | Cases tagged `@smoke`, after the preflight. |
@@ -129,14 +129,15 @@ performance reports together; the other lanes fail on their own. Both are descri
 | `npm run quality:gate` | PASS, REVIEW or FAIL per check in qa-config `quality_gate`: pass rate, p95 latency, DAST alerts, mutation score. |
 
 The lanes send the credential of the pack's default actor; `--actor` names another, or `anonymous`
-for none ([credentials in the lanes](docs/quality-gates.md#credentials-in-the-dast-and-performance-lanes)).
-ZAP and k6 run from compose services pinned by digest (profiles `dast` and `perf`, so
-`docker compose up` never starts them; [ADR 0010](docs/adr/0010-container-lanes.md)). Locally,
+for none. The lanes log in without Playwright, so against a fresh VAmPI run `npm run vampi:users`
+first; the specs register their users themselves ([credentials in the
+lanes](docs/quality-gates.md#credentials-in-the-dast-performance-and-differential-lanes)). ZAP and
+k6 run from compose services pinned by digest (profiles `dast` and `perf`, so `docker compose up`
+never starts them; [ADR 0010](docs/adr/0010-container-lanes.md)). Locally,
 `npm run petstore:reference:up` starts an earlier Petstore release (profile `diff`) as the example's
 `reference` environment. ZAP and k6 send real traffic, and a ZAP scan writes: point them at local
-containers or an environment meant for it. The DAST lane refuses an environment whose pack
-entry has `allow_writes` false, and restarts the service afterwards when the entry names a
-`recovery`.
+containers or an environment meant for it. The DAST lane refuses an environment whose pack entry has
+`allow_writes` false, and restarts the service afterwards when the entry names a `recovery`.
 
 ## Adoption levels
 
@@ -164,8 +165,8 @@ calls for, and whether the specs and docs still agree with it.
 
 | | |
 |---|---|
-| **Adds** | the `contract:*` scripts ([contract tooling](docs/contract-tooling.md)), registries of designed cases in `services/<pack>/registry/`, the linters, `coverage:status`, `traceability`, the lanes and the quality gate ([quality gates](docs/quality-gates.md)), all run together by `npm run gates`, plus the git hooks in `.githooks/`. |
-| **Needs** | the rest of `scripts/` and `schemas/`; each pack's tracked contract outputs (`docs/discovery/<pack>-digest.json`, `services/<pack>/generated/`), which `contract:check` keeps current; registries in the format of [the registry rule](.claude/rules/registry.md); Docker for the DAST and performance lanes; gitleaks if you install the git hooks. |
+| **Adds** | the `contract:*` scripts ([contract tooling](docs/contract-tooling.md)), registries of designed cases in `services/<pack>/registry/`, the linters, `coverage:status`, `traceability`, the lanes and the quality gate ([quality gates](docs/quality-gates.md)). `npm run gates` runs the checks among them (`contract:check`, the linters, `coverage:status`); the lanes, `traceability` and the quality gate run on their own. Plus the git hooks in `.githooks/`. |
+| **Needs** | the rest of `scripts/` and `schemas/`; each pack's tracked contract outputs (`docs/discovery/<pack>-digest.json`, `services/<pack>/generated/`), which `contract:check` verifies are current (the `contract:*` scripts regenerate them); registries in the format of [the registry rule](.claude/rules/registry.md); Docker for the DAST and performance lanes; gitleaks if you install the git hooks. |
 | **You can skip** | the agent-specific parts of `.claude/` (skills, agents, hooks). The files in `.claude/rules/` still describe the conventions the linters enforce, so read them as documentation. |
 
 ### 3. The agentic process
@@ -174,7 +175,7 @@ Phases with review gates, run by a coding agent.
 
 | | |
 |---|---|
-| **Adds** | `.claude/rules/` (guardrails), `.claude/skills/` (one skill per phase, plus one per pack), `.claude/agents/` (subagents for isolated reviews and investigations), `.claude/hooks/` registered in `.claude/settings.json`, the [references](docs/references/README.md) and templates the phases apply. |
+| **Adds** | `.claude/rules/` (guardrails), `.claude/skills/` (one skill per phase, one for bug reporting, plus one per pack), `.claude/agents/` (subagents for isolated reviews and investigations), `.claude/hooks/` registered in `.claude/settings.json`, the [references](docs/references/README.md) and templates the phases apply. |
 | **Needs** | levels 1 and 2, because the skills call the same npm scripts and gates; Claude Code for skills, subagents and hooks (the hooks need only Node). |
 | **Other agents** | [`AGENTS.md`](AGENTS.md) describes the process and points to the rules as plain Markdown, so any agent can follow it. The automatic parts (skills that load by themselves, hooks that refuse unsafe calls) are Claude Code features; another agent follows the same rules without that enforcement. |
 
@@ -277,6 +278,7 @@ None of these is needed for a green run. Turn on what your project uses.
 | [Backlog](docs/backlog.md) | open work |
 | [Changelog](CHANGELOG.md) | what each release contains |
 | [CONTRIBUTING](CONTRIBUTING.md) | how to propose a change |
+| [SECURITY](SECURITY.md) | how to report a security problem privately |
 
 ## License
 

@@ -43,9 +43,10 @@ each gets its own launch.
    `service.json` `spec` names) and its entry in `docs/discovery/<pack>-digest.json` (keyed
    `METHOD /path`). `docs/contract-tooling.md` lists the tools;
    `node scripts/derive-value-sets.mjs --service <pack>` (prints only, unlike
-   `npm run contract:value-sets`, which writes), `npm run contract:probes` and
-   `npm run contract:floor` compute what the document declares. `npm run contract:digest:live -- --service <pack>` tells you
-   whether the deployed contract has moved away from the tracked one.
+   `npm run contract:value-sets`, which writes), `npm run contract:probes -- --service <pack>` and
+   `npm run contract:floor -- --service <pack>` compute what the document declares.
+   `npm run contract:digest:live -- --service <pack>` tells you whether the deployed contract has
+   moved away from the tracked one.
 5. If the question comes from a spec, the spec and its registry row, to rule out a test error.
 
 ## Steps
@@ -86,9 +87,11 @@ each gets its own launch.
   `base_url` in `api.environments.<env>.packs.<pack>`, from `qa-config.json` else
   `qa-config.example.json`), calls `loadLocalEnv` from `scripts/lib/env.mjs`, and obtains the
   credential with `actorAuthOf` and `laneCredential` from `scripts/lib/auth-tokens.mjs` (all
-  imported by file URL), which handle every auth strategy and name a missing variable without
-  printing a value. It never prints a credential or the environment, and never puts a credential on
-  the command line (L-43).
+  imported by file URL), which handle every auth strategy except an `api_key` sent in the query and
+  name a missing variable without printing a value. For an `api_key` in the query, the script adds
+  the query parameter the entry's `auth.name` names itself, with the value of the variable its
+  `auth.env` names, never printing it. It never prints a credential or the environment, and never
+  puts a credential on the command line (L-43).
 - The `secret-guard` hook refuses commands that carry credentials or name env files. Work with it:
   if it refuses, change the approach, never the guard.
 - Use a timeout on every request, and a hard-coded method allow-list of `GET`, `HEAD`, `OPTIONS`

@@ -464,14 +464,15 @@ The layout and the layers follow \`services/petstore/\`, the worked example.
 |---|---|---|---|---|
 ${rows}
 
-Suggested codes are confirmed at the first design gate and are permanent once a case is published.
+Suggested codes are agreed at the feature's first intake and are permanent once a case is published.
 
 ## Next steps
 
 1. Add this pack to every environment it runs in: \`api.environments.<env>.packs.${plan.name}\` in
    \`qa-config.json\`. \`base_url\` and \`auth\` are required; \`spec_url\`, \`allow_writes\`, \`recovery\`
-   and \`actors\` are optional. A pack without an entry cannot run in that environment. The contract
-   suggests:
+   and \`actors\` are optional. Without \`allow_writes: true\` the environment is read-only: write
+   cases skip, and the DAST and destructive lanes refuse the pack. A pack without an entry cannot
+   run in that environment. The contract suggests:
 
    \`\`\`json
    ${JSON.stringify(plan.packEntry)}

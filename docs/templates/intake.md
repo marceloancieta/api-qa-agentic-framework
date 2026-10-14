@@ -11,7 +11,7 @@ the intake asks about the rest. Copy the sections below into an issue or a messa
 
 Each method and path exactly as the contract writes them, plus the API version, for example
 `POST /pet` in Petstore `v3`. Name the resource the endpoints read or write. Do not invent a case code
-for the tests: the design phase assigns one.
+for the tests: intake agrees one with you.
 
 ## Purpose _(required)_
 

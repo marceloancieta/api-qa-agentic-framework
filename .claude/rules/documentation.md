@@ -68,7 +68,7 @@ A disagreement between two files about a fact missing from this table means the 
 | a phase skill | `CLAUDE.md` (the pipeline table), the skills before and after it |
 | an agent in `.claude/agents/` | `CLAUDE.md` (the agents table), the skills that launch it, `scripts/__tests__/agent-guide.test.mjs` |
 | a variable in `.env.example` or qa-config | `README.md` setup, the docs that name it, `schemas/qa-config.schema.json` |
-| an auth strategy in `helpers/auth.ts` | `scripts/lib/auth-tokens.mjs` (`laneCredential`, for the lanes), `schemas/qa-config.schema.json`, `scripts/scaffold-service.mjs` (the `auth` it suggests), `docs/quality-gates.md` (credentials in the lanes) |
+| an auth strategy in `helpers/auth.ts` | `helpers/config.ts` (`AuthConfig`, `requiredEnvVars`), `scripts/lib/auth-tokens.mjs` (`variablesOf` and `laneCredential`, for the lanes), `scripts/perf-lane.mjs` (`TOKEN_TYPES`), `schemas/qa-config.schema.json`, `docs/guides/add-a-service-pack.md` (the strategy table), `scripts/scaffold-service.mjs` (the `auth` it suggests), `docs/quality-gates.md` (credentials in the lanes) |
 
 A linter sees statements that conflict, not updates that were never made, so this table is walked by
 hand. Each missing pair you discover becomes a new row.

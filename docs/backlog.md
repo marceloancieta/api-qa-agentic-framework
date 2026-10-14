@@ -42,6 +42,7 @@ review, and GATE-20 and PET-04, which came out of that review. FUT-05 comes last
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
+| DOC-08 | A second documentation review before the release, after GATE-20 and PET-04: the docs, rules, skills, guides, packs and workflows read against the code again, by area. | exp | in-progress |
 | FUT-05 | The repository as a GitHub template, with a guide to adopting it from the template; reversible, unlike an npm package (FUT-11). | plan | in-progress |
 
 ## v0.5.0
@@ -52,6 +53,8 @@ review, and GATE-20 and PET-04, which came out of that review. FUT-05 comes last
 | GATE-21 | The quality gate skips a latency check with fewer than `min_samples` samples even when the check says `required: true` ([quality gates](quality-gates.md#quality-gate)). Decide whether `required` should make it FAIL, as it does for a missing source, and test both. | exp | todo |
 | GATE-22 | `lint-docs` checks that every cited lesson (`L-NN`) exists, but not the contract-note ids (`PN-NN`, `VN-NN`, a pack's own prefix): add a rule that every cited note id exists in its pack's `contract-notes.md`, with fixtures and look-alikes. | exp | todo |
 | FUT-12 | Removing an example pack from a repository created from the template: today it means editing the workflows, `docker-compose.yml`, the example configuration, the docs that name the pack and the required checks ([adopt the template](guides/adopt-the-template.md#4-what-to-keep)). A documented procedure, or a scaffolder command, that leaves the gates green. | plan | todo |
+| GATE-23 | `@quarantine` keeps a case out of every gate, as the flake lane's convention intends: today only the published lane leaves it out, and the suite, the known-gap and the destructive lanes run it ([quality gates](quality-gates.md#lanes)). Leave it out of the Playwright projects unless the flake lane runs, and test both. | exp | todo |
+| CI-09 | Jenkins publishes `reports/junit.xml` and archives `playwright-report/` as the last Playwright process wrote them, the VAmPI stage; the Petstore suite and the destructive cases are lost. One file per stage (`QA_JUNIT_REPORT`, `PLAYWRIGHT_HTML_OUTPUT_DIR`), checked on a Jenkins agent. | exp | todo |
 | FUT-11 | `npx create-api-qa`: the scaffolder published as an npm package. Publishing needs the owner's npm account and cannot be fully undone, so it waits for its own approval. | plan | todo |
 
 ---

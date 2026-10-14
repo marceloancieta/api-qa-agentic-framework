@@ -78,10 +78,10 @@
  * Exit codes: 0 no alert of a FAIL rule (ZAP exit 0, or 2 for warnings only); 1 an alert of a FAIL
  * rule (ZAP exit 1), or the API stopped answering during the scan; 2 the lane could not run or the
  * scan did not complete or cannot be trusted (bad arguments, an unknown actor, a credential that
- * cannot be obtained, an environment without `allow_writes`, a spec URL that does not answer or is
- * not an OpenAPI document, Docker missing, any other ZAP exit, no JSON report or one that is not a
- * ZAP report, a credential that was never set in ZAP or whose renewal failed, a recovery that
- * failed).
+ * cannot be obtained, an environment without `allow_writes`, a spec URL that does not answer,
+ * answers more than 16 MiB (MAX_SPEC_BYTES) or is not an OpenAPI document, Docker missing, any
+ * other ZAP exit, no JSON report or one that is not a ZAP report, a credential that was never set
+ * in ZAP or whose renewal failed, a recovery that failed).
  */
 
 import { randomBytes } from 'node:crypto';

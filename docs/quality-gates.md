@@ -10,11 +10,11 @@ Runs before every push (pre-push hook) and needs no API:
 
 | Step | Checks |
 |---|---|
-| `lint`, `format:check`, `types:check` | ESLint, Prettier, TypeScript |
+| `lint`, `format:check`, `types:check` | ESLint, Prettier (`npm run format` rewrites the files it reports), TypeScript |
 | `config:check` | qa-config against its schema, plus cross-field rules |
 | `test:hooks`, `test:scripts` | the Claude Code hooks and every script and library |
 | `contract:check` | tracked digest, probe matrix, value sets and decision tables are current ([contract tooling](contract-tooling.md)) |
-| `lint:qa` | `lint-harness`, `lint-suite`, `lint-docs`, `lint-layers` on the repository, then each linter's self-test |
+| `lint:qa` | `lint-harness`, `lint-suite`, `lint-docs`, `lint-layers` on the repository, then each linter's self-test (`lint:self-test`) |
 | `coverage:status` | every registry row against the specs and the latest run of its spec |
 | `test:unit` | offline unit tests of helpers and packs |
 | `scan:denylist:self-test` | the denylist scanner itself |
@@ -46,9 +46,9 @@ matrix, and `traceability:write` writes it to `docs/traceability/<pack>.md`.
 |---|---|
 | `npm run lanes:known-gap` | Every case armed with `test.fail(true, await knownGap(...))`, each in its own Playwright process. A gap that starts passing is reported for investigation before the arm is removed. |
 | `npm run lanes:published` | Registry cases with status `published`, zero retries. `lanes:published:changed` runs only those whose endpoints changed against the tracked digest (`:live` compares with the pack's `spec_url` in the environment). |
-| `npm run lanes:destructive` | Every `@destructive` case (L-59), each alone in its own Playwright process in its pack's `api-<pack>` project, followed by the `recovery` command of that pack's entry in the active qa-config environment and a wait until the pack's base URL answers again. Every other run leaves these cases out (each `api-<pack>` project's `grepInvert`), so the known-gap and published lanes skip them too. A failed recovery stops the lane. Before any case runs, it refuses a pack the environment does not configure or whose entry has `allow_writes` false or no recovery. Its results join the latest run in `allure-results/` (same run id, nothing cleared), so `tm:report` reports the shared run and the destructive cases together; `--new-run` starts a run of its own. |
+| `npm run lanes:destructive` | Every `@destructive` case (L-59), each alone in its own Playwright process in its pack's `api-<pack>` project, followed by the `recovery` command of that pack's entry in the active qa-config environment and a wait until the pack's base URL answers below 500, for up to `recovery.ready_timeout_s` seconds (default 60). Every other run leaves these cases out (each `api-<pack>` project's `grepInvert`), so the known-gap and published lanes skip them too. A failed recovery stops the lane. Before any case runs, it refuses a pack the environment does not configure or whose entry has `allow_writes` false or no recovery. Its results join the latest run in `allure-results/` (same run id, nothing cleared), so `tm:report` reports the shared run and the destructive cases together; `--new-run` starts a run of its own. |
 | `npm run lanes:flake` | A selection repeated N times (`--repeat-each`, default 5) with retries forced to 0. Reports tests whose repeats disagree and what to quarantine or release. |
-| `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack (FUT-01): the OpenAPI document is fetched from the pack's `spec_url`, ZAP (the `zap` compose service, pinned by digest, profile `dast`) attacks the pack's base URL, injecting into the query, the body and the URL path, and writes `reports/dast/<pack>.json` and `.html` for the quality gate's `dast` check. The pack's policy is `services/<pack>/dast-rules.tsv` (ZAP's IGNORE, WARN and FAIL per rule) and `services/<pack>/dast-exclude.txt` (URLs a scan must not call: ZAP skips them in the spider and the active scan, and the lane removes the matching paths from the definition, because ZAP's import sends every operation once whatever the exclusions say), and `services/<pack>/dast-false-positives.tsv` (alerts the pack has shown to be false, each rule and URL with the evidence: ZAP marks them False Positive, so neither its exit nor the report the quality gate counts includes them, and the lane lists them). Exit 1 means an alert of a FAIL rule. An active scan writes to the API, so the lane scans only where the pack's entry has `allow_writes: true`, with the pack's `workers` (service.json) as ZAP's threads per host when it sets them, and runs the entry's `recovery` after the scan (for the Petstore, a container restart); a recovery that fails ends the lane with 2. The header of `scripts/dast-lane.mjs` has the details. |
+| `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack (FUT-01): the OpenAPI document is fetched from the pack's `spec_url` (at most 16 MiB; a larger one stops the lane with 2), ZAP (the `zap` compose service, pinned by digest, profile `dast`) attacks the pack's base URL, injecting into the query, the body and the URL path, and writes `reports/dast/<pack>.json` and `.html` for the quality gate's `dast` check. The pack's policy is `services/<pack>/dast-rules.tsv` (ZAP's IGNORE, WARN and FAIL per rule) and `services/<pack>/dast-exclude.txt` (URLs a scan must not call: ZAP skips them in the spider and the active scan, and the lane removes the matching paths from the definition, because ZAP's import sends every operation once whatever the exclusions say), and `services/<pack>/dast-false-positives.tsv` (alerts the pack has shown to be false, each rule and URL with the evidence: ZAP marks them False Positive, so neither its exit nor the report the quality gate counts includes them, and the lane lists them). Exit 1 means an alert of a FAIL rule. An active scan writes to the API, so the lane scans only where the pack's entry has `allow_writes: true`, with the pack's `workers` (service.json) as ZAP's threads per host when it sets them, and runs the entry's `recovery` after the scan (for the Petstore, a container restart); a recovery that fails ends the lane with 2. The header of `scripts/dast-lane.mjs` has the details. |
 | `npm run lanes:perf -- --service <pack>` | A performance smoke of the pack (FUT-02), described [below](#performance-lane). k6 (the `k6` compose service, pinned by digest, profile `perf`) sends the pack's GET operations at a steady rate and writes `reports/perf/<pack>.json` for the quality gate's `p95_latency` check. Exit 1 means a request answered something other than the success status its operation declares. |
 | `npm run lanes:diff -- --service <pack> --reference <env>` | A differential comparison of two deployments of the pack (FUT-06), described [below](#differential-lane): the same read-only requests to a reference and a candidate environment, every difference in status, media type, body or contract reported, and those the pack accepted in `services/<pack>/diff.json` told apart. |
 
@@ -57,22 +57,22 @@ scopes it to that pack's project (`npm run lanes:published -- --service petstore
 performance lanes run in a container against one pack, and the differential lane compares one
 pack's deployments, so all three need `--service`.
 
-In CI the destructive lane runs after the suite on every pull request, the known-gap and published
-lanes run daily, and the DAST, performance and differential lanes run weekly and on pull requests
-that touch them ([continuous integration](ci.md)).
+In CI the destructive lane runs after the suite on every pull request and every push to `main`, the
+known-gap and published lanes run daily, and the DAST, performance and differential lanes run weekly
+and on pull requests that touch them ([continuous integration](ci.md)).
 
-### Credentials in the DAST and performance lanes
+### Credentials in the DAST, performance and differential lanes
 
-The DAST and performance lanes send the credential of one actor of the pack (FUT-10): `--actor
-<name>`, by default `default` (the pack entry's `auth`), `anonymous` for none, or any name in the
-entry's `actors`. The credential is obtained from the host through `scripts/lib/auth-tokens.mjs`,
-the same code the test runner's strategies use, so every `auth` type works except an API key in
-the query, which a lane refuses (exit 2): a tool's requests can carry a fixed header, not a query
-parameter. A `login` or OAuth 2.0 token is due for renewal a margin before it expires (10% of its
-lifetime, at most 30 s), from the `expires_in` of the answer or the `exp` claim of a JWT. The lanes
-print the actor, the auth type and the header name, never the value. A message about a missing
-variable names it only when the name has the shape of one (`scripts/lib/env-names.mjs`), so a
-secret pasted into a `*_env` field by mistake is never printed.
+The DAST, performance and differential lanes send the credential of one actor of the pack (FUT-10):
+`--actor <name>`, by default `default` (the pack entry's `auth`), `anonymous` for none, or any name
+in the entry's `actors`. The credential is obtained from the host through
+`scripts/lib/auth-tokens.mjs`, the same code the test runner's strategies use, so every `auth` type
+works except an API key in the query, which a lane refuses (exit 2): a tool's requests can carry a
+fixed header, not a query parameter. A `login` or OAuth 2.0 token is due for renewal a margin before
+it expires (10% of its lifetime, at most 30 s), from the `expires_in` of the answer or the `exp`
+claim of a JWT. The lanes print the actor, the auth type and the header name, never the value. A
+message about a missing variable names it only when the name has the shape of one
+(`scripts/lib/env-names.mjs`), so a secret pasted into a `*_env` field by mistake is never printed.
 
 - **DAST.** ZAP's API is published on a loopback port of the host. Once it answers, about a minute
   after the container starts, the lane obtains a fresh credential and sets a replacer rule that
@@ -106,9 +106,11 @@ never read as a pass. Child processes are mapped through `scripts/lib/spawn.mjs`
 and `scripts/__tests__/package-scripts.test.mjs` keeps every npm script chain on `&&`.
 
 **Quarantine.** A test that `lanes:flake` confirms as flaky gets the tag `@quarantine` and a link to
-the issue that tracks the fix. Gate lanes run with `--grep-invert @quarantine`, so a quarantined test
-cannot turn a gate red. Quarantine is temporary: the flake lane keeps running quarantined tests and
-lists those that passed every repeat as candidates for release.
+the issue that tracks the fix. Today only the published lane leaves quarantined tests out
+(`--grep-invert @quarantine`); the suite, the known-gap and the destructive lanes still run them, so
+a quarantined test still fails those runs until GATE-23 leaves it out of every gate. Quarantine is
+temporary: the flake lane keeps running quarantined tests and lists those that passed every repeat
+as candidates for release.
 
 ### Performance lane
 
@@ -205,14 +207,15 @@ writes the artifact (`reports/quality-gate.json`) and a Markdown summary without
 
 The keys of each check, whose values qa-config holds:
 
-| Key | Checks | Means |
-|---|---|---|
-| `source`, `format` | every check (`format` for `pass_rate` and `p95_latency`) | where the input is and how to read it |
-| `required` | every check | a missing source is FAIL instead of SKIPPED |
-| `fail_below_pct`, `review_below_pct` | `pass_rate`, `mutation_score` | FAIL or REVIEW when the percentage is strictly below the value |
-| `fail_above_ms`, `review_above_ms` | `p95_latency` | FAIL or REVIEW when the 95th percentile is above the value |
-| `min_samples` | `p95_latency` | fewest timed samples to judge (default 5) |
-| `fail_above`, `review_above` | `dast` | per risk level, FAIL or REVIEW when the count of alerts is above the value; a risk with no value has no limit |
+| Key | Checks | Required | Means |
+|---|---|---|---|
+| `format` | `pass_rate` (`playwright-json`, the default, or `allure-results`), `p95_latency` (`allure-results`, the default, or `k6-summary`) | no | how to read the input |
+| `source` | every check | `dast`; `p95_latency` with `format: k6-summary` | where the input is. Defaults: `pass_rate` reads `$QA_JSON_REPORT` (`playwright-json`) or `allure-results`; `p95_latency` reads `allure-results`; `mutation_score` reads `reports/mutation/mutation.json` |
+| `required` | every check | no | a missing source is FAIL instead of SKIPPED |
+| `fail_below_pct`, `review_below_pct` | `pass_rate`, `mutation_score` | `fail_below_pct` | FAIL or REVIEW when the percentage is strictly below the value |
+| `fail_above_ms`, `review_above_ms` | `p95_latency` | `fail_above_ms` | FAIL or REVIEW when the 95th percentile is above the value |
+| `min_samples` | `p95_latency` | no | fewest timed samples to judge (default 5) |
+| `fail_above`, `review_above` | `dast` | `fail_above` | per risk level (`high`, `medium`, `low`, `informational`), FAIL or REVIEW when the count of alerts is above the value; a risk with no value has no limit |
 
 Exit codes: 0 for PASS, REVIEW and SKIPPED, 1 for FAIL (and for REVIEW with `--fail-on-review`), 2
 for a usage or configuration error. `--config <file>`, `--out <file>` and `--summary <file.md>`
@@ -222,7 +225,8 @@ change the inputs and outputs (`scripts/quality-gate.mjs` has the details in its
 
 `npm run mutation` runs Stryker over the framework's shared libraries (`scripts/lib` and
 `.claude/hooks/lib`) against the `node:test` suites; [`stryker.config.mjs`](../stryker.config.mjs)
-holds the scope and explains how to narrow a run to one file. Stryker has no `node:test` runner, so
-every mutant reruns the suites as a whole: the run is slow, it is not part of `npm run gates`, and
-it is meant before a release or after changing a library. Its JSON report is the source of the
-`mutation_score` check above.
+holds the scope and explains how to narrow a run to one file (`--mutate <file>`, with
+`MUTATION_TESTS` naming the suites to run instead of all of them). Stryker has no `node:test`
+runner, so every mutant reruns the suites as a whole: the run is slow, it is not part of
+`npm run gates`, and it is meant before a release or after changing a library. Its JSON report is
+the source of the `mutation_score` check above.

@@ -209,7 +209,7 @@ owns the list of phases, and [the modes rule](../.claude/rules/modes.md) owns wh
 
 ```mermaid
 flowchart LR
-  subgraph designMode["Design mode: read-only calls, except running the specs being written"]
+  subgraph designMode["Design mode: read-only calls, except running the specs being written and the credential exchange"]
     direction LR
     p0["0 Intake<br/>qa-intake<br/>feature contract doc"] -->|review gate| p1["1 Design<br/>qa-design<br/>registry with draft cases"]
     p1 -->|"review gate: approved cases"| p2["2 Automate<br/>qa-automate<br/>specs that ran as designed"]
@@ -406,8 +406,8 @@ flowchart LR
 - **The pack's credential goes along.** Both lanes send the credential of one of the pack's actors,
   obtained on the host by `scripts/lib/auth-tokens.mjs`, the code the test runner's strategies use.
   For ZAP the lane sets it as a replacer rule through ZAP's API and renews it during the scan; for
-  k6 it travels in the container's environment, never on disk
-  ([credentials in the lanes](quality-gates.md#credentials-in-the-dast-and-performance-lanes)).
+  k6 it travels in the container's environment, never on disk ([credentials in the
+  lanes](quality-gates.md#credentials-in-the-dast-performance-and-differential-lanes)).
 - **The lane judges what it can, the gate judges thresholds.** A lane fails on what is wrong in
   itself: an alert of a FAIL rule, an API that stopped answering during a scan, a request that
   answered an unexpected status, a difference the pack has not accepted. Counts and

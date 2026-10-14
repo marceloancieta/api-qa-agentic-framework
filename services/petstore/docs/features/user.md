@@ -249,10 +249,10 @@ and its contract note follow, so a case can be designed as a known gap.
   - What PN-05 means here: the API has no notion of "the logged in user" that a request could be
     checked against, so an actor-based authorization matrix (user A acting on user B's record,
     expecting a refusal) cannot pass or fail meaningfully on Petstore. Such cases would only record
-    that access is not separated. The matrix itself belongs to the second pack planned in backlog
-    FUT-07. What can be designed here is the exposure itself (G2, G3) and declared-versus-honored
-    on `id` and `username` in `PUT`, which are honored: the body renames or re-keys the user in
-    the path (W-21, W-22; PN-25).
+    that access is not separated. The matrix itself is shown on the VAmPI pack (FUT-07, TC-BOOK-02).
+    What can be designed here is the exposure itself (G2, G3) and declared-versus-honored on `id`
+    and `username` in `PUT`, which are honored: the body renames or re-keys the user in the path
+    (W-21, W-22; PN-25).
 - **Function-level authorization.** No roles are declared. `userStatus` changed nothing observable
   across 0, -1, 99 and int32 max (W-33..W-36; A-05 answered). Unknown properties such as `role`
   and `isAdmin` are accepted and discarded (W-04; G23).

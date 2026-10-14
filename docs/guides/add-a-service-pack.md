@@ -137,9 +137,13 @@ so packs on different hosts with different credentials share one environment
 - `base_url` and `auth` are required. `base_url` is where the clients send requests; `spec_url` is
   the deployed contract that `--live` compares with the tracked copy.
 - `allow_writes: false` marks a shared environment: write cases skip there with a reason, and the
-  DAST lane refuses to scan it.
-- `recovery` is needed for `@destructive` cases. The destructive lane runs it after each such case
-  and refuses a pack entry without it; the DAST lane runs it after a scan when the entry has one.
+  DAST and destructive lanes refuse the pack. It is also what an entry without `allow_writes` means,
+  and the scaffolder's suggested entry has none; set `allow_writes: true` only where writes are
+  allowed.
+- `recovery` is needed for `@destructive` cases. The destructive lane runs its `command` after each
+  such case, then polls the pack's base URL until it answers below `500`, for up to
+  `recovery.ready_timeout_s` seconds (default 60), and refuses a pack entry without a recovery; the
+  DAST lane runs it after a scan when the entry has one.
 - `env` names the variable that holds a secret, never the secret. The scaffolder printed a
   suggested entry, with `base_url` from the contract's servers and `auth` from its security
   schemes.
@@ -205,7 +209,12 @@ To support another scheme, change these together, in one commit:
    keeps state (`basicStrategy`, `tokenStrategy`), with its `secretKeys`;
 3. a new branch of `$defs.auth` in `schemas/qa-config.schema.json`;
 4. tests in `helpers/__tests__/auth.spec.ts`, or a file of their own beside it (`helpers/__tests__/auth-oauth2.spec.ts`);
-5. optionally, `suggestAuth` in `scripts/scaffold-service.mjs`, so the scaffolder proposes it.
+5. optionally, `suggestAuth` in `scripts/scaffold-service.mjs`, so the scaffolder proposes it;
+6. `variablesOf` and `laneCredential` in `scripts/lib/auth-tokens.mjs`, which the DAST,
+   performance and differential lanes and the design probes use to obtain a credential (a scheme
+   that issues tokens also goes in `TOKEN_TYPES` in `scripts/perf-lane.mjs`);
+7. the strategy table above, and what [quality gates](../quality-gates.md) says about credentials
+   in the lanes.
 
 Variables that a new type needs follow the propagation rules in
 [documentation](../../.claude/rules/documentation.md): the README setup and the docs that name them
@@ -252,9 +261,11 @@ npm run contract:floor -- --service <pack>
 - **Floor**: the minimum number of cases per operation, from `scripts/derive-floor.mjs`. Design
   compares a registry with it rather than with an estimate.
 
-Later, once runs exist, `npm run contract:codes` shows declared response codes no run reached and
-answers the contract did not declare, and `npm run contract:decision-tables` generates the pack's
-decision tables from `rules/`.
+When design adds decision tables under `rules/`,
+`npm run contract:decision-tables -- --service <pack>` checks them and generates the module specs
+read them from; `npm run gates` fails while it is stale. Later, once runs exist,
+`npm run contract:codes -- --service <pack>` shows declared response codes no run reached and
+answers the contract did not declare.
 
 ## 7. Work through the phases
 
@@ -285,12 +296,13 @@ them current. Link to the pack's files instead of copying their facts.
   change for another pack or a deployed environment.
 - **Optional lanes.** The DAST scan reads the pack's `dast-rules.tsv`, `dast-exclude.txt` and
   `dast-false-positives.tsv`, the performance smoke its `perf.json`, and the differential lane its
-  `diff.json` and the plan of `perf.json`; all work without them
-  ([quality gates](../quality-gates.md#lanes)). Run `npm run lanes:perf -- --service <pack>` once:
-  it prints every `GET` it leaves out and why, which tells you what `perf.json` needs. The
-  differential lane also needs a second qa-config environment with an entry for the pack, named by
-  `--reference`. All three lanes send the credential of the pack's default actor; `--actor` picks
-  another one, and `--actor anonymous` sends none ([credentials in the lanes](../quality-gates.md#credentials-in-the-dast-and-performance-lanes)).
+  `diff.json` and the plan of `perf.json`; all work without them ([quality
+  gates](../quality-gates.md#lanes)). Run `npm run lanes:perf -- --service <pack>` once: it prints
+  every `GET` it leaves out and why, which tells you what `perf.json` needs. The differential lane
+  also needs a second qa-config environment with an entry for the pack, named by `--reference`. All
+  three lanes send the credential of the pack's default actor; `--actor` picks another one, and
+  `--actor anonymous` sends none ([credentials in the
+  lanes](../quality-gates.md#credentials-in-the-dast-performance-and-differential-lanes)).
 - **Commits.** One logical change each, following
   [ADR 0008](../adr/0008-branching-and-traceability.md): the scaffolded pack, then each phase's
   artifact after its gate.

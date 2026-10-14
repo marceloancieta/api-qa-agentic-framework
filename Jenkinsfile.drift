@@ -107,21 +107,21 @@ pipeline {
             }
 
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              if (captured('known-gap', 'lanes:known-gap') != 0) {
+              if (captured('known-gap', 'lanes:known-gap -- --service petstore') != 0) {
                 error('The known-gap lane failed.')
               }
             }
             if (digest == 1) {
               withEnv(contractEnv) {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                  if (captured('published-changed', 'lanes:published:changed:live') != 0) {
+                  if (captured('published-changed', 'lanes:published:changed:live -- --service petstore') != 0) {
                     error('The published cases on changed operations failed.')
                   }
                 }
               }
             }
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              if (captured('published', 'lanes:published') != 0) {
+              if (captured('published', 'lanes:published -- --service petstore') != 0) {
                 error('The published-case lane failed.')
               }
             }

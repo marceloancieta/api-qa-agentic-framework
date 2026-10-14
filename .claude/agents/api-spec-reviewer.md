@@ -71,8 +71,10 @@ details. Every finding uses one of these ids:
 - `title-claim` (L-21): every behaviour the title claims, and the registry case's expected result,
   is asserted in the body; nothing the body asserts contradicts the title.
 - `registry-fidelity`: the spec realises the approved registry case as designed: the id exists and
-  is approved, inputs, technique, partition or boundary and expected result match, tags match the
-  case's priority and category per the tagging rule, and the meaning was not changed while coding.
+  is approved, inputs, technique, partition or boundary and expected result match, tags follow the
+  tagging rule for the code as written (one layer tag, only the category tags the body earns), and
+  the meaning was not changed while coding. A tag that differs from the registry's **Tags** bullet
+  is a finding only when the body does not do what the case designed.
 - `missing-oracle`: an oracle the generation rule requires is absent: the status, the body against
   the schema or the error envelope, the business fields the case is about, a read-back after a
   write, a state check after a refused write (L-35).
