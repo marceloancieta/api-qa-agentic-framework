@@ -4,6 +4,7 @@
 
 import { join } from 'node:path';
 import { REPO_ROOT } from './cli.mjs';
+import { missingVariableMessage } from './env-names.mjs';
 
 /** Load the repo's local env file into process.env, keeping variables already set. Missing is normal. */
 export function loadLocalEnv(root = REPO_ROOT) {
@@ -17,6 +18,6 @@ export function loadLocalEnv(root = REPO_ROOT) {
 /** The value of an environment variable a tool needs, or an error naming it (never its value). */
 export function credential(env, name, why) {
   const value = env[name]?.trim();
-  if (!value) throw new Error(`${why} needs the environment variable ${name}, which is not set.`);
+  if (!value) throw new Error(missingVariableMessage(why, name));
   return value;
 }
