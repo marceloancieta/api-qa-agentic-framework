@@ -20,6 +20,7 @@ answer questions about the contract as used.
 | Does the deployed service still match its document? | `contract:digest:live` and the daily drift run ([contract tooling](../contract-tooling.md)) | nothing; this stays a provider check |
 | Which values, codes and boundaries does the document allow? | value sets, the probe matrix and the floor ([contract tooling](../contract-tooling.md)) | nothing; consumers rarely exercise boundaries on purpose |
 | Does the service behave as the document says? | the specs of each pack, designed from its [contract analysis](../references/contract-analysis.md) | nothing; behaviour stays with the designed cases |
+| Do two deployments of the service answer alike? | the differential lane, `npm run lanes:diff` ([lanes](../quality-gates.md#lanes)) | nothing; it compares deployments, not clients |
 | Which fields and interactions does each client depend on? | nobody | a recorded list per consumer: the requests it sends and the parts of each answer it reads |
 | Can the provider remove or rename a field? | only by reading every client's code | a verification run that fails when a consumer still reads it |
 | Can this version of a client or of the service go to an environment? | nobody | a deployment check against the verified pairs of versions (Pact's `can-i-deploy`) |
@@ -90,7 +91,8 @@ flowchart LR
 
 ### The verification lane
 
-It would be another lane next to DAST and performance ([lanes](../quality-gates.md#lanes)), run as
+It would be another lane next to DAST, performance and the differential lane
+([lanes](../quality-gates.md#lanes)), run as
 `npm run lanes:<name> -- --service <pack>` and following the same rules those lanes follow:
 
 - **The environment comes from qa-config.** The base URL and the credentials of the pack's entry in

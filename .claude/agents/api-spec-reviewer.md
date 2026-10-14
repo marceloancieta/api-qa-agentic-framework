@@ -36,7 +36,8 @@ case id has no approved row is a `registry-fidelity` finding.
    its details (preconditions, request, expected, verification, departure, cleanup, tags).
 5. The building blocks the specs use: `services/<pack>/fixtures.ts`, the clients, builders, flows
    and `guards.ts`, `services/<pack>/error-envelopes.json`, `services/<pack>/state-models.ts` and
-   the generated value sets. Read a helper before saying what it checks (`helpers/state-compare.ts`,
+   the generated value sets. Read a helper before saying what it checks (`helpers/state-compare.ts`
+   with the comparison it re-exports from `scripts/lib/state-compare.mjs`,
    `helpers/error-envelope.ts`, `helpers/data-gate.ts`): `expectErrorEnvelope` checks the status,
    `requireData` fails data in the wrong state.
 

@@ -119,7 +119,8 @@ non-production environment, within the scope you were asked to test.
   should be refused, and each must also show that **nothing changed**: a request that is rejected
   but still applied is the most serious outcome of the three.
 - **Object-level authorization (BOLA)**: with actor A's credential, read and write actor B's
-  resources (`actor('other')`). Expect a refusal, never B's data. Assert separately that a write did
+  resources (a second actor from the pack's `actors`, such as `actor('user-b')`; worked example:
+  VAmPI's TC-BOOK-02). Expect a refusal, never B's data. Assert separately that a write did
   not land.
 - **Function-level authorization**: a lower-privilege actor calling an operation reserved for
   another role.

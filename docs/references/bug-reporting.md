@@ -10,14 +10,20 @@ from the [defect rubric](defect-rubric.md).
 | What you have | What to file |
 |---|---|
 | Reproduced against the test environment, with the evidence attached | a **defect** |
-| Read in the code or inferred from the contract, not yet reproduced | an **unconfirmed finding**: the tracker's holding type, promoted to a defect once reproduced |
+| Read in the code or inferred from the contract, not yet reproduced | an **unconfirmed finding**, promoted to a defect once reproduced |
 | Not sure whether it is a defect or an intended change | a question to the owner, or an investigation item |
 
 A red test is not yet a defect. Before anything else, rule out a test error: the request against the
 contract, the data the case used, the expected status, and whether earlier runs left stale state.
 
-The tracker's own types and fields are configured per project. This page does not name them. Map
-"defect" and "unconfirmed finding" to the types your project uses in the tracker options.
+Both are filed with the same issue type; a label tells them apart, so no tracker administration is
+needed. An unconfirmed finding carries the label `type:unconfirmed-finding` and ends its title with
+`(unconfirmed)`. Its class label applies as for a defect, and the severity is proposed in the
+description instead of a `severity:` label until it is reproduced.
+
+The tracker wrapper (`npm run tracker`) gets, searches, creates, comments and moves issues; it does
+not edit them. Promoting a finding to a defect, and the re-scoping in section 4, are done today with
+a comment that records the change, then a manual edit of the labels or the title in the tracker.
 
 ## 2. Scope: one issue per fix location
 
@@ -67,8 +73,9 @@ and explain the deviation in the description.
    evidence for that issue. Add it as a comment with the reproduction, not as a new issue.
 2. **Check siblings** (L-37). Find every operation that stores the same field or shares the code
    path, and test them. The result decides the level.
-3. **A wider scope found later re-scopes the existing issue.** Add the operations to its list and a
-   comment explaining the change, and update the level tag. One cause keeps one issue.
+3. **A wider scope found later re-scopes the existing issue.** Add a comment with the new operation
+   list and the reason, then update the list and the level tag in the tracker by hand (section 1).
+   One cause keeps one issue.
 4. **A narrower scope found later is a split.** Keep the issue for one fix location and file the
    others, each with its own list. Agree a split with the owner first.
 5. **Propose before filing.** Show the level, the number of issues and the titles, then file.

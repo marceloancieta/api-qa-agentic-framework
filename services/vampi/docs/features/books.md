@@ -1,11 +1,12 @@
 # Books authorization contract
 
-> **Draft at the intake review gate.** Read-only intake on 2026-10-12; no write has been measured.
+> **Approved.** Read-only intake on 2026-10-12; the writes were then measured by the spec run of
+> [the book registry](../../registry/book.md) in both modes on 2026-10-12 (answers below).
 
 | | |
 |---|---|
 | Pack and version | `vampi` `v0` (image `erev0s/vampi`, pinned by digest in `docker-compose.yml`, upstream commit `f16052d`) |
-| Feature code | `BOOKS` (case ids `TC-BOOKS-NN`), the scaffolder's suggestion; to be agreed at this gate |
+| Feature code | `BOOK` (case ids `TC-BOOK-NN`), agreed at the intake review gate (Q9; the scaffolder suggested `BOOKS`) |
 | Endpoints | `GET /books/v1`<br>`POST /books/v1`<br>`GET /books/v1/{book_title}`<br>and what they depend on: `POST /users/v1/register`<br>`POST /users/v1/login` |
 | Sources | [`openapi.yaml`](../../openapi.yaml) (tracked copy, OpenAPI 3.0.1, [digest](../../../../docs/discovery/vampi-digest.json)), [contract notes](../contract-notes.md) VN-01 to VN-06, [error envelopes](../../error-envelopes.json), [pack skill](../../../../.claude/skills/vampi-api/SKILL.md), read-only measurements on both containers, and the implementation read inside the running container (`/vampi/api_views/`, `/vampi/models/`) |
 | Intake date | 2026-10-12 (read-only) |

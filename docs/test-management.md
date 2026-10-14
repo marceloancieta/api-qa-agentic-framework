@@ -47,7 +47,8 @@ A negative control proves that the contract fails a broken adapter.
 
 Every write is read back and compared (L-04). HTTP calls retry `429`, `5xx` and network errors with
 `Retry-After` or exponential backoff, and they never log headers (L-46). Credentials come from
-environment variables; there is never a token flag (L-43). The commands that call a service
+environment variables; there is never a token flag (L-43). A message about a missing one names the
+variable only when it has the shape of a variable name (`scripts/lib/env-names.mjs`). The commands that call a service
 (`tm:*`, `tracker`, `cited:status`) also read the local `.env` file (template: `.env.example`).
 A variable set in the real environment wins over the file.
 
@@ -109,7 +110,8 @@ directory, so the issues the Petstore example cites travel with the repository: 
 resolves every key its registries and contract notes name, and `cited:status` works without
 setup. A project with a real tracker sets its own provider in `qa-config.json`.
 
-`npm run tracker -- get <key>`, `create --title <t> --body-file <f>`, `comment <key> --body-file <f>`
+`npm run tracker -- get <key>`, `create --title <t> --body-file <f> [--label <name>]...`,
+`comment <key> --body-file <f>`
 and `move <key> <status>` go through a verified wrapper:
 
 - placeholders are wrapped in code spans before sending;

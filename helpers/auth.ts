@@ -8,9 +8,9 @@
 //
 // `login` (FUT-07) and `oauth2_client_credentials` (FUT-04) obtain a token before the first request
 // they decorate: `login` from the API's own login operation, the OAuth2 one from a token endpoint
-// with the client credentials grant (RFC 6749 4.4). Both reuse the token and request a new one when
-// a request carrying it is answered 401 (an expired token); the OAuth2 one also renews it shortly
-// before its `expires_in` runs out. The token exchange is never recorded as evidence: it carries
+// with the client credentials grant (RFC 6749 4.4). Both reuse the token, renew it shortly before it
+// expires (the `expires_in` of an OAuth2 answer, otherwise a JWT's `exp`) and request a new one when
+// a request carrying it is answered 401. The token exchange is never recorded as evidence: it carries
 // the credentials and returns the token.
 
 import type { APIRequestContext } from '@playwright/test';

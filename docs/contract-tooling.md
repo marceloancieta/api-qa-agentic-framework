@@ -24,7 +24,7 @@ Every tool takes the same source flags:
 | `npm run contract:floor` | How many cases does each operation need at least? Every term of the formula is printed. | table; `--json` |
 | `npm run contract:codes` | Which declared response codes were never reached, and which answers were not declared? Reads the latest run's evidence in `allure-results/`. `--strict` fails on undeclared answers. | table; `--json` |
 | `npm run contract:decision-tables` | Are the pack's decision tables complete and consistent? Writes the module specs read them from. | `generated/decision-tables.ts` |
-| `npm run contract:check` | Are the tracked digest, probe matrix and value sets of every pack current? Runs in `npm run gates`. | exit code |
+| `npm run contract:check` | Are the tracked digest, probe matrix, value sets and decision tables of every pack current? Runs in `npm run gates`. | exit code |
 
 ## Probes
 

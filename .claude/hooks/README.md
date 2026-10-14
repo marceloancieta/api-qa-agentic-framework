@@ -6,7 +6,7 @@ folder as Node ES modules, so the hooks behave identically on Windows, macOS, Li
 | Script | Events | What it does |
 |---|---|---|
 | `secret-guard.mjs` | `UserPromptSubmit`, `PreToolUse` (every tool), `PostToolUse` (every tool) | Refuses prompts and tool calls that contain credentials, refuses access to files that usually hold secrets, refuses network commands or web/subagent calls carrying secrets, and masks credentials in tool output. |
-| `git-policy.mjs` | `PreToolUse` (`Bash`, `PowerShell`) | Optional commit and pull-request rules read from `qa-config` (`tracker`, `policies`). Inactive until configured. |
+| `git-policy.mjs` | `PreToolUse` (`Bash`, `PowerShell`) | Optional commit and pull-request rules read from `qa-config` (`tracker`, `policies`). Each rule applies once configured; the example config, used when there is no `qa-config.json`, turns on the commit rules and the protected `main`. |
 | `session-probe.mjs` | `SessionStart` | Adds a short status report to the session: setup state, API reachability (one line per pack the active environment configures), coverage totals. |
 
 Shared modules in `lib/`:
@@ -72,6 +72,11 @@ use only Node built-ins, so they work in a fresh clone before `npm ci`.
 `npm run test:hooks` runs `node:test` suites in `__tests__/`. Each suite starts the hook as a child
 process with a synthetic payload and checks the verdict, using tables that include calls which must be
 allowed: a rule that matches too much is otherwise indistinguishable from one that works.
+
+The suites share `__tests__/harness.mjs`: `runHook` starts a hook, `tempProject` builds a throwaway
+project with its own qa-config, and `FAKE` holds the runtime-built fake credentials. Hooks and the
+suites' git calls run with `gitFreeEnv()`, which drops inherited `GIT_*` variables, so a test never
+reads or rewrites the repository it runs from (GATE-19). New suites use it.
 
 Fixtures never contain a literal credential. Values are concatenated at runtime
 (`'AKIA' + 'ABCDEFGHIJKLMNOP'`), which keeps the repository clean for gitleaks and for the hook itself.

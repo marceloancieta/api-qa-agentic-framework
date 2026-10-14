@@ -12,7 +12,8 @@ this page explains them.
 | `.github/workflows/secret-scan.yml` | every push, pull requests, manual | gitleaks over the full history | `contents: read` | none |
 | `.github/workflows/pr-review.yml` | pull requests (opened, updated, reopened, ready for review) | Claude reviews the change against `.github/review-rubric.md` and comments | `contents: read`, `pull-requests: write` | `ANTHROPIC_API_KEY`, optional |
 
-Every workflow sets `permissions: {}` at the top and grants each job only what it needs. Every
+Each workflow in this table sets `permissions: {}` at the top and grants each job only what it
+needs; the test workflows of [continuous integration](ci.md) start from `contents: read`. Every
 third-party action is pinned by full commit SHA with its version in a trailing comment, and every
 pinned release was at least two weeks old when it was chosen. Dependabot proposes new pins and keeps
 the comments in step.

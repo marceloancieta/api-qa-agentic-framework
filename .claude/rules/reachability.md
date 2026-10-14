@@ -13,8 +13,10 @@ replaced with data from another.
   loop.
 - **Do not substitute.** If the live contract cannot be fetched, do not design from an issue
   description instead. If the tracker cannot be read, do not assume an issue's state. Either use a
-  tracked copy and say that it is one (the pack's `openapi.json`, the tracked digest), or stop.
+  tracked copy and say that it is one (the pack's tracked contract, the file `service.json` `spec`
+  names, or the tracked digest), or stop.
 - **An HTTP error is not a reachability problem.** A `401`, `404` or `500` is an answer from the
   system. Read it as such and check credentials, paths and data before suspecting the network.
 - Credentials are read from the environment or the local `.env` file. Name the missing variable;
-  never print a value (L-43).
+  never print a value (L-43). `credential()` in `scripts/lib/env.mjs` and `missingVariableMessage`
+  in `scripts/lib/env-names.mjs` build that message.

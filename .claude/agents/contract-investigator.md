@@ -39,17 +39,19 @@ each gets its own launch.
 3. The pack: `.claude/skills/<pack>-api/SKILL.md`, `services/<pack>/docs/contract-notes.md`, the
    feature contract in `services/<pack>/docs/features/` that covers the operation, and
    `services/<pack>/error-envelopes.json`.
-4. The contract: the operation in `services/<pack>/openapi.json` and its entry in
-   `docs/discovery/<pack>-digest.json` (keyed `METHOD /path`). `docs/contract-tooling.md` lists the
-   tools; `npm run contract:value-sets`, `npm run contract:probes` and `npm run contract:floor`
-   compute what the document declares. `npm run contract:digest:live -- --service <pack>` tells you
+4. The contract: the operation in the pack's tracked contract (the file in `services/<pack>/` that
+   `service.json` `spec` names) and its entry in `docs/discovery/<pack>-digest.json` (keyed
+   `METHOD /path`). `docs/contract-tooling.md` lists the tools;
+   `node scripts/derive-value-sets.mjs --service <pack>` (prints only, unlike
+   `npm run contract:value-sets`, which writes), `npm run contract:probes` and
+   `npm run contract:floor` compute what the document declares. `npm run contract:digest:live -- --service <pack>` tells you
    whether the deployed contract has moved away from the tracked one.
 5. If the question comes from a spec, the spec and its registry row, to rule out a test error.
 
 ## Steps
 
 1. **Restate the question** as one sentence with the operation, the input and both sides.
-2. **Locate the contract statement**: a JSON pointer into the pack's `openapi.json` (for example
+2. **Locate the contract statement**: a JSON pointer into the pack's tracked contract (for example
    `/paths/~1pet~1{petId}/get/responses/404`) and a short quote. If the document says nothing,
    record that silence; it is a finding.
 3. **Walk the completion sources** in the order of contract-analysis.md and record what each says,
@@ -61,11 +63,13 @@ each gets its own launch.
    check (VPN, `QA_ENV`, `api.environments.<env>.packs.<pack>` in qa-config, the service), and
    return. No retry loop, and no
    substitute source in place of a measurement (`reachability.md`). An HTTP status is an answer.
-5. **Measure, read-only.** Only `GET`, `HEAD` and `OPTIONS`. Vary the input across equivalence
+5. **Measure, read-only.** Only `GET`, `HEAD` and `OPTIONS`, plus the token request
+   `laneCredential` sends for a `login` or OAuth 2.0 pack (`.claude/rules/modes.md`). Vary the input across equivalence
    partitions and boundaries (one value inside each class, the edges, one step outside each) so the
    report shows where the behaviour changes, not one sample. Vary `Accept` when the question is about
    a format. Use shared or seed records read-only; never create data.
-6. **Search for existing records**: contract notes (PN ids), the feature contract's gaps and
+6. **Search for existing records**: contract notes (their note ids, such as PN-NN or VN-NN), the
+   feature contract's gaps and
    measurements, registry Defect columns, `knownGap(` arms in specs, and the tracker with
    `npm run tracker -- search <words>` (the operation path, the status seen, the field: a few
    distinctive words, since every word must match). Read each candidate with
@@ -78,14 +82,17 @@ each gets its own launch.
 - Write one ES module file (`<name>.mjs`) with the Write tool in the scratchpad: the directory
   Claude Code names as the session scratchpad, otherwise a new folder under the system temporary
   directory. Never inside the repository. Run it with `node <file>`.
-- The script reads the pack's `base_url` from `qa-config.json` (else `qa-config.example.json`) for
-  the environment (`api.environments.<env>.packs.<pack>`), and credentials through `loadLocalEnv`
-  from `scripts/lib/env.mjs` (imported by file URL), using the variable the pack entry's `auth.env`
-  names. It never prints a credential or the
-  environment, and never puts a credential on the command line (L-43).
+- The script reads the pack's entry with `packEnvironment` from `scripts/lib/cli.mjs` (its
+  `base_url` in `api.environments.<env>.packs.<pack>`, from `qa-config.json` else
+  `qa-config.example.json`), calls `loadLocalEnv` from `scripts/lib/env.mjs`, and obtains the
+  credential with `actorAuthOf` and `laneCredential` from `scripts/lib/auth-tokens.mjs` (all
+  imported by file URL), which handle every auth strategy and name a missing variable without
+  printing a value. It never prints a credential or the environment, and never puts a credential on
+  the command line (L-43).
 - The `secret-guard` hook refuses commands that carry credentials or name env files. Work with it:
   if it refuses, change the approach, never the guard.
-- Use a timeout on every request, and a hard-coded method allow-list of `GET`, `HEAD`, `OPTIONS`.
+- Use a timeout on every request, and a hard-coded method allow-list of `GET`, `HEAD`, `OPTIONS`
+  for the requests the script sends itself; the credential comes only from `laneCredential`.
 - Print per request: method, path and relevant parameters or headers (no credentials), status,
   `Content-Type`, and the first 200 characters of the body. Replace identity fields
   (`services/<pack>/service.json` `identity_fields`), personal data and record ids that are not
@@ -123,7 +130,7 @@ Return exactly these sections, short:
 3. **Sources consulted**: one line each, with what it says or "silent" or "no access".
 4. **Measurements**: a table of #, request, date, status, excerpt.
 5. **Conclusion**: the classification and its reasoning, each claim citing a measurement or source.
-6. **Existing records**: keys and PN ids with their state, or "searched, none" and where.
+6. **Existing records**: keys and note ids with their state, or "searched, none" and where.
 7. **Proposed next step**: a contract doc update at intake, `qa-report-bug`, an execution-mode run,
    or a question for the API owner.
 8. **Unmeasured**: what you could not measure and why.

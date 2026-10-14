@@ -23,14 +23,16 @@ Each API under test is a pack in `services/<name>/` (ADR 0007). The core (`helpe
 - **Credentials** are named in the pack's entry (`auth` for the `default` actor, `actors` for the
   others) and read from the environment.
 - **Run one pack** with `npx playwright test --project=api-<pack>`, or a lane with
-  `--service <pack>`; `--project=api-*` and the lanes without `--service` take every pack.
+  `--service <pack>`. `--project=api-*` and the known-gap, published, destructive and flake lanes
+  without `--service` take every pack; the DAST, performance and differential lanes need
+  `--service <pack>`.
 
 ## What a pack holds
 
 | Path | Holds |
 |---|---|
-| `service.json` | name and version (part of every identity), title, identity fields to pseudonymize, the contract file, and `workers` when the service cannot take concurrent callers (Playwright workers and the DAST lane's scan threads) |
-| `openapi.json` | the contract under test |
+| `service.json` | name and version (part of every identity), title, optional description, identity fields to pseudonymize, extra `secret_keys` to mask in evidence, the contract file (`spec`), and `workers` when the service cannot take concurrent callers (Playwright workers and the DAST lane's scan threads) |
+| `openapi.json` or `openapi.yaml` | the contract under test, the file `service.json` `spec` names |
 | `generated/` | contract outputs; regenerate with the `contract:*` scripts, never edit |
 | `error-envelopes.json` | the error formats the API answers with |
 | `clients/`, `fixtures.ts`, `flows/`, `builders/`, `state-models.ts`, `guards.ts`, `assertions.ts` | the layers of `.claude/rules/generation.md` |
