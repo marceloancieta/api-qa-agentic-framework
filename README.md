@@ -29,7 +29,9 @@ decisions are recorded in [`docs/adr/`](docs/adr/README.md).
 
 ## First 10 minutes
 
-From a fresh clone to a green run against the example Petstore pack.
+From a fresh clone to a green run against the example Petstore pack. To test your own APIs in a
+repository of your own, create it from the template first
+([adopt the template](docs/guides/adopt-the-template.md)), then follow these steps in it.
 
 **You need:**
 
@@ -260,6 +262,7 @@ None of these is needed for a green run. Turn on what your project uses.
 | Read | For |
 |---|---|
 | [Onboarding](docs/onboarding.md) | a guided tour: layout, phases, where facts live, reading order, common gotchas |
+| [Adopt the template](docs/guides/adopt-the-template.md) | a repository of your own from the GitHub template: settings, the first pull request, later framework releases |
 | [Add a test case](docs/guides/add-a-test-case.md) | from a designed case to a passing spec |
 | [Add a service pack](docs/guides/add-a-service-pack.md) | testing a new API |
 | [Consumer-driven contracts](docs/guides/consumer-driven-contracts.md) | what Pact-style consumer contracts would add, when they pay off, and where they would sit (not implemented) |

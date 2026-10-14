@@ -41,6 +41,34 @@ test('closing-commit is not checked when the root is not a git repository', () =
   assert.deepEqual(closingCommit(lintDocs(FIXTURE_DIR)), []);
 });
 
+test('closing-commit reports a history that holds none of the cited hashes once', () => {
+  const copy = mkdtempSync(join(tmpdir(), 'lint-docs-copy-'));
+  try {
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('GIT_')),
+    );
+    const git = (...args) => execFileSync('git', args, { cwd: copy, env, stdio: 'pipe' });
+    git('init', '-q', '--initial-branch=main');
+    git(
+      '-c',
+      'user.name=adopter',
+      '-c',
+      'user.email=adopter@example.invalid',
+      'commit',
+      '-q',
+      '--allow-empty',
+      '-m',
+      'Initial commit',
+    );
+    const findings = closingCommit(lintDocs(FIXTURE_DIR, { git: copy }));
+    assert.equal(findings.length, 1);
+    assert.match(findings[0].message, /no closing commit is in the history of HEAD/);
+    assert.match(findings[0].message, /adopt-the-template.md/);
+  } finally {
+    rmSync(copy, { recursive: true, force: true });
+  }
+});
+
 test('closing-commit reports a shallow clone once instead of every hash', () => {
   const clone = mkdtempSync(join(tmpdir(), 'lint-docs-shallow-'));
   try {
