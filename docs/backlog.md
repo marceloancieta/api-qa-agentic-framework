@@ -37,14 +37,11 @@ and DOC-06 for the overview pages. Released as `v0.3.0`.
 ## v0.4.0
 
 Extensibility and distribution, in this order. FUT-04, FUT-10, FUT-03 and FUT-06 are in **Done**, and
-so are GATE-18 and GATE-19, which came out of their pull requests, and DOC-07, the documentation
-review. GATE-20 and PET-04 came out of that review and are small enough to land before the
-release. FUT-05 comes last.
+so are GATE-18 and GATE-19, which came out of their pull requests, DOC-07, the documentation
+review, and GATE-20 and PET-04, which came out of that review. FUT-05 comes last.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| GATE-20 | CodeQL alert 13 (`js/http-to-file-access`, `scripts/dast-lane.mjs`) is open on `main`: the lane writes the definition it fetched from the pack's `spec_url` to `reports/dast/`. Decide from the data flow whether the write needs a guard (size, content type, an OpenAPI shape check before saving) or is the lane's purpose, and fix it or record why it is accepted, without a dismissal that the code does not explain. | exp | todo |
-| PET-04 | The `petstore` compose service is pinned by tag only (`1.0.28`), while the differential lane uses it as the candidate: a re-pushed tag would change it silently. Pin it by tag and digest, as `petstore-reference` is ([ADR 0010](adr/0010-container-lanes.md)). | exp | todo |
 | FUT-05 | The repository as a GitHub template, with a guide to adopting it from the template; reversible, unlike an npm package (FUT-11). | plan | todo |
 
 ## v0.5.0
@@ -162,3 +159,5 @@ release. FUT-05 comes last.
 | GATE-18 | Messages about credentials print a variable name only when it has the schema's `envVar` shape, and a redaction marker otherwise, so a secret pasted into a `*_env` field never reaches a log: `scripts/lib/env-names.mjs`, used by the lanes, the runner's auth, the preflight, the tool credentials and the VAmPI user registration. CodeQL's `js/clear-text-logging` treats the helper as a barrier; CodeQL 2.27.1 found 4 results before and 0 after, so alerts 14 to 16 and 20 no longer need dismissing. | `120973e` |
 | GATE-19 | The hook test harness starts its git processes without inherited `GIT_*` variables (`gitFreeEnv` in `.claude/hooks/__tests__/harness.mjs`), with a test that points `GIT_DIR` at a decoy repository. Pushing from a linked worktree no longer fails the `protected branch` test or turns the inherited repository bare. | `5a5da42` |
 | DOC-07 | Documentation review: README, `docs/`, the pack READMEs, the rules, skills, agents and hooks read against the code by four reviewers, 99 of 100 findings applied. [ADR 0010](adr/0010-container-lanes.md) records the container lanes; `architecture.md` draws the differential lane; `modes.md` allows the credential exchange in design and places the lanes in execution. GATE-20, PET-04, TM-09, GATE-21 and GATE-22 came out of it. | `342a0ad` |
+| GATE-20 | The DAST lane's definition download is capped (`MAX_SPEC_BYTES`, 16 MiB, cut off while streaming) and `fetchSpec` documents why saving it for ZAP is accepted: fixed file name, OpenAPI parse, size cap, read only by ZAP. A `codeql[js/http-to-file-access]` comment, with the `AlertSuppression` query added to the CodeQL workflow, records the acceptance in the SARIF; GitHub kept alert 13 open regardless, so it was dismissed as "won't fix" pointing to that code ([CI security](ci-security.md#codeql)). | `764f467` |
+| PET-04 | The `petstore` compose service is pinned by tag and digest (`1.0.28@sha256:dc991f…`), checked against the registry, Docker Hub and the local image, like `petstore-reference`. | `3181e28` |
