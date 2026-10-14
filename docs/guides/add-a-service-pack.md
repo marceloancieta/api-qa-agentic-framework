@@ -91,7 +91,8 @@ Two things in `service.json` need your attention before the first run that recor
   header.
 
 One more key is for a service that cannot take concurrent callers: `workers` (optional, at least
-`1`) caps how many Playwright workers run the pack's `api-<pack>` project at once. Set it only when a
+`1`) caps how many Playwright workers run the pack's `api-<pack>` project at once, and how many
+threads per host the DAST lane gives ZAP. Set it only when a
 contract note shows the service breaking under parallel callers, and name the issue that lifts it
 there; the Petstore runs with `1` until its in-memory store is thread-safe (PN-26).
 
@@ -133,9 +134,10 @@ so packs on different hosts with different credentials share one environment
 
 - `base_url` and `auth` are required. `base_url` is where the clients send requests; `spec_url` is
   the deployed contract that `--live` compares with the tracked copy.
-- `allow_writes: false` marks a shared environment: write cases skip there with a reason.
-- `recovery` is needed only for `@destructive` cases. The destructive lane runs it after each such
-  case and refuses a pack entry without it.
+- `allow_writes: false` marks a shared environment: write cases skip there with a reason, and the
+  DAST lane refuses to scan it.
+- `recovery` is needed for `@destructive` cases. The destructive lane runs it after each such case
+  and refuses a pack entry without it; the DAST lane runs it after a scan when the entry has one.
 - `env` names the variable that holds a secret, never the secret. The scaffolder printed a
   suggested entry, with `base_url` from the contract's servers and `auth` from its security
   schemes.

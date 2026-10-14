@@ -25,6 +25,7 @@ under test gets a pack like this one under `services/<name>/` (ADR 0007). The co
 | `rules/` | Decision tables as YAML, generated into `generated/decision-tables.ts` (`npm run contract:decision-tables`). | present |
 | `registry/` | Designed test cases and their status, one or more files per feature code (see Feature contracts below). | present |
 | `docs/` | `contract-notes.md`: observed departures from the contract and their status. `features/`: the feature contracts written at intake, one per registry code. | present |
+| `dast-false-positives.tsv` | The DAST lane's known false positive (`npm run lanes:dast -- --service petstore`): SQL injection, which the image cannot have (PN-27). The scan writes, so the lane restarts the container afterwards (the entry's `recovery`). See [the lanes](../../docs/quality-gates.md#lanes). | present |
 | `perf.json` | What the performance lane needs beyond the contract (`npm run lanes:perf -- --service petstore`): seed ids and the seed user for path parameters, the three `GET`s the contract secures that answer without credentials (PN-05), and the session operations it must not send. See [the performance lane](../../docs/quality-gates.md#performance-lane). | present |
 
 ## Writing a spec

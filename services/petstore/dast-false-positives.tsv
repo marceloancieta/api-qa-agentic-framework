@@ -1,0 +1,4 @@
+# Known false positives of the DAST lane (scripts/dast-lane.mjs): <ZAP rule id>, tab, <URL regex>,
+# tab, the evidence that the alert is false. The lane marks their alerts False Positive in the
+# report and out of scope for ZAP's exit; every entry needs a contract note.
+40018	^https?://[^/]+/.*$	PN-27: the image has no SQL layer (no database library; pets, users and orders live in Java lists); the boolean probes differ because writes echo what they stored and the scan changed the records between probes

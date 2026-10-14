@@ -12,7 +12,7 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 |---|---|---|
 | `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e` and `e2e-vampi` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift` |
-| `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane or VAmPI's DAST policy | `dast (vampi secure)`, `dast (vampi vulnerable)` |
+| `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane or a pack's DAST policy | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
 | `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that change the lane, its k6 script, a pack's `perf.json` or the quality gate | `perf (petstore)`, `perf (vampi)` |
 
 ```mermaid
@@ -38,6 +38,7 @@ flowchart LR
   subgraph dastWf["dast.yml"]
     dastSecure["vampi secure<br/>ZAP scan, quality gate"]
     dastVuln["vampi vulnerable<br/>must fail on SQL injection"]
+    dastPet["petstore<br/>ZAP scan, restart after it"]
   end
 
   subgraph perfWf["perf.yml"]
@@ -51,6 +52,7 @@ flowchart LR
   daily --> drift
   weekly --> dastSecure
   weekly --> dastVuln
+  weekly --> dastPet
   weekly --> perfPet
   weekly --> perfVampi
   pr -.->|"only when the lane's files change"| dastWf
@@ -182,10 +184,11 @@ environment, and then runs the full published lane as the daily re-run.
 ## `dast.yml`
 
 An OWASP ZAP API scan of the VAmPI pack (`npm run lanes:dast`, [quality gates](quality-gates.md#lanes)),
-one job per mode. A full scan takes about 13 minutes, so it runs weekly, on demand and on pull
-requests that touch the lane, the quality gate, VAmPI's DAST files, `docker-compose.yml` or the
-workflow; not on every pull request. An active scan writes to the API, so it only ever targets the
-job's own disposable containers. The secure job scans as the pack's default actor (FUT-10): it
+one job per mode, and of the Petstore pack. A full VAmPI scan takes about 13 minutes, so the
+workflow runs weekly, on demand and on pull requests that touch the lane, the quality gate, a
+pack's DAST files or `service.json`, `docker-compose.yml` or the workflow; not on every pull
+request. An active scan writes to the API, so it only ever targets the job's own disposable
+containers. The secure job scans as the pack's default actor (FUT-10): it
 generates throwaway users, as `e2e-vampi` does, and registers them with `npm run vampi:users`. The
 vulnerable job scans with `--actor anonymous`: with a token, ZAP reaches a Regex DoS that hangs
 that mode (VN-15).
@@ -194,9 +197,11 @@ that mode (VN-15).
 |---|---|
 | `dast (vampi secure)` | the scan completes without an alert of a FAIL rule, and `npm run quality:gate` then passes on `reports/dast/vampi.json` (`quality_gate.dast`: no high or medium alert; more than 5 low alerts is REVIEW) |
 | `dast (vampi vulnerable)` | the lane exits 1 on a FAIL rule and the report holds the SQL injection alert (rule 40018, VN-11): the scan still detects the flaw it exists to detect |
+| `dast (petstore)` | the scan completes and the Petstore answers again after the lane's recovery restarts it. The pack has no rule policy, so every alert is a warning; the job proves the lane on a base URL with a path (`/api/v3`), an API key in a header, one scan thread (`workers`, PN-26) and a known false positive (PN-27) |
 
-Each job uploads `reports/` as `dast-<mode>-<attempt>` (the ZAP JSON and HTML reports, the fetched
-definition, the quality gate's output, and the VAmPI log after a failure).
+Each job uploads `reports/` as `dast-<mode>-<attempt>` or `dast-petstore-<attempt>` (the ZAP JSON
+and HTML reports, the fetched definition, the quality gate's output, and the API's log after a
+failure).
 
 ## `perf.yml`
 
@@ -284,13 +289,15 @@ Each run uploads one artifact, even when a step failed, and keeps it for 14 days
   lanes collect every pack in `services/`, each against its own base URL and credentials
   ([ADR 0009](adr/0009-per-pack-configuration.md)); `--project=api-<pack>` and a lane's
   `--service <pack>` narrow a step to one pack. For the performance smoke, add the pack to the
-  `perf.yml` matrix; its `<pack>:up` and `<pack>:down` npm scripts start and stop it.
+  `perf.yml` matrix; its `<pack>:up` and `<pack>:down` npm scripts start and stop it. For the DAST
+  scan, copy the `dast (petstore)` job: the lane needs `allow_writes: true` and restarts the
+  service afterwards when the entry has a `recovery`.
 - **A deployed environment.** Drop the start and stop steps, and set `QA_ENV` on the job to the
   qa-config environment. Each pack's entry there has a `base_url`, a `spec_url` and the credentials
   its `auth` names, supplied as secrets. `qa-config.json` is per machine and not tracked, so CI
   reads `qa-config.example.json` unless a step writes one. The destructive lane refuses a pack
-  whose entry has `allow_writes` false or no recovery, and that refusal fails the job, so remove
-  the step rather than let it fail. Never point a workflow at production.
+  whose entry has `allow_writes` false or no recovery, and the DAST lane one whose entry has
+  `allow_writes` false; either refusal fails the job, so remove the step rather than let it fail. Never point a workflow at production.
 - **Different credentials.** Provide every variable that each pack's `auth` and `actors` name, from
   secrets, in the same step as `API_KEY`. The pack's preflight names any variable that is missing.
 - **A real test-management tool.** Set `test_management` in the configuration the job reads, and

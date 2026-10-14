@@ -29,7 +29,7 @@ Each API under test is a pack in `services/<name>/` (ADR 0007). The core (`helpe
 
 | Path | Holds |
 |---|---|
-| `service.json` | name and version (part of every identity), title, identity fields to pseudonymize, the contract file, and `workers` when the service cannot take concurrent callers |
+| `service.json` | name and version (part of every identity), title, identity fields to pseudonymize, the contract file, and `workers` when the service cannot take concurrent callers (Playwright workers and the DAST lane's scan threads) |
 | `openapi.json` | the contract under test |
 | `generated/` | contract outputs; regenerate with the `contract:*` scripts, never edit |
 | `error-envelopes.json` | the error formats the API answers with |

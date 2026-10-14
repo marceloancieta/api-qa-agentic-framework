@@ -121,7 +121,9 @@ described in [quality gates](docs/quality-gates.md#lanes):
 
 ZAP and k6 run from compose services pinned by digest (profiles `dast` and `perf`, so
 `docker compose up` never starts them). Both send real traffic, and a ZAP scan writes: point them at
-local containers or an environment meant for it.
+local containers or an environment meant for it. The DAST lane refuses an environment whose pack
+entry has `allow_writes` false, and restarts the service afterwards when the entry names a
+`recovery`.
 
 ## Adoption levels
 
