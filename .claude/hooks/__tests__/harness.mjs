@@ -9,6 +9,15 @@ import { fileURLToPath } from 'node:url';
 const HOOKS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
+ * The environment without git's own variables. A pre-push hook started from a linked worktree
+ * exports GIT_DIR and friends; a git process that inherits them reads (and `git init` rewrites) that
+ * repository instead of the test's temporary one (GATE-19).
+ */
+export function gitFreeEnv(env = process.env) {
+  return Object.fromEntries(Object.entries(env).filter(([name]) => !/^GIT_/i.test(name)));
+}
+
+/**
  * @returns {Promise<{ verdict: 'allow'|'ask'|'deny'|'block'|'output', code: number, stdout: string,
  *   stderr: string, output: any }>}
  */
@@ -16,7 +25,7 @@ export function runHook(script, payload, { projectDir, env = {} } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [join(HOOKS_DIR, script)], {
       env: {
-        ...process.env,
+        ...gitFreeEnv(),
         QA_ENV: '',
         QA_PETSTORE_BASE_URL: '',
         ...(projectDir ? { CLAUDE_PROJECT_DIR: projectDir } : {}),

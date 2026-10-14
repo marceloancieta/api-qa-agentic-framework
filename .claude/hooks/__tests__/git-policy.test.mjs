@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { runHook, tempProject } from './harness.mjs';
+import { join } from 'node:path';
+import { gitFreeEnv, runHook, tempProject } from './harness.mjs';
 
 const bash = (command, cwd) => ({
   hook_event_name: 'PreToolUse',
@@ -66,10 +67,17 @@ test('an invalid key_pattern disables the key rule instead of crashing', async (
 
 function gitRepoOn(branch, config) {
   const dir = tempProject({ config });
-  const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: 'ignore' });
+  const git = (...args) =>
+    execFileSync('git', args, { cwd: dir, stdio: 'ignore', env: gitFreeEnv() });
   git('init', '-q', '-b', branch);
   return dir;
 }
+
+const gitRead = (dir, ...args) =>
+  execFileSync('git', ['--git-dir', join(dir, '.git'), ...args], {
+    encoding: 'utf8',
+    env: gitFreeEnv(),
+  }).trim();
 
 test('protected branch: committing on it asks', async () => {
   const dir = gitRepoOn('main', { policies: { commit: { protected_branches: ['main'] } } });
@@ -81,6 +89,30 @@ test('protected branch: committing on another branch is allowed', async () => {
   const dir = gitRepoOn('feature/x', { policies: { commit: { protected_branches: ['main'] } } });
   const r = await runHook('git-policy.mjs', bash('git commit -m "x"', dir), { projectDir: dir });
   assert.equal(r.verdict, 'allow');
+});
+
+test('protected branch: an inherited GIT_DIR does not redirect the harness to another repository', async () => {
+  // A pre-push hook started from a linked worktree exports GIT_DIR to the gates (GATE-19).
+  const decoy = gitRepoOn('decoy');
+  const inherited = { GIT_DIR: join(decoy, '.git'), GIT_WORK_TREE: decoy };
+  const saved = Object.fromEntries(Object.keys(inherited).map((name) => [name, process.env[name]]));
+  Object.assign(process.env, inherited);
+  try {
+    const dir = gitRepoOn('main', { policies: { commit: { protected_branches: ['main'] } } });
+    const r = await runHook('git-policy.mjs', bash('git commit -m "x"', dir), { projectDir: dir });
+    assert.equal(r.verdict, 'ask', 'the hook read the branch of the inherited GIT_DIR');
+  } finally {
+    for (const [name, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  }
+  assert.equal(
+    gitRead(decoy, 'config', 'core.bare'),
+    'false',
+    'git init rewrote the inherited repository',
+  );
+  assert.equal(gitRead(decoy, 'symbolic-ref', '--short', 'HEAD'), 'decoy');
 });
 
 const LABELS = { policies: { pull_request: { required_labels: ['needs-review'] } } };
