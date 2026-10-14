@@ -240,6 +240,38 @@ test('a spec URL that does not answer, answers non-2xx or returns no OpenAPI doc
     fetchSpec('http://x.test/o.json', fakeFetch('nope', 404).impl),
     /answered 404/,
   );
+  const big = `{"openapi":"3.0.0","x":"${'a'.repeat(100)}"}`;
+  await assert.rejects(
+    fetchSpec('http://x.test/o.json', fakeFetch(big).impl, { maxBytes: 50 }),
+    /answered more than 50 bytes/,
+  );
+  const declared = async () =>
+    new Response(SPEC_JSON, { headers: { 'content-length': String(10 * 1024 * 1024 * 1024) } });
+  await assert.rejects(fetchSpec('http://x.test/o.json', declared), /answered more than \d+ bytes/);
+  // A body that streams past the limit without declaring its length is cut off, not read whole.
+  let sent = 0;
+  const endless = async () =>
+    new Response(
+      new ReadableStream({
+        pull(controller) {
+          sent += 1;
+          controller.enqueue(new TextEncoder().encode('x'.repeat(1024)));
+        },
+      }),
+    );
+  await assert.rejects(
+    fetchSpec('http://x.test/o.json', endless, { maxBytes: 4096 }),
+    /answered more than 4096 bytes/,
+  );
+  assert.ok(sent < 10, `read ${sent} chunks of an endless body`);
+  assert.equal(
+    (
+      await fetchSpec('http://x.test/o.json', fakeFetch(SPEC_JSON).impl, {
+        maxBytes: SPEC_JSON.length,
+      })
+    ).text,
+    SPEC_JSON,
+  );
   for (const body of ['<html><body>hello</body></html>', '{"paths":{}}', '[1, 2]', 'a: [b', '']) {
     await assert.rejects(
       fetchSpec('http://x.test/o.json', fakeFetch(body).impl),
