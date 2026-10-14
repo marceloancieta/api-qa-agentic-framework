@@ -126,6 +126,8 @@ const CONTAINER_SERVICES = '/zap/services'; // ./services, mounted read-only
 const CONTAINER_WRK = '/zap/wrk'; // reports/dast, mounted read-write
 const OUT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const FETCH_TIMEOUT_MS = 30_000;
+/** The largest definition the lane saves for ZAP: far above a real contract, far below a full disk. */
+export const MAX_SPEC_BYTES = 16 * 1024 * 1024;
 /**
  * How often and how long the lane waits during a scan, in ms: ZAP's API (`pollMs` between checks,
  * `readyTimeoutMs` in all, `requestTimeoutMs` per call, renewals at least `minRenewMs` apart) and
@@ -362,11 +364,40 @@ export function rulesWithFalsePositives(rulesText, positives) {
 // The definition, fetched on the host
 
 /**
- * Fetch the OpenAPI document at `url`: `{ text, ext }` with `ext` `json` or `yaml`, as received.
- * Throws with a message for a URL that does not answer, a non-2xx answer and a body that is not a
- * JSON or YAML OpenAPI (or Swagger) document.
+ * The body of `response` as UTF-8 text, or null when it is larger than `limit` bytes: a declared
+ * `Content-Length` over the limit is refused before reading, and a body without one stops being
+ * read once it passes the limit.
  */
-export async function fetchSpec(url, fetchImpl = fetch) {
+async function cappedText(response, limit) {
+  if (Number(response.headers.get('content-length')) > limit) return null;
+  if (!response.body) return response.text();
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/**
+ * Fetch the OpenAPI document at `url`: `{ text, ext }` with `ext` `json` or `yaml`, as received.
+ * Throws with a message for a URL that does not answer, a non-2xx answer, a body larger than
+ * `maxBytes` and a body that is not a JSON or YAML OpenAPI (or Swagger) document.
+ *
+ * The lane saves this text for ZAP, which is why it fetches it (CodeQL js/http-to-file-access,
+ * GATE-20): the file name is fixed by the lane (`--out` is a plain name, the extension comes from
+ * the parse), the text must parse as an OpenAPI object, its size is capped, and only ZAP reads it,
+ * as data.
+ */
+export async function fetchSpec(url, fetchImpl = fetch, { maxBytes = MAX_SPEC_BYTES } = {}) {
   let response;
   try {
     response = await fetchImpl(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
@@ -378,7 +409,12 @@ export async function fetchSpec(url, fetchImpl = fetch) {
     );
   }
   if (!response.ok) throw new Error(`the spec URL ${url} answered ${response.status}`);
-  const text = await response.text();
+  const text = await cappedText(response, maxBytes);
+  if (text === null) {
+    throw new Error(
+      `the spec URL ${url} answered more than ${maxBytes} bytes, the most the lane saves as a definition`,
+    );
+  }
   let document;
   let ext = 'json';
   try {
@@ -681,6 +717,8 @@ export async function dastLane(
     return 2;
   }
   const specFile = join(dir, `${options.out}-openapi.${spec.ext}`);
+  // Saving the fetched definition for ZAP is this lane's job; fetchSpec says what guards it.
+  // codeql[js/http-to-file-access]
   writeFileSync(specFile, definition.text);
   log(`dast-lane: definition ${urls.specUrl} (${urls.specFrom}), saved as ${shown(specFile)}`);
   log(`dast-lane: API base ${urls.baseUrl} (${urls.baseFrom})`);
