@@ -32,7 +32,9 @@
 //   closing-commit     each hash cited in a well-formed Done row names a commit in the history of
 //                      HEAD, so a hash from a rewritten history or an unmerged branch is caught. A
 //                      shallow clone cannot tell, and is one finding on the Done table until the full
-//                      history is fetched. Not checked when the root is not a git repository.
+//                      history is fetched. A history that holds none of the cited hashes (a copy
+//                      created from the GitHub template) is one finding too, pointing to the
+//                      adoption guide. Not checked when the root is not a git repository.
 //   count-claim       numbers written in prose that can be recomputed (L-08): lessons are numbered
 //                      L-01..L-N with no gap or repeat; every cited `L-NN` and `L-NN..L-MM` exists;
 //                      every ADR of an `ADRs NNNN-NNNN` range exists; a "PREFIX-01 to PREFIX-NN ...
@@ -519,27 +521,45 @@ function checkClosingCommits(backlog, gitDir, out) {
     return;
   }
   const history = git(['rev-list', 'HEAD']).split('\n');
+  const rows = [];
+  let cited = 0;
+  let missing = 0;
   for (const table of done) {
     for (const row of table.rows) {
       const closing = row.cells[row.cells.length - 1];
       // A short row or a malformed reference is backlog-row-shape's finding, not this one.
       if (row.cells.length !== table.header.length || !CLOSING.test(closing)) continue;
-      const absent = [...closing.matchAll(/`([0-9a-f]+)`/g)]
-        .map((match) => match[1])
-        .filter((hash) => !history.some((commit) => commit.startsWith(hash)));
+      const hashes = [...closing.matchAll(/`([0-9a-f]+)`/g)].map((match) => match[1]);
+      cited += hashes.length;
+      const absent = hashes.filter((hash) => !history.some((commit) => commit.startsWith(hash)));
+      missing += absent.length;
       if (absent.length > 0) {
-        const cited = absent.map((hash) => `\`${hash}\``).join(', ');
-        out.push(
+        const names = absent.map((hash) => `\`${hash}\``).join(', ');
+        rows.push(
           finding(
             'closing-commit',
             BACKLOG,
             row.line,
-            `${row.cells[0]}: ${cited} is not a commit in the history of HEAD`,
+            `${row.cells[0]}: ${names} is not a commit in the history of HEAD`,
           ),
         );
       }
     }
   }
+  // Not one cited hash is known: the history is another repository's, as in a copy created from
+  // the GitHub template, which starts with a single commit. One finding says so.
+  if (cited > 0 && missing === cited) {
+    out.push(
+      finding(
+        'closing-commit',
+        BACKLOG,
+        done[0].headerLine,
+        'no closing commit is in the history of HEAD; a repository created from the template starts its own backlog (docs/guides/adopt-the-template.md)',
+      ),
+    );
+    return;
+  }
+  out.push(...rows);
 }
 
 /**

@@ -18,4 +18,5 @@ link to it instead of restating it ([the documentation rule](../../.claude/rules
 | [Intake request](../templates/intake.md) | you ask for an API feature to be tested: what to send so intake can start. |
 | [Feature contract](../templates/feature-contract.md) | you write or review the contract doc intake produces for a feature, at `services/<pack>/docs/features/<feature>.md`. |
 | [Registry](../templates/registry.md) | you start the registry of a feature's designed cases. The format is defined in `scripts/lib/registry.mjs` and explained in [the registry rule](../../.claude/rules/registry.md). |
+| [Backlog](../templates/backlog.md) | you start the backlog of a repository created from the template ([adopt the template](../guides/adopt-the-template.md)). |
 | [Service skill](../templates/service-skill.md) | you need to know what the per-API skill of a pack contains; `npm run scaffold:service` fills it in for a new pack. |
