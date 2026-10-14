@@ -4,7 +4,8 @@
 # CI and every write test use this container; the public instance is for reads/drift only.
 # PETSTORE_PORT moves the host port when 8080 is taken (point QA_PETSTORE_BASE_URL and
 # QA_PETSTORE_SPEC_URL at it).
-# The tag is pinned so a new upstream image cannot silently change the contract under test.
+# Pinned by tag and digest so a new upstream image, or the same tag pushed again, cannot silently
+# change the contract under test (PET-04).
 #
 # Second pack: VAmPI (OpenAPI 3.0), the same image run in its two modes.
 #   docker compose up -d vampi-secure vampi-vulnerable
@@ -52,7 +53,7 @@ x-vampi: &vampi
 
 services:
   petstore:
-    image: swaggerapi/petstore3:1.0.28
+    image: swaggerapi/petstore3:1.0.28@sha256:dc991f49b62fed5ece2816a1b22aeeeb49278cdf56fb87dc9d69e30541d6cd6d
     ports:
       - '${PETSTORE_PORT:-8080}:8080'
     healthcheck:

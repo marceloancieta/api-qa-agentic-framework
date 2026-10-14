@@ -177,8 +177,8 @@ before any case changes.
 ### Which contract is compared
 
 By default, the `spec_url` of the pack's entry in the active environment is compared. For the
-example pack that is the local container, whose image tag is pinned, so its contract changes only
-when the tag in `docker-compose.yml` changes. To watch a deployed contract, set the repository
+example pack that is the local container, whose image is pinned by tag and digest, so its contract
+changes only when the image in `docker-compose.yml` changes. To watch a deployed contract, set the repository
 variable `QA_DRIFT_CONTRACT_ENV`, or the `contract_env` input of a manual run, to another qa-config
 environment, such as `public`. The digest step and the changed-cases lane read it; the selected
 cases then run on that environment, where a pack whose `allow_writes` is false there skips the
