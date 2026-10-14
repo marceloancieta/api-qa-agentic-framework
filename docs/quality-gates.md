@@ -50,6 +50,7 @@ matrix, and `traceability:write` writes it to `docs/traceability/<pack>.md`.
 | `npm run lanes:flake` | A selection repeated N times (`--repeat-each`, default 5) with retries forced to 0. Reports tests whose repeats disagree and what to quarantine or release. |
 | `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack (FUT-01): the OpenAPI document is fetched from the pack's `spec_url`, ZAP (the `zap` compose service, pinned by digest, profile `dast`) attacks the pack's base URL, injecting into the query, the body and the URL path, and writes `reports/dast/<pack>.json` and `.html` for the quality gate's `dast` check. The pack's policy is `services/<pack>/dast-rules.tsv` (ZAP's IGNORE, WARN and FAIL per rule) and `services/<pack>/dast-exclude.txt` (URLs a scan must not call: ZAP skips them in the spider and the active scan, and the lane removes the matching paths from the definition, because ZAP's import sends every operation once whatever the exclusions say), and `services/<pack>/dast-false-positives.tsv` (alerts the pack has shown to be false, each rule and URL with the evidence: ZAP marks them False Positive, so neither its exit nor the report the quality gate counts includes them, and the lane lists them). Exit 1 means an alert of a FAIL rule. An active scan writes to the API, so the lane scans only where the pack's entry has `allow_writes: true`, with the pack's `workers` (service.json) as ZAP's threads per host when it sets them, and runs the entry's `recovery` after the scan (for the Petstore, a container restart); a recovery that fails ends the lane with 2. The header of `scripts/dast-lane.mjs` has the details. |
 | `npm run lanes:perf -- --service <pack>` | A performance smoke of the pack (FUT-02), described [below](#performance-lane). k6 (the `k6` compose service, pinned by digest, profile `perf`) sends the pack's GET operations at a steady rate and writes `reports/perf/<pack>.json` for the quality gate's `p95_latency` check. Exit 1 means a request answered something other than the success status its operation declares. |
+| `npm run lanes:diff -- --service <pack> --reference <env>` | A differential comparison of two deployments of the pack (FUT-06), described [below](#differential-lane): the same read-only requests to a reference and a candidate environment, every difference in status, media type, body or contract reported, and those the pack accepted in `services/<pack>/diff.json` told apart. |
 
 Every Playwright lane runs the `api-<pack>` project of every pack by default; `--service <pack>`
 scopes it to that pack's project (`npm run lanes:published -- --service petstore`). The DAST and
@@ -144,6 +145,37 @@ detail names the slowest operation. The lane prints the p95 of each operation to
 
 The lane sends only reads, but it is still a load: point it at local containers or an environment
 meant for it, never at a shared or production one.
+
+### Differential lane
+
+`npm run lanes:diff -- --service <pack> --reference <env>` compares two deployments of one pack:
+a release with the one before it, a new build with the running one, two regions. The specs check
+what someone wrote a case for; this lane shows every change of behaviour between the two, expected
+or not, so each one is reviewed. `scripts/diff-lane.mjs` has the details in its header.
+
+**The two sides** are qa-config environments with an entry for the pack: `--reference <env>`, and
+`--candidate <env>` or the active environment. The `QA_<PACK>_BASE_URL` and `QA_<PACK>_SPEC_URL`
+overrides apply to the candidate only. Both sides get the credential of the same actor
+(`--actor`, as in the other lanes) and `Accept: application/json`.
+
+**What it compares.**
+
+- The contracts: both `spec_url` documents go through the normalizer and are compared by their
+  digests, as `contract:digest` compares the tracked one with the live one. Every structural change
+  is a difference, named `contract <drift class> <where>`; prose changes are printed only.
+- The answers: the performance lane's plan of `GET` requests, from the tracked contract and
+  `perf.json`, plus the same request without each required query parameter, since how an API refuses
+  a request is behaviour too. Only reads are sent, so the lane may run against a shared
+  environment. For each request it compares the status, the media type and the body. A JSON body is
+  compared with the bucket model the specs use (`scripts/lib/state-compare.mjs`): every field is
+  `business`, unless `diff.json` `models` puts it in another bucket for that operation, such as
+  `volatile` for a value each deployment sets when it starts. Arrays are compared item by item,
+  other bodies as text (`$body`). The lane prints field paths, never values.
+
+**What it judges.** `diff.json` `accepted` lists the differences the pack has reviewed, keyed as the
+lane prints them, each with the contract note that explains it. The lane exits 1 for a difference
+not accepted and for an accepted one that no longer shows up (stale: the change it describes is
+gone), 0 otherwise, and 2 when it cannot run. The report lands in `reports/diff/<pack>.json`.
 
 ## Quality gate
 

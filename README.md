@@ -117,6 +117,7 @@ described in [quality gates](docs/quality-gates.md#lanes):
 | `npm run lanes:known-gap`, `lanes:published`, `lanes:flake`, `lanes:destructive` | Playwright selections: armed known gaps, published cases, repeats to find flaky cases, `@destructive` cases one at a time with a recovery after each. |
 | `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack, with the pack's rules, into `reports/dast/<pack>.json`. |
 | `npm run lanes:perf -- --service <pack>` | A k6 performance smoke of the pack's `GET` operations at a steady rate, into `reports/perf/<pack>.json`. |
+| `npm run lanes:diff -- --service <pack> --reference <env>` | The same read-only requests to two deployments of the pack, every difference in answers and contract reported, into `reports/diff/<pack>.json`. |
 | `npm run quality:gate` | PASS, REVIEW or FAIL per check in qa-config `quality_gate`: pass rate, p95 latency, DAST alerts, mutation score. |
 
 ZAP and k6 run from compose services pinned by digest (profiles `dast` and `perf`, so

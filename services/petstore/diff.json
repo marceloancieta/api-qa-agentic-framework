@@ -1,0 +1,14 @@
+{
+  "$comment": "Differential lane (scripts/diff-lane.mjs): fields compared in another bucket than business, per operation, and the differences from the reference release (1.0.26) already reviewed, each with its contract note.",
+  "models": {
+    "GET /store/order/{orderId}": {
+      "shipDate": "volatile"
+    }
+  },
+  "accepted": {
+    "contract parameters GET /pet/findByStatus query:status": "PN-29: 1.0.27 made status required",
+    "contract parameters GET /pet/findByTags query:tags": "PN-29: 1.0.27 made tags required",
+    "GET /pet/findByStatus without status": "PN-29: the 400 became the JSON error envelope",
+    "GET /pet/findByTags without tags": "PN-29: the 400 became the JSON error envelope"
+  }
+}

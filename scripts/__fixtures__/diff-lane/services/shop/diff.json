@@ -1,0 +1,15 @@
+{
+  "models": {
+    "GET /items/{itemId}": {
+      "updatedAt": "volatile",
+      "tags": {
+        "bucket": "business",
+        "normalize": "unordered"
+      }
+    }
+  },
+  "accepted": {
+    "contract parameters GET /items query:kind": "SN-01: kind became required",
+    "GET /items without kind": "SN-01: the refusal became JSON"
+  }
+}

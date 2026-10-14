@@ -282,7 +282,8 @@ them current. Link to the pack's files instead of copying their facts.
 - **CI.** [Continuous integration](../ci.md#adapting-to-a-new-pack-or-environment) lists what to
   change for another pack or a deployed environment.
 - **Optional lanes.** The DAST scan reads the pack's `dast-rules.tsv`, `dast-exclude.txt` and
-  `dast-false-positives.tsv`, and the performance smoke its `perf.json`; both work without them
+  `dast-false-positives.tsv`, the performance smoke its `perf.json`, and the differential lane its
+  `diff.json` and the plan of `perf.json`; all work without them
   ([quality gates](../quality-gates.md#lanes)). Run `npm run lanes:perf -- --service <pack>` once:
   it prints every `GET` it leaves out and why, which tells you what `perf.json` needs. Both lanes
   send the credential of the pack's default actor; `--actor` picks another one, and

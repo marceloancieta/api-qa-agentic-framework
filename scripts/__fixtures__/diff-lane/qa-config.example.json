@@ -1,0 +1,35 @@
+{
+  "api": {
+    "default_environment": "local",
+    "environments": {
+      "local": {
+        "packs": {
+          "shop": {
+            "base_url": "http://localhost:7001/api",
+            "spec_url": "http://localhost:7001/api/openapi.json",
+            "allow_writes": true,
+            "auth": { "type": "api_key", "in": "header", "name": "X-Key", "env": "SHOP_KEY" }
+          }
+        }
+      },
+      "previous": {
+        "packs": {
+          "shop": {
+            "base_url": "http://localhost:7002/api",
+            "spec_url": "http://localhost:7002/api/openapi.json",
+            "allow_writes": false,
+            "auth": { "type": "api_key", "in": "header", "name": "X-Key", "env": "SHOP_KEY" }
+          }
+        }
+      },
+      "nospec": {
+        "packs": {
+          "shop": {
+            "base_url": "http://localhost:7003/api",
+            "auth": { "type": "api_key", "in": "header", "name": "X-Key", "env": "SHOP_KEY" }
+          }
+        }
+      }
+    }
+  }
+}
