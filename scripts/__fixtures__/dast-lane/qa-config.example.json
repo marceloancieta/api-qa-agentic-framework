@@ -7,6 +7,7 @@
           "demo": {
             "base_url": "http://localhost:9000/api/",
             "spec_url": "http://localhost:9000/api/openapi.json",
+            "allow_writes": true,
             "actors": {
               "user": {
                 "type": "login",
@@ -20,10 +21,22 @@
           },
           "plain": {
             "base_url": "https://api.example.test/v1",
-            "spec_url": "https://api.example.test/v1/openapi.json"
+            "spec_url": "https://api.example.test/v1/openapi.json",
+            "allow_writes": true
           },
           "nospec": {
-            "base_url": "https://nospec.example.test"
+            "base_url": "https://nospec.example.test",
+            "allow_writes": true
+          }
+        }
+      },
+      "shared": {
+        "packs": {
+          "demo": {
+            "base_url": "http://localhost:9000/api",
+            "spec_url": "http://localhost:9000/api/openapi.json",
+            "allow_writes": true,
+            "recovery": { "command": "docker compose restart demo-api" }
           }
         }
       },

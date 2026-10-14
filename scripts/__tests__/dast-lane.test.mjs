@@ -26,6 +26,8 @@ import {
   resolveUrls,
   rulesPath,
   scanAuth,
+  scanThreads,
+  scanWrites,
   summarize,
   summaryLines,
   zapArgs,
@@ -84,7 +86,7 @@ function fakeRunner({ status = 0, report, html = true, ps = PS_LINES, psResult, 
   return { run, calls, scan: () => calls.find((call) => call.args[1] === 'run') };
 }
 
-async function lane(t, options, runner, { env = {}, fetcher = fakeFetch() } = {}) {
+async function lane(t, options, runner, { env = {}, fetcher = fakeFetch(), recover } = {}) {
   const root = scratchRoot(t);
   const lines = [];
   const code = await dastLane(options, {
@@ -92,6 +94,7 @@ async function lane(t, options, runner, { env = {}, fetcher = fakeFetch() } = {}
     env,
     run: runner.run,
     fetchImpl: fetcher.impl,
+    recover,
     log: (line) => lines.push(line),
   });
   return { code, lines, root, output: lines.join('\n') };
@@ -1205,4 +1208,121 @@ test('without a rules file the false positives are only alert filters; a bad fil
   assert.equal(badCode, 2);
   assert.equal(refused.scan(), undefined);
   assert.match(lines.join('\n'), /line 1: the reason .* is required; the scan did not run/);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Writes, threads and recovery
+
+test('the scan writes only where allow_writes is true, or to a loopback base given by both flags', () => {
+  const urls = (base) => ({ baseUrl: base });
+  assert.deepEqual(scanWrites(DEMO, urls('http://localhost:9000/api'), FIXTURES, {}), {
+    refusal: null,
+    recovery: null,
+  });
+  const staging = scanWrites(DEMO, urls('http://127.0.0.1:9001'), FIXTURES, { QA_ENV: 'staging' });
+  assert.match(
+    staging.refusal,
+    /pack "demo" has allow_writes false in environment "staging" \(api.environments.staging.packs.demo in .*\), and an active scan sends writes/,
+  );
+  const shared = scanWrites(DEMO, urls('http://localhost:9000/api'), FIXTURES, {
+    QA_ENV: 'shared',
+  });
+  assert.equal(shared.refusal, null);
+  assert.deepEqual(shared.recovery, {
+    command: 'docker compose restart demo-api',
+    readyTimeoutS: 60,
+  });
+
+  const both = { ...DEMO, target: 'http://x.test/o.json', base: 'http://x.test' };
+  assert.deepEqual(
+    scanWrites(
+      { ...both, base: 'http://127.0.0.1:5001' },
+      urls('http://127.0.0.1:5001'),
+      FIXTURES,
+      {},
+    ),
+    {
+      refusal: null,
+      recovery: null,
+    },
+  );
+  assert.deepEqual(scanWrites(both, urls('http://localhost:8080'), FIXTURES, {}).refusal, null);
+  assert.match(
+    scanWrites(both, urls('http://x.test'), FIXTURES, {}).refusal,
+    /with both --target and --base the lane does not read allow_writes from qa-config, so the base must be a loopback address; http:\/\/x.test is not/,
+  );
+});
+
+test('a refused scan stops the lane with 2 before the definition is fetched or docker runs', async (t) => {
+  const runner = fakeRunner({});
+  const fetcher = fakeFetch();
+  const { code, output } = await lane(t, DEMO, runner, { env: { QA_ENV: 'staging' }, fetcher });
+  assert.equal(code, 2);
+  assert.deepEqual(runner.calls, []);
+  assert.deepEqual(fetcher.urls, []);
+  assert.match(output, /allow_writes false in environment "staging".*; the scan did not run/);
+});
+
+test("a pack's workers cap ZAP's threads per host; without them ZAP keeps its default", async (t) => {
+  assert.equal(scanThreads('plain', FIXTURES), 1);
+  assert.equal(scanThreads('demo', FIXTURES), null);
+  assert.equal(
+    zapConfig([], [], 1),
+    '-config scanner.injectable=19 -config scanner.threadPerHost=1',
+  );
+  assert.equal(zapConfig([], [], null), '-config scanner.injectable=19');
+
+  const runner = fakeRunner({ report: readFixture('zap-site-object.json') });
+  const { output } = await lane(t, PLAIN, runner);
+  const args = runner.scan().args;
+  assert.match(args[args.indexOf('-z') + 1], / -config scanner.threadPerHost=1/);
+  assert.match(output, /1 scan thread\(s\) per host \(workers in services\/plain\/service.json\)/);
+  const demo = fakeRunner({ report: readFixture('zap-site-object.json') });
+  const { output: demoOutput } = await lane(t, DEMO, demo);
+  assert.doesNotMatch(demo.scan().args.join(' '), /threadPerHost/);
+  assert.doesNotMatch(demoOutput, /scan thread/);
+});
+
+test("after the scan the entry's recovery restores the service; the scan's exit stands", async (t) => {
+  const calls = [];
+  const recover = async () => {
+    calls.push('recover');
+    return { ok: true, outcome: 'recovered', detail: 'answered 200' };
+  };
+  const env = { QA_ENV: 'shared' };
+  const runner = fakeRunner({ report: readFixture('zap-site-object.json') });
+  const passed = await lane(t, DEMO, runner, { env, recover });
+  assert.equal(passed.code, 0);
+  assert.deepEqual(calls, ['recover']);
+  assert.match(
+    passed.output,
+    /passed \(.*\)\ndast-lane: restoring the service after the scan's writes: docker compose restart demo-api\ndast-lane: service restored \(answered 200\)/,
+  );
+
+  const failing = fakeRunner({ status: 1, report: readFixture('zap-site-object.json') });
+  const failed = await lane(t, DEMO, failing, { env, recover });
+  assert.equal(failed.code, 1, 'an alert of a FAIL rule still fails after a recovery');
+  assert.equal(calls.length, 2);
+
+  const none = await lane(t, DEMO, fakeRunner({ report: readFixture('zap-site-object.json') }), {
+    recover,
+  });
+  assert.equal(none.code, 0);
+  assert.equal(calls.length, 2, 'an entry without recovery restores nothing');
+  assert.doesNotMatch(none.output, /restoring/);
+});
+
+test('a recovery that fails ends the lane with 2, naming the step and the exit the scan had', async (t) => {
+  const recover = async () => ({
+    ok: false,
+    outcome: 'not-ready',
+    detail: 'http://localhost:9000/api did not answer below 500 within 60s (ECONNREFUSED)',
+  });
+  const runner = fakeRunner({ report: readFixture('zap-site-object.json') });
+  const { code, output } = await lane(t, DEMO, runner, { env: { QA_ENV: 'shared' }, recover });
+  assert.equal(code, 2);
+  assert.match(
+    output,
+    /the recovery failed \(not-ready: .*ECONNREFUSED\)\); the service may still hold what the scan wrote, so the lane ends with 2 whatever the scan found \(it would have ended with 0\)/,
+  );
 });

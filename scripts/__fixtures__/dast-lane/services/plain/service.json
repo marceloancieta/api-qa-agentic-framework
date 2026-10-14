@@ -1,4 +1,5 @@
 {
   "name": "plain",
-  "title": "Demo pack without a DAST rule policy"
+  "title": "Demo pack without a DAST rule policy, which takes one caller at a time",
+  "workers": 1
 }

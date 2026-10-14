@@ -43,6 +43,14 @@
  * scan honour, and the lane also removes every matching path from the definition it saves: ZAP's
  * import sends each operation of the definition once and ignores those exclusions.
  *
+ * Writes. An active scan sends POST, PUT and DELETE requests with attack payloads, so the lane
+ * scans only where the pack's entry has `allow_writes: true`; with both `--target` and `--base`,
+ * which skip qa-config, only a loopback base. A pack whose service cannot take concurrent callers
+ * sets `workers` in its service.json, and ZAP then scans with that many threads per host. When the
+ * entry names a `recovery` (the destructive lane's, such as a container restart), the lane runs it
+ * after the scan, whatever the scan found, and waits until the API answers, so the next caller
+ * does not meet what the scan wrote.
+ *
  * Authentication (FUT-10). `--actor` picks whose credential the scan sends, as the specs pick it:
  * `default` is the pack entry's `auth`, `anonymous` sends none, any other name comes from the
  * entry's `actors` (scripts/lib/auth-tokens.mjs). With both `--target` and `--base`, qa-config is
@@ -70,9 +78,10 @@
  * Exit codes: 0 no alert of a FAIL rule (ZAP exit 0, or 2 for warnings only); 1 an alert of a FAIL
  * rule (ZAP exit 1), or the API stopped answering during the scan; 2 the lane could not run or the
  * scan did not complete or cannot be trusted (bad arguments, an unknown actor, a credential that
- * cannot be obtained, a spec URL that does not answer or is not an OpenAPI document, Docker
- * missing, any other ZAP exit, no JSON report or one that is not a ZAP report, a credential that
- * was never set in ZAP or whose renewal failed).
+ * cannot be obtained, an environment without `allow_writes`, a spec URL that does not answer or is
+ * not an OpenAPI document, Docker missing, any other ZAP exit, no JSON report or one that is not a
+ * ZAP report, a credential that was never set in ZAP or whose renewal failed, a recovery that
+ * failed).
  */
 
 import { randomBytes } from 'node:crypto';
@@ -94,10 +103,13 @@ import {
   dockerRunnerAsync,
   freeLoopbackPort,
   httpUrl,
+  isLoopback,
   reachableBase,
   watchLiveness,
 } from './lib/container.mjs';
+import { loadLocalEnv } from './lib/env.mjs';
 import { describeExit, exitCodeOf, spawnFailure } from './lib/spawn.mjs';
+import { recoveryOf, recoveryStep } from './destructive-lane.mjs';
 import { startZapAuth } from './lib/zap-auth.mjs';
 import { InputError, dastCounts } from './quality-gate.mjs';
 
@@ -198,6 +210,45 @@ export function scanAuth(
 }
 
 /**
+ * Where the scan may write, and how the service is restored after it: `{ refusal, recovery }`.
+ * An active scan sends POST, PUT and DELETE requests with attack payloads, so it runs only where
+ * the pack's entry has `allow_writes: true`; `refusal` says why it must not run, else null. With
+ * both `--target` and `--base` qa-config is not read, so the base must be a loopback address, a
+ * service on this machine. `recovery` is the entry's `recovery` (scripts/destructive-lane.mjs),
+ * which the lane runs after the scan so the next caller does not meet what the scan wrote; null
+ * when the entry names none or qa-config is not read.
+ */
+export function scanWrites({ service, target, base }, urls, root = REPO_ROOT, env = process.env) {
+  if (target && base) {
+    return {
+      refusal: isLoopback(urls.baseUrl)
+        ? null
+        : `with both --target and --base the lane does not read allow_writes from qa-config, so ` +
+          `the base must be a loopback address; ${urls.baseUrl} is not`,
+      recovery: null,
+    };
+  }
+  const environment = packEnvironment(service, root, env);
+  const at = `api.environments.${environment.name}.packs.${service}`;
+  return {
+    refusal: environment.config.allow_writes
+      ? null
+      : `pack "${service}" has allow_writes false in environment "${environment.name}" ` +
+        `(${at} in ${environment.source}), and an active scan sends writes`,
+    recovery: recoveryOf(environment),
+  };
+}
+
+/**
+ * ZAP's scan threads per host: the pack's `workers` (service.json), for a service that cannot take
+ * concurrent callers, or null to keep ZAP's default.
+ */
+export function scanThreads(service, root = REPO_ROOT) {
+  const { workers } = readService(service, root);
+  return Number.isInteger(workers) && workers > 0 ? workers : null;
+}
+
+/**
  * The URLs of one scan: `{ specUrl, specFrom, baseUrl, baseFrom }`, each with where it came from.
  * The pack must exist even with both overrides, since its name selects the rules and the report;
  * the qa-config entry is read only for a URL no flag gives.
@@ -274,13 +325,15 @@ export function falsePositives(pack, root = REPO_ROOT) {
 }
 
 /**
- * ZAP `-z` options: path injection, one global URL exclusion per pattern, and one global alert
- * filter per known false positive, which marks its alerts False Positive (`newrisk=-1`) so the JSON
- * report the quality gate counts leaves them out.
+ * ZAP `-z` options: path injection, `threads` scan threads per host when the pack sets them, one
+ * global URL exclusion per pattern, and one global alert filter per known false positive, which
+ * marks its alerts False Positive (`newrisk=-1`) so the JSON report the quality gate counts leaves
+ * them out.
  */
-export function zapConfig(excludes = [], positives = []) {
+export function zapConfig(excludes = [], positives = [], threads = null) {
   return [
     `-config scanner.injectable=${INJECTABLE}`,
+    ...(threads ? [`-config scanner.threadPerHost=${threads}`] : []),
     ...excludes.flatMap((regex, i) => [
       `-config globalexcludeurl.url_list.url(${i}).regex=${regex}`,
       `-config globalexcludeurl.url_list.url(${i}).enabled=true`,
@@ -396,6 +449,7 @@ export function zapArgs({
   rulesFile,
   container,
   apiPort,
+  threads = null,
 }) {
   return [
     'compose',
@@ -418,7 +472,7 @@ export function zapArgs({
     '-I',
     ...(apiPort ? ['-P', String(apiPort)] : []),
     '-z',
-    zapConfig(excludes, positives),
+    zapConfig(excludes, positives, threads),
     ...(rules ? ['-c', rulesFile ?? `${CONTAINER_SERVICES}/${pack}/${RULES_FILE}`] : []),
   ];
 }
@@ -536,7 +590,8 @@ export function untrustedReason(state, { actor, pack }) {
  * `dockerRunner` (compose ps, docker stop), `runAsync` the scan's `dockerRunnerAsync` (an injected
  * `run` serves the scan too unless `runAsync` is given), `fetchImpl` replaces `fetch` (the
  * definition, ZAP's API, the liveness checks), `post` the credential requests, `freePort` the
- * loopback port and `timing` shortens `TIMING`, so tests never start Docker or call a network.
+ * loopback port, `recover` the recovery step and `timing` shortens `TIMING`, so tests never start
+ * Docker or call a network.
  */
 export async function dastLane(
   options,
@@ -551,12 +606,19 @@ export async function dastLane(
     post,
     now = Date.now,
     freePort = freeLoopbackPort,
+    recover,
     timing = {},
     log = console.log,
   } = {},
 ) {
   const urls = resolveUrls(options, root, env);
   const who = scanAuth(options, root, env);
+  const writes = scanWrites(options, urls, root, env);
+  if (writes.refusal) {
+    log(`dast-lane: ${writes.refusal}; the scan did not run`);
+    return 2;
+  }
+  const threads = scanThreads(options.service, root);
   const times = { ...TIMING, ...timing };
   const rules = rulesPath(options.service, root);
   const dir = join(root, REPORTS_DIR);
@@ -650,6 +712,11 @@ export async function dastLane(
     }
   }
   log(`dast-lane: ${credentialLine(who, credential)}`);
+  if (threads) {
+    log(
+      `dast-lane: ${threads} scan thread(s) per host (workers in services/${options.service}/service.json)`,
+    );
+  }
   const apiPort = credential ? await freePort() : null;
   const container = containerName(options.out);
   const args = zapArgs({
@@ -663,6 +730,7 @@ export async function dastLane(
     rulesFile,
     container,
     apiPort,
+    threads,
   });
 
   const scan = runAsync(args, { cwd: root });
@@ -701,71 +769,91 @@ export async function dastLane(
     : null;
   const result = await scan;
   await Promise.all([liveness.stop(), auth?.stop()]);
+  const code = judgeScan({ result, liveness, auth });
+  if (!writes.recovery) return code;
+  log(`dast-lane: restoring the service after the scan's writes: ${writes.recovery.command}`);
+  const restored = await (recover ?? recoveryStep(writes.recovery, urls.baseUrl, root))();
+  if (restored.ok) {
+    log(`dast-lane: service restored (${restored.detail})`);
+    return code;
+  }
+  log(
+    `dast-lane: the recovery failed (${restored.outcome}: ${restored.detail}); the service may ` +
+      `still hold what the scan wrote, so the lane ends with 2 whatever the scan found (it would have ended with ${code})`,
+  );
+  return 2;
 
-  if (liveness.state.down) {
-    const report = existsSync(jsonFile) ? `${shown(jsonFile)} may be incomplete` : 'no report';
-    log(
-      `dast-lane: failed (availability: the API stopped answering during the scan, so a request ` +
-        `ZAP sent may have hung or crashed it; see the API's logs. This is not an alert of a FAIL ` +
-        `rule; ${report})`,
-    );
-    return 1;
-  }
-  const failure = spawnFailure(result);
-  if (failure) {
-    log(`dast-lane: docker ${failure}; the scan did not complete`);
-    return 2;
-  }
-  if (auth) {
-    const untrusted = untrustedReason(auth.state, { actor: who.actor, pack: options.service });
-    log(`dast-lane: credential of actor "${who.actor}" renewed ${auth.state.renewals} time(s)`);
-    if (untrusted) {
-      log(`dast-lane: ${untrusted}`);
+  /** The lane's exit code for a scan that ran: availability, the credential, ZAP's exit, the report. */
+  function judgeScan({ result, liveness, auth }) {
+    if (liveness.state.down) {
+      const report = existsSync(jsonFile) ? `${shown(jsonFile)} may be incomplete` : 'no report';
+      log(
+        `dast-lane: failed (availability: the API stopped answering during the scan, so a request ` +
+          `ZAP sent may have hung or crashed it; see the API's logs. This is not an alert of a FAIL ` +
+          `rule; ${report})`,
+      );
+      return 1;
+    }
+    const failure = spawnFailure(result);
+    if (failure) {
+      log(`dast-lane: docker ${failure}; the scan did not complete`);
       return 2;
     }
-  }
-  const mapped = mapZapExit(exitCodeOf(result));
-  if (mapped.code === 2) {
-    log(`dast-lane: ${mapped.note}`);
-    return 2;
-  }
+    if (auth) {
+      const untrusted = untrustedReason(auth.state, { actor: who.actor, pack: options.service });
+      log(`dast-lane: credential of actor "${who.actor}" renewed ${auth.state.renewals} time(s)`);
+      if (untrusted) {
+        log(`dast-lane: ${untrusted}`);
+        return 2;
+      }
+    }
+    const mapped = mapZapExit(exitCodeOf(result));
+    if (mapped.code === 2) {
+      log(`dast-lane: ${mapped.note}`);
+      return 2;
+    }
 
-  const text = readTextIfExists(jsonFile);
-  if (text === null) {
-    log(
-      `dast-lane: ZAP ${describeExit(result)} but wrote no ${shown(jsonFile)}; the scan did not complete`,
-    );
-    return 2;
-  }
-  let summary;
-  try {
-    summary = summarize(JSON.parse(text), failRuleIds(rules ? readFileSync(rules, 'utf8') : ''));
-  } catch (error) {
-    if (!(error instanceof SyntaxError || error instanceof InputError)) throw error;
-    log(
-      `dast-lane: ${shown(jsonFile)} is not a ZAP JSON report (${error.message}); the scan did not complete`,
-    );
-    return 2;
-  }
+    const text = readTextIfExists(jsonFile);
+    if (text === null) {
+      log(
+        `dast-lane: ZAP ${describeExit(result)} but wrote no ${shown(jsonFile)}; the scan did not complete`,
+      );
+      return 2;
+    }
+    let summary;
+    try {
+      summary = summarize(JSON.parse(text), failRuleIds(rules ? readFileSync(rules, 'utf8') : ''));
+    } catch (error) {
+      if (!(error instanceof SyntaxError || error instanceof InputError)) throw error;
+      log(
+        `dast-lane: ${shown(jsonFile)} is not a ZAP JSON report (${error.message}); the scan did not complete`,
+      );
+      return 2;
+    }
 
-  for (const line of summaryLines(summary)) log(`dast-lane: ${line}`);
-  const reports = [jsonFile, htmlFile].filter((file) => existsSync(file)).map(shown);
-  log(`dast-lane: reports in ${reports.join(' and ')}`);
-  if (mapped.code === 1) {
-    log(
-      summary.failing.length > 0
-        ? `dast-lane: FAIL rule alert(s): ${summary.failing.join('; ')}`
-        : 'dast-lane: ZAP reported an alert of a FAIL rule (see its output above)',
-    );
+    for (const line of summaryLines(summary)) log(`dast-lane: ${line}`);
+    const reports = [jsonFile, htmlFile].filter((file) => existsSync(file)).map(shown);
+    log(`dast-lane: reports in ${reports.join(' and ')}`);
+    if (mapped.code === 1) {
+      log(
+        summary.failing.length > 0
+          ? `dast-lane: FAIL rule alert(s): ${summary.failing.join('; ')}`
+          : 'dast-lane: ZAP reported an alert of a FAIL rule (see its output above)',
+      );
+    }
+    log(`dast-lane: ${mapped.code === 0 ? 'passed' : 'failed'} (${mapped.note})`);
+    return mapped.code;
   }
-  log(`dast-lane: ${mapped.code === 0 ? 'passed' : 'failed'} (${mapped.note})`);
-  return mapped.code;
 }
 
 const entryScript = process.argv[1];
 if (entryScript && pathToFileURL(entryScript).href === import.meta.url) {
   Promise.resolve()
-    .then(() => dastLane(parseLaneArgs(process.argv.slice(2))))
+    .then(() => {
+      const options = parseLaneArgs(process.argv.slice(2));
+      loadLocalEnv(); // the actor's credentials, when the real environment does not set them
+      return dastLane(options);
+    })
     .then(
       (code) => process.exit(code),
       (error) => {

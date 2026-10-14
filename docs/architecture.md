@@ -399,8 +399,11 @@ flowchart LR
   itself: an alert of a FAIL rule, a request that answered an unexpected status. Counts and
   percentiles are judged once, by the quality gate's strategies in `scripts/quality-gate.mjs`, with
   the thresholds in qa-config `quality_gate`.
-- **CI runs them on a schedule.** `dast.yml` scans both VAmPI modes and `perf.yml` runs both packs
-  every week, and on pull requests that touch them ([continuous integration](ci.md)).
+- **A scan writes, so it asks the environment first.** The DAST lane scans only where the pack's
+  entry has `allow_writes: true`, uses the pack's `workers` as ZAP's threads per host, and runs the
+  entry's `recovery` afterwards, the same settings the specs and the destructive lane obey.
+- **CI runs them on a schedule.** `dast.yml` scans both VAmPI modes and the Petstore, and `perf.yml`
+  runs both packs every week, and on pull requests that touch them ([continuous integration](ci.md)).
 
 ## Patterns used
 

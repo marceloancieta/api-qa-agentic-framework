@@ -21,6 +21,11 @@ const LOOPBACK = new Set(['localhost', '127.0.0.1']);
 /** `docker` arguments that list the running services of the compose project. */
 export const PS_ARGS = Object.freeze(['compose', 'ps', '--format', 'json']);
 
+/** Whether `url` names this machine by a loopback name, as the lanes' address rewrite reads it. */
+export function isLoopback(url) {
+  return LOOPBACK.has(new URL(url).hostname);
+}
+
 /** `raw` as a URL; throws unless it is http(s). `what` names it in the message. */
 export function httpUrl(raw, what) {
   let url;
@@ -56,7 +61,7 @@ const portOf = (url) => Number(url.port || (url.protocol === 'https:' ? 443 : 80
  */
 export function containerBase(baseUrl, services, tool = { name: 'the tool', service: null }) {
   const url = new URL(baseUrl);
-  if (!LOOPBACK.has(url.hostname)) return { url: baseUrl, note: null };
+  if (!isLoopback(url)) return { url: baseUrl, note: null };
   const port = portOf(url);
   const path = url.pathname.replace(/\/+$/, '') + url.search;
   for (const service of services) {
@@ -98,7 +103,7 @@ export function dockerRunner(args, { cwd, capture = false }) {
  * `run` replaces `dockerRunner` in tests.
  */
 export function reachableBase(baseUrl, { root, run = dockerRunner, tool }) {
-  if (!LOOPBACK.has(new URL(baseUrl).hostname)) return { url: baseUrl, note: null };
+  if (!isLoopback(baseUrl)) return { url: baseUrl, note: null };
   const ps = run([...PS_ARGS], { cwd: root, capture: true });
   const failure = spawnFailure(ps);
   if (failure || exitCodeOf(ps) !== 0) {
