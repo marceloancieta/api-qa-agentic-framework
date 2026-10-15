@@ -1,5 +1,6 @@
 // Quality gate (GATE-08): each strategy on passing, review, failing, missing and malformed input,
-// the worst-of combiner, the exit codes, the CLI artifacts and the config rules for the section.
+// too few samples with and without `required` (GATE-21), the worst-of combiner, the exit codes, the
+// CLI artifacts and the config rules for the section.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -195,12 +196,39 @@ test('p95-latency review band and failing threshold', () => {
 });
 
 test('p95-latency with too few samples or no results directory is SKIPPED with the reason', () => {
-  const few = latency({ fail_above_ms: 1000, min_samples: 7 });
-  assert.equal(few.verdict, 'SKIPPED');
-  assert.match(few.detail, /only 6 timed API case\(s\), fewer than min_samples 7/);
+  for (const required of [undefined, false]) {
+    const few = latency({ fail_above_ms: 1000, min_samples: 7, required });
+    assert.equal(few.verdict, 'SKIPPED', String(required));
+    assert.equal(few.value, null);
+    assert.equal(
+      few.detail,
+      'only 6 timed API case(s) (2 other result(s) ignored), fewer than min_samples 7',
+    );
+  }
   const missing = latency({ source: 'no-results', fail_above_ms: 1000 });
   assert.equal(missing.verdict, 'SKIPPED');
   assert.match(missing.detail, /source no-results not found; run the API lane first/);
+});
+
+test('p95-latency with too few samples is a FAIL that gives the count when required (GATE-21)', () => {
+  const few = latency({ fail_above_ms: 1000, min_samples: 7, required: true });
+  assert.equal(few.verdict, 'FAIL');
+  assert.equal(few.value, null);
+  assert.equal(
+    few.detail,
+    'only 6 timed API case(s) (2 other result(s) ignored), fewer than min_samples 7 ' +
+      'and the check is required',
+  );
+  assert.deepEqual(few.threshold, { fail_above_ms: 1000, min_samples: 7 });
+});
+
+test('p95-latency with exactly min_samples samples is judged, required or not', () => {
+  for (const required of [undefined, true]) {
+    const enough = latency({ fail_above_ms: 1000, min_samples: 6, required });
+    assert.equal(enough.verdict, 'PASS', String(required));
+    assert.equal(enough.value, 900);
+    assert.match(enough.detail, /^6 API case durations/);
+  }
 });
 
 test('p95-latency on a result without timings is a FAIL that names the file', () => {
@@ -232,10 +260,33 @@ test('p95-latency on a k6 summary judges the p95 of every request and names the 
 test('p95-latency on a k6 summary with too few requests, or none configured, is SKIPPED', () => {
   const few = k6({ fail_above_ms: 100, min_samples: 121 });
   assert.equal(few.verdict, 'SKIPPED');
-  assert.match(few.detail, /only 120 request\(s\), fewer than min_samples 121/);
+  assert.equal(few.detail, 'only 120 request(s), fewer than min_samples 121');
   const unset = runCheck(STRATEGIES.p95_latency, { format: 'k6-summary', fail_above_ms: 1 }, opts);
   assert.equal(unset.verdict, 'SKIPPED');
   assert.match(unset.detail, /no source configured; .*performance lane for k6-summary/);
+});
+
+test('p95-latency on a k6 summary: too few requests FAIL when required, exactly enough are judged', (t) => {
+  const few = k6({ fail_above_ms: 100, min_samples: 121, required: true });
+  assert.equal(few.verdict, 'FAIL');
+  assert.equal(
+    few.detail,
+    'only 120 request(s), fewer than min_samples 121 and the check is required',
+  );
+  for (const required of [undefined, true]) {
+    const enough = k6({ fail_above_ms: 100, min_samples: 120, required });
+    assert.equal(enough.verdict, 'PASS', String(required));
+    assert.equal(enough.value, 42.46);
+  }
+  const dir = scratch(t);
+  writeFileSync(join(dir, 'idle.json'), JSON.stringify({ metrics: {} }));
+  const idle = (required) => k6({ source: join(dir, 'idle.json'), fail_above_ms: 100, required });
+  assert.equal(idle(false).verdict, 'SKIPPED');
+  assert.equal(idle(true).verdict, 'FAIL');
+  assert.equal(
+    idle(true).detail,
+    'only 0 request(s), fewer than min_samples 5 and the check is required',
+  );
 });
 
 test('k6Latency reads the overall and per-operation figures, slowest p95 first', () => {
@@ -440,6 +491,23 @@ test('CLI: FAIL exits 1, PASS exits 0', (t) => {
   assert.equal(JSON.parse(readFileSync(failing.out, 'utf8')).verdict, 'FAIL');
   const passing = runCli(t, { mutation_score: { source: 'mutation.json', fail_below_pct: 50 } });
   assert.equal(passing.run.status, 0);
+});
+
+test('CLI: too few latency samples exit 0 as SKIPPED, and 1 as FAIL when required', (t) => {
+  const gate = (required) => ({
+    p95_latency: { source: 'allure-mixed', fail_above_ms: 1000, min_samples: 7, required },
+  });
+  const skipped = runCli(t, gate(false));
+  assert.equal(skipped.run.status, 0, skipped.run.stderr);
+  assert.match(skipped.run.stdout, /p95-latency +SKIPPED only 6 timed API case\(s\)/);
+  assert.match(skipped.run.stdout, /quality-gate: SKIPPED/);
+  const failed = runCli(t, gate(true));
+  assert.equal(failed.run.status, 1, failed.run.stderr);
+  assert.match(
+    failed.run.stdout,
+    /p95-latency +FAIL +only 6 timed API case\(s\) \(2 other result\(s\) ignored\), fewer than min_samples 7 and the check is required/,
+  );
+  assert.equal(JSON.parse(readFileSync(failed.out, 'utf8')).verdict, 'FAIL');
 });
 
 test('CLI: an invalid configuration is refused with exit 2 and the config-check messages', (t) => {
