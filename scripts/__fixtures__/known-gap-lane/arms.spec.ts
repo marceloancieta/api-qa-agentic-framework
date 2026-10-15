@@ -56,3 +56,8 @@ test('TC-ARM-10 computed key', async () => {
   test.fail(true, await knownGap(key, 'computed'));
   expect(1).toBe(2);
 });
+
+test('TC-ARM-11 quarantined arm, left to the flake lane', { tag: '@quarantine' }, async () => {
+  test.fail(true, await knownGap('ARM-11', 'flaky until its fix lands'));
+  expect(1).toBe(2);
+});

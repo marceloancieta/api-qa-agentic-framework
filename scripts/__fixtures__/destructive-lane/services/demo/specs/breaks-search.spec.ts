@@ -1,5 +1,5 @@
-// Fixture for the destructive lane's selection: two destructive cases, one tagged in its title and
-// one through its describe.
+// Fixture for the destructive lane's selection: destructive cases tagged in the title or through a
+// describe, an armed one, and a quarantined one the lane leaves out.
 
 import { test } from '@playwright/test';
 
@@ -14,3 +14,5 @@ declare function knownGap(key: string, why: string): Promise<string>;
 test('TC-DEMO-04 an armed destructive gap @regression @destructive @known-gap', async () => {
   test.fail(true, await knownGap('DEMO-1', 'the record breaks every search'));
 });
+
+test('TC-DEMO-05 a quarantined destructive case @regression @destructive @quarantine', () => {});

@@ -11,8 +11,10 @@
  * Quarantine convention.
  *   - A test confirmed flaky by this lane gets the tag `@quarantine` (in the title or in
  *     `{ tag: '@quarantine' }`) together with a link to the issue that tracks the fix.
- *   - The published lane runs with `--grep-invert @quarantine`; the suite, the known-gap and the
- *     destructive lanes still run quarantined tests until GATE-23 leaves them out of every gate.
+ *   - Every other run leaves quarantined tests out: the suite, smoke, the known-gap, published and
+ *     destructive lanes (the `grepInvert` of each `api-<pack>` project, `projectTagFilter` in
+ *     scripts/lib/tags.mjs). This lane alone keeps them, by setting QA_INCLUDE_QUARANTINE=1 for its
+ *     Playwright process; the variable is internal, never set by hand.
  *     Gate lanes run with zero retries, so nothing can hide behind a retry.
  *   - Quarantine is temporary: this lane keeps running the quarantined tests, and a quarantined test
  *     that passes every one of its N repeats is reported as a candidate for release.
@@ -45,6 +47,7 @@ import {
   runLane,
   unexplainedExit,
 } from './lib/playwright-lane.mjs';
+import { FLAKE_LANE_ENV } from './lib/tags.mjs';
 
 export {
   QUARANTINE_TAG,
@@ -57,6 +60,9 @@ export {
 };
 
 export const DEFAULT_REPEATS = 5;
+
+/** The environment this lane hands to Playwright: zero retries, and the quarantined tests kept. */
+export const LANE_ENV = Object.freeze({ ...GATE_ENV, [FLAKE_LANE_ENV]: '1' });
 
 // ---------------------------------------------------------------------------------------------
 // Verdicts
@@ -156,7 +162,7 @@ export function parseRepeats(raw) {
  */
 export function flakeLane(options, root = REPO_ROOT, env = process.env, run = runLane) {
   assertZeroRetries(env);
-  const lane = run(root, laneArgs(options), GATE_ENV);
+  const lane = run(root, laneArgs(options), LANE_ENV);
   if (lane.runnerError) {
     throw new Error(`${unexplainedExit(lane, false)}.\n${lane.stderr || lane.stdout}`.trim());
   }

@@ -20,7 +20,8 @@ description: >-
    none), say so and stop; never widen it on your own. `@destructive` cases are left out of every
    run by the Playwright config; run them only with `npm run lanes:destructive`, last, which follows
    each with its pack's recovery (L-59) and adds its results to the run before it, so step 5 reports
-   both. The tool lanes of [quality gates](../../../docs/quality-gates.md#lanes) run outside
+   both. `@quarantine` cases are left out of every run too, lanes included; only
+   `npm run lanes:flake` runs them, so report them as quarantined, never as missing. The tool lanes of [quality gates](../../../docs/quality-gates.md#lanes) run outside
    Playwright, each with `-- --service <pack> [--actor <name>]`: `npm run lanes:dast`,
    `npm run lanes:perf` and `npm run lanes:diff` (which also needs `--reference <env>`); then
    `npm run quality:gate` judges the DAST and performance reports.

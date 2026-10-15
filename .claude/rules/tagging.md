@@ -25,7 +25,7 @@ add a tag, change that file and this table in the same commit; a test keeps them
 | `@data-integrity` | category | the case reads state back: round trips, preserved fields, cascades, state after an error |
 | `@contract-drift` | category | the case documents a difference between the contract and the service |
 | `@known-gap` | category | the case is armed with `knownGap(key, why)` because an open issue keeps it red |
-| `@quarantine` | category | the flake lane confirmed the case is flaky; the published lane leaves it out until the linked fix lands (the other runs still include it, GATE-23) |
+| `@quarantine` | category | the flake lane confirmed the case is flaky; every run but the flake lane's leaves it out until the linked fix lands |
 | `@destructive` | category | the case leaves the service in a state no API call can undo, or breaks a read for every other caller while its record exists; it never runs next to other cases (L-59) |
 
 Rules of thumb:
@@ -42,6 +42,10 @@ Rules of thumb:
   (`lint-harness` destructive-isolation). Every run leaves these cases out (the `api-<pack>`
   projects' `grepInvert`); `npm run lanes:destructive` runs them alone, last, each followed by the
   `recovery` command of the case's pack entry in the active environment of qa-config.
+- **`@quarantine` links its fix.** The tag goes with a link to the issue that tracks the flakiness.
+  Every run leaves the case out (the same `grepInvert`), the known-gap, published and destructive
+  lanes included; only `npm run lanes:flake` keeps it, to report when it is stable enough to release
+  ([quality gates](../../docs/quality-gates.md#quarantine)).
 - **A workaround names its exit.** Code that compensates for someone else's defect says which issue
   it waits on and what has to become true to remove it, in a form `npm run cited:status` can read:
   "until `<KEY>` ships". If the issue closes as won't fix, rewrite the comment, either to point at

@@ -49,7 +49,8 @@ the pack has `allow_writes` true.
    ```
    Every designed case of the file appears exactly once in the listing; `lint:qa` (the harness
    linter's tag taxonomy) already holds each title to exactly one layer tag. `@destructive` cases
-   are left out of every run and listing; add `QA_DESTRUCTIVE=1` to list them.
+   are left out of every run and listing; add `QA_DESTRUCTIVE=1` to list them. `@quarantine` cases
+   are left out too, and only `npm run lanes:flake` runs them.
 5. **Run** the new specs together against the environment
    (`npx playwright test services/<pack>/specs/<file> ...`), then the `@destructive` ones with
    `npm run lanes:destructive -- --service <pack>`, which runs each alone and follows it with the

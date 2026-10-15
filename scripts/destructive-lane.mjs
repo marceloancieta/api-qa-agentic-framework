@@ -67,11 +67,11 @@ import {
   unexplainedExit,
 } from './lib/playwright-lane.mjs';
 import { describeExit, exitCodeOf } from './lib/spawn.mjs';
-import { DESTRUCTIVE_TAG } from './lib/tags.mjs';
+import { DESTRUCTIVE_LANE_ENV, DESTRUCTIVE_TAG, QUARANTINE_TAG } from './lib/tags.mjs';
 import { recordsFor } from './known-gap-lane.mjs';
 
 export const PROBLEM_VERDICTS = new Set(['failed', 'gap-passing', 'not-run']);
-export const LANE_ENV = Object.freeze({ ...GATE_ENV, QA_DESTRUCTIVE: '1' });
+export const LANE_ENV = Object.freeze({ ...GATE_ENV, [DESTRUCTIVE_LANE_ENV]: '1' });
 const DEFAULT_READY_TIMEOUT_S = 60;
 
 // ---------------------------------------------------------------------------------------------
@@ -79,12 +79,15 @@ const DEFAULT_READY_TIMEOUT_S = 60;
 
 /**
  * Every `@destructive` test under `<root>/services/<pack>/specs`, in file and line order, with the
- * pack it belongs to.
+ * pack it belongs to. A quarantined one is left out: every run leaves `@quarantine` out, this lane's
+ * too (`projectTagFilter` in scripts/lib/tags.mjs).
  */
 export function findDestructive(root, pack = null) {
   return specFiles(root, pack).flatMap((file) =>
     parseSpecFile(root, file)
-      .tests.filter((test) => test.tags.includes(DESTRUCTIVE_TAG))
+      .tests.filter(
+        (test) => test.tags.includes(DESTRUCTIVE_TAG) && !test.tags.includes(QUARANTINE_TAG),
+      )
       .map((test) => ({
         file,
         pack: packOfSpec(file),
