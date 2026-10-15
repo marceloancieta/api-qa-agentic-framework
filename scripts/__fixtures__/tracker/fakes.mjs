@@ -52,6 +52,8 @@ export function fakeGitHub({
   let nextComment = 100;
   const calls = [];
   const queries = [];
+  // Requests send label names; GitHub stores and returns label objects.
+  const labelObjects = (names = []) => names.map((name) => ({ name, color: 'ededed' }));
   // GET /search/issues: quoted terms are text, unquoted `name:value` terms are qualifiers, and
   // several `repo:` qualifiers widen the search to each of them.
   const search = (q, perPage) => {
@@ -104,7 +106,7 @@ export function fakeGitHub({
         title: body.title,
         body: body.body,
         state: 'open',
-        labels: body.labels,
+        labels: labelObjects(body.labels),
       };
       issue.html_url = `https://github.example/${repo}/issues/${issue.number}`;
       issues.set(String(issue.number), issue);
@@ -113,7 +115,9 @@ export function fakeGitHub({
     if ((match = new RegExp(`^${base}/(\\d+)$`).exec(pathname))) {
       const issue = issues.get(match[1]);
       if (!issue) return json(404, { message: 'Not Found' });
-      if (method === 'PATCH') Object.assign(issue, body);
+      // A PATCH replaces each field it names; `labels` replaces the whole set.
+      if (method === 'PATCH')
+        Object.assign(issue, body, body.labels ? { labels: labelObjects(body.labels) } : {});
       return json(200, full ? { ...issue, body_html: render(issue.body) } : issue);
     }
     if ((match = new RegExp(`^${base}/(\\d+)/comments$`).exec(pathname)) && method === 'POST') {
@@ -204,6 +208,7 @@ export function fakeJira({
         key,
         summary: body.fields.summary,
         description: body.fields.description,
+        labels: body.fields.labels ?? [],
         status: STATUSES['To Do'],
         comments: [],
         updated: ++clock,
@@ -213,9 +218,22 @@ export function fakeJira({
     if ((match = /^\/rest\/api\/2\/issue\/([^/]+)$/.exec(pathname))) {
       const issue = issues.get(decodeURIComponent(match[1]));
       if (!issue) return json(404, { errorMessages: ['Issue does not exist'] });
+      // PUT sets the fields it names (`labels` replaces the whole set) and answers 204.
+      if (method === 'PUT') {
+        const unknown = Object.keys(body.fields).filter((f) => !['summary', 'labels'].includes(f));
+        if (unknown.length > 0)
+          return json(400, {
+            errors: Object.fromEntries(unknown.map((f) => [f, 'not on screen'])),
+          });
+        if (body.fields.summary !== undefined) issue.summary = body.fields.summary;
+        if (body.fields.labels !== undefined) issue.labels = body.fields.labels;
+        issue.updated = ++clock;
+        return json(204);
+      }
       const fields = {
         summary: issue.summary,
         description: issue.description,
+        labels: issue.labels,
         status: issue.status,
       };
       const rendered = (searchParams.get('expand') ?? '').includes('renderedFields');

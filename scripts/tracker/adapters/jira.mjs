@@ -53,7 +53,7 @@ export function createTracker(
   const read = (key) =>
     request(
       'GET',
-      `${API}/issue/${encodeURIComponent(key)}?fields=summary,description,status&expand=renderedFields`,
+      `${API}/issue/${encodeURIComponent(key)}?fields=summary,description,status,labels&expand=renderedFields`,
     );
 
   const summary = (issue) => {
@@ -74,7 +74,11 @@ export function createTracker(
       const response = await read(key);
       if (response.status === 404) return null;
       const issue = await expectOk(response, `read ${key}`);
-      return { ...summary(issue), body: issue.fields?.description ?? '' };
+      return {
+        ...summary(issue),
+        body: issue.fields?.description ?? '',
+        labels: issue.fields?.labels ?? [],
+      };
     },
 
     async searchIssues(text, { open = false, limit = SEARCH_LIMIT.default } = {}) {
@@ -103,6 +107,18 @@ export function createTracker(
       };
       const created = await expectOk(await request('POST', `${API}/issue`, { fields }), 'create');
       return { key: created.key, url: `${site}/browse/${created.key}` };
+    },
+
+    // Setting `labels` in `fields` replaces the issue's whole label set.
+    async updateIssue(key, { title, labels }) {
+      const fields = {
+        ...(title === undefined ? {} : { summary: title }),
+        ...(labels === undefined ? {} : { labels }),
+      };
+      await expectOk(
+        await request('PUT', `${API}/issue/${encodeURIComponent(key)}`, { fields }),
+        `update ${key}`,
+      );
     },
 
     async transition(key, target) {

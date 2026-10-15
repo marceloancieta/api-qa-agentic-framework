@@ -55,6 +55,71 @@ test('a body changed by the tracker fails the read-back (L-04)', async () => {
   );
 });
 
+test('an update refuses what it cannot do or check, before writing anything', async () => {
+  const adapter = createLocal({}, { root: mkdtempSync(join(tmpdir(), 'trk-update-')) });
+  let writes = 0;
+  const tracker = verifiedTracker({
+    ...adapter,
+    updateIssue: async (...args) => {
+      writes += 1;
+      return adapter.updateIssue(...args);
+    },
+  });
+  const { key } = await tracker.createIssue({ title: 't', body: '', labels: ['class:a'] });
+  await assert.rejects(tracker.updateIssue(key, {}), /Nothing to update on LOCAL-1/);
+  await assert.rejects(tracker.updateIssue(key, { title: '  ' }), /new title of LOCAL-1 is empty/);
+  await assert.rejects(
+    tracker.updateIssue(key, { addLabels: ['x'], removeLabels: ['x'] }),
+    /x cannot be both added to and removed from LOCAL-1/,
+  );
+  await assert.rejects(
+    tracker.updateIssue(key, { removeLabels: ['class:b'] }),
+    /LOCAL-1 has no label class:b to remove \(labels: class:a\)/,
+  );
+  await assert.rejects(tracker.updateIssue('LOCAL-9', { title: 'x' }), /No issue LOCAL-9/);
+  assert.equal(writes, 0);
+  const again = await tracker.updateIssue(key, { addLabels: ['class:a', 'class:a'] });
+  assert.deepEqual(again.labels, ['class:a'], 'adding a label it has already changes nothing');
+});
+
+test('an update the tracker did not apply fails the read-back (L-04)', async () => {
+  const adapter = createLocal({}, { root: mkdtempSync(join(tmpdir(), 'trk-ignored-')) });
+  const ignoresLabels = {
+    ...adapter,
+    updateIssue: (key, { title }) => adapter.updateIssue(key, { title }),
+  };
+  const tracker = verifiedTracker(ignoresLabels);
+  const { key } = await tracker.createIssue({ title: 't', body: '', labels: ['a'] });
+  await assert.rejects(
+    tracker.updateIssue(key, { title: 'u', addLabels: ['b'] }),
+    /Read-back of the labels of LOCAL-1 differs from what was sent: sent \[a, b\], read back \[a\]/,
+  );
+  const ignoresTitle = verifiedTracker({ ...adapter, updateIssue: async () => {} });
+  await assert.rejects(ignoresTitle.updateIssue(key, { title: 'v' }), /Read-back of the title/);
+});
+
+test('a tracker without updateIssue or without labels in getIssue says it cannot update', async () => {
+  const adapter = createLocal({}, { root: mkdtempSync(join(tmpdir(), 'trk-noupdate-')) });
+  const { updateIssue, ...withoutUpdate } = adapter;
+  assert.equal(typeof updateIssue, 'function');
+  const old = verifiedTracker(withoutUpdate);
+  const { key } = await old.createIssue({ title: 't', body: '' });
+  await assert.rejects(old.updateIssue(key, { title: 'u' }), /local tracker cannot update issues/);
+  const noLabels = verifiedTracker({
+    ...adapter,
+    getIssue: async (k) => {
+      const issue = await adapter.getIssue(k);
+      delete issue.labels;
+      return issue;
+    },
+  });
+  await assert.rejects(
+    noLabels.updateIssue(key, { addLabels: ['a'] }),
+    /does not read labels back, so it cannot change them/,
+  );
+  assert.equal((await noLabels.updateIssue(key, { title: 'u' })).title, 'u');
+});
+
 test('GitHub has no in-progress state; Jira lists what is reachable', async () => {
   const gh = verifiedTracker(github());
   const { key } = await gh.createIssue({ title: 't', body: '' });
@@ -103,8 +168,16 @@ test('the CLI creates, comments, moves and reads through the verified tracker', 
   );
   await runCommand(['comment', issue, '--body-file', bodyFile], { tracker, log });
   await runCommand(['move', issue, 'done'], { tracker, log });
+  await runCommand(
+    ['update', issue, '--title', 'cli issue, renamed', '--add-label', 'a', '--add-label', 'b'],
+    { tracker, log },
+  );
+  const updated = await runCommand(['update', issue, '--remove-label', 'a'], { tracker, log });
+  assert.deepEqual(updated.labels, ['b']);
   const read = await runCommand(['get', issue], { tracker, log });
-  assert.deepEqual([read.title, read.category], ['cli issue', 'done']);
+  assert.deepEqual([read.title, read.category], ['cli issue, renamed', 'done']);
+  await assert.rejects(runCommand(['update'], { tracker, log }), /update needs the key/);
+  await assert.rejects(runCommand(['update', issue], { tracker, log }), /Nothing to update/);
   await assert.rejects(
     runCommand(['create', '--title', 't'], { tracker, log }),
     /--body-file is required/,

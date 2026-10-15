@@ -2,14 +2,21 @@
 //
 // An adapter is a plain object:
 //   name
-//   getIssue(key)                    { key, title, body, status, category, url } or null when absent
+//   getIssue(key)                    { key, title, body, labels, status, category, url } or null
+//                                    when absent
 //   searchIssues(text, { open, limit })    [{ key, title, status, category, url }], at most `limit`
 //   createIssue({ title, body, labels })   { key, url }
 //   transition(key, target)          moves the issue; target is a status name or a category
 //   comment(key, body)               { id }
 //   readComment(key, id)             { body }
+//   updateIssue(key, { title, labels })    optional: sets the title and replaces the label set; a
+//                                    field left out is not changed
 //   renderedIssueBody(key), renderedComment(key, id)   optional: the HTML the tracker shows
 // `category` is the tracker-neutral state: open, in-progress or done.
+//
+// `updateIssue` through the wrapper adds and removes labels: it reads the issue's labels first and
+// sends the whole new set, so labels nobody named are kept. Removing a label the issue does not have
+// is refused, so a misspelt label never passes for a done change.
 //
 // `searchIssues` finds the issues whose text contains every word of `text`, ignoring case, in the
 // tracker's own text search: title, description and comments. `open: true` leaves out done issues.
@@ -66,6 +73,32 @@ function sameText(what, sent, readBack) {
   }
 }
 
+const labelSet = (labels) => [...new Set(labels ?? [])].sort();
+
+function sameLabels(key, sent, readBack) {
+  const want = labelSet(sent);
+  const got = labelSet(readBack);
+  if (want.join('\n') !== got.join('\n')) {
+    throw new Error(
+      `Read-back of the labels of ${key} differs from what was sent: sent [${want.join(', ')}], read back [${got.join(', ')}].`,
+    );
+  }
+}
+
+/** The new label set of an update, or an error naming what is wrong with the request. */
+export function updatedLabels(key, current, { add = [], remove = [] } = {}) {
+  const both = add.filter((label) => remove.includes(label));
+  if (both.length > 0)
+    throw new Error(`${both.join(', ')} cannot be both added to and removed from ${key}.`);
+  const missing = remove.filter((label) => !current.includes(label));
+  if (missing.length > 0) {
+    throw new Error(
+      `${key} has no label ${missing.join(', ')} to remove (labels: ${labelSet(current).join(', ') || 'none'}).`,
+    );
+  }
+  return labelSet([...current.filter((label) => !remove.includes(label)), ...add]);
+}
+
 function renderedKeepsPlaceholders(what, source, html) {
   const lost = lostPlaceholders(source, htmlToText(html));
   if (lost.length > 0)
@@ -119,6 +152,36 @@ export function verifiedTracker(adapter, log = null) {
       }
       log?.info('comment added', { key, comment: id });
       return { id };
+    },
+
+    async updateIssue(key, { title, addLabels = [], removeLabels = [] } = {}) {
+      if (typeof adapter.updateIssue !== 'function')
+        throw new Error(`The ${adapter.name} tracker cannot update issues (no updateIssue()).`);
+      const changesLabels = addLabels.length > 0 || removeLabels.length > 0;
+      if (title === undefined && !changesLabels)
+        throw new Error(`Nothing to update on ${key}: give a title or labels to add or remove.`);
+      if (title !== undefined && !String(title).trim())
+        throw new Error(`The new title of ${key} is empty.`);
+      const before = await adapter.getIssue(key);
+      if (!before) throw new Error(`No issue ${key}.`);
+      if (changesLabels && !Array.isArray(before.labels))
+        throw new Error(
+          `The ${adapter.name} tracker does not read labels back, so it cannot change them.`,
+        );
+      const change = {
+        ...(title === undefined ? {} : { title }),
+        ...(changesLabels
+          ? { labels: updatedLabels(key, before.labels, { add: addLabels, remove: removeLabels }) }
+          : {}),
+      };
+      await adapter.updateIssue(key, change);
+      const back = await adapter.getIssue(key);
+      if (!back) throw new Error(`Read-back: issue ${key} cannot be read after the update.`);
+      if (change.title !== undefined) sameText(`the title of ${key}`, change.title, back.title);
+      if (change.labels) sameLabels(key, change.labels, back.labels);
+      const updated = { key, title: back.title, labels: labelSet(back.labels) };
+      log?.info('issue updated', { key, title: updated.title, labels: updated.labels.join(',') });
+      return updated;
     },
 
     async transition(key, target) {

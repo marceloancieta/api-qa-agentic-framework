@@ -30,6 +30,7 @@ export function createTracker(options = {}, { root = process.cwd() } = {}) {
             key,
             title: issue.title,
             body: issue.body,
+            labels: issue.labels ?? [],
             status: issue.status,
             category: issue.category,
             url: urlOf(key),
@@ -64,6 +65,15 @@ export function createTracker(options = {}, { root = process.cwd() } = {}) {
       store.issues[key] = { title, body, labels, status: 'open', category: 'open', comments: [] };
       save(store);
       return { key, url: urlOf(key) };
+    },
+
+    async updateIssue(key, { title, labels }) {
+      const store = load();
+      const issue = store.issues[key];
+      if (!issue) throw new Error(`No issue ${key}.`);
+      if (title !== undefined) issue.title = title;
+      if (labels !== undefined) issue.labels = labels;
+      save(store);
     },
 
     async transition(key, target) {
