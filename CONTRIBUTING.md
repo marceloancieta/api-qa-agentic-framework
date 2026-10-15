@@ -96,11 +96,12 @@ The project follows GitHub Flow ([ADR 0008](docs/adr/0008-branching-and-traceabi
 - releases are tags `vX.Y.Z` on `main`.
 
 The repository enforces it with the ruleset in `.github/rulesets/main.json`. `main` accepts changes
-only through pull requests, squash merges only, with a linear history. A pull request merges when the `title`, `gates` and `e2e (petstore)`
-checks pass. The `title` check reads the pull-request title with the same parser as the changelog
-(`npm run commit:title -- "<title>"` runs it locally), because the title becomes the commit subject
-on `main`. Opening a pull request fills in its template. Locally, the `git-policy` hook asks
-before a commit straight onto `main` and checks the subject's shape (qa-config `policies`).
+only through pull requests, squash merges only, with a linear history. A pull request merges when
+the `title`, `gates` and `e2e (petstore)` checks pass. The `title` check reads the pull-request
+title with the same parser as the changelog (`npm run commit:title -- "<title>"` runs it locally),
+because the title becomes the commit subject on `main`. Opening a pull request fills in its
+template. Locally, the `git-policy` hook asks before a commit straight onto `main` and checks the
+subject's shape (qa-config `policies`).
 
 ### Releases
 

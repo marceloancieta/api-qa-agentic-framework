@@ -44,7 +44,9 @@ description: >-
    - data the run created and did not remove.
 7. **Follow-ups** are proposals, not actions: a design change (`qa-design`), a defect
    (`qa-report-bug`), a flaky case (`npm run lanes:flake`), or a known gap that started passing
-   (check whether its issue is fixed before removing the arm, L-14).
+   (check whether its issue is fixed before removing the arm, L-14). If `qa-publish` handed this
+   run off for a results-first tool (Allure TestOps, an Allure report), return to `qa-publish`
+   step 6 with `reports/tm/report-<provider>.json`; `qa-run` itself never moves a registry row.
 
 ## If it stops halfway
 

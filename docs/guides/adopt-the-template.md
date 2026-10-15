@@ -35,7 +35,8 @@ gh repo create <owner>/<name> --template <framework-owner>/<framework-repo> --pr
 
 Leave **Include all branches** off. The copy holds the framework's default branch as it was at that
 moment, which can be ahead of its latest release, so note the commit it came from; step 3 records
-it, and step 5 starts from it:
+it, and step 5 starts from it. Run this right after creating the copy, because it prints the
+framework's latest commit, not the one the copy was made from:
 
 ```sh
 git ls-remote <framework-repository-url> HEAD
@@ -62,13 +63,16 @@ gh api -X PUT repos/<owner>/<name>/private-vulnerability-reporting
 
 The ruleset can also be imported in **Settings** > **Rules** > **Rulesets** > **New ruleset** >
 **Import a ruleset**. `scripts/__tests__/ruleset.test.mjs` keeps its required checks equal to job
-names of `.github/workflows/ci.yml`; rename a job and that test tells you to update the file, and
-then the ruleset on GitHub.
+names of `.github/workflows/ci.yml`. If you rename a required job, update the file, the expected
+list in that test, and then the ruleset on GitHub.
 
 Then decide on the parts that depend on the repository ([CI security](../ci-security.md)):
 
 - **CodeQL** runs free on a public repository. A private one needs GitHub's code security licence,
   without which the upload step fails; delete `.github/workflows/codeql.yml` if you do not have it.
+- **The scheduled lanes** run against the example packs: `drift.yml` daily, and `dast.yml`,
+  `perf.yml` and `diff.yml` weekly ([CI](../ci.md)), which a private repository pays for in Actions
+  minutes. Disable the ones you do not want under **Actions**, or delete them.
 - **The AI review** of pull requests runs only once you add the `ANTHROPIC_API_KEY` Actions secret.
 - **Secret scanning and push protection** are repository settings under **Settings** >
   **Code security**; the gitleaks workflow runs either way.
@@ -86,6 +90,9 @@ Set up the clone first, as in the [README](../../README.md#first-10-minutes): `n
    cp docs/templates/backlog.md docs/backlog.md
    ```
 
+   Ids such as `FUT-12` or `GATE-23` that the framework's docs and rules cite then refer to the
+   framework's backlog, on its GitHub page.
+
 2. **Start your own changelog.** Keep the header of `CHANGELOG.md` and delete the framework's
    release sections, from the first `## [` heading to the end; `npm run changelog:write` adds your
    first release below the header:
@@ -98,7 +105,8 @@ Set up the clone first, as in the [README](../../README.md#first-10-minutes): `n
    holds the template's files, so it needs no other message.
 3. **Name the project.** In `package.json`, set `name`, `description` and `author`, and `version`
    to `0.0.0`; your first release is then `0.1.0`
-   ([releases](../../CONTRIBUTING.md#releases)). Keep `"private": true`.
+   ([releases](../../CONTRIBUTING.md#releases)). Keep `"private": true`. Then run
+   `npm install --package-lock-only`, so `package-lock.json` carries the same name and version.
 4. **Keep `LICENSE` and `NOTICE`.** The framework is under the Apache License 2.0, and a work
    derived from it carries both files. Add your own copyright line to `NOTICE` for what you add.
 5. **Run the gates.** `npm run gates` passes with no other change.
@@ -126,17 +134,36 @@ The copy and the framework share no history, so a release is taken as the differ
 framework commit your repository is on and the release tag, applied to your repository:
 
 ```sh
-git remote add framework <framework-repository-url>
-git fetch framework --tags
+git remote add --no-tags framework <framework-repository-url>
+git fetch framework '+refs/tags/*:refs/framework/tags/*'
 git switch -c chore/repo-nn-framework-<new>
-git diff <old> v<new> -- . ':(exclude)docs/backlog.md' ':(exclude)CHANGELOG.md' > framework.patch
+git diff <old> refs/framework/tags/v<new> -- . \
+  ':(exclude)docs/backlog.md' ':(exclude)CHANGELOG.md' > framework.patch
 git apply -3 framework.patch
 rm framework.patch
 ```
 
-`<old>` is the framework commit your repository is on (`REPO-01` records the first one; after a
-release you take, it is that release's tag, `v<x.y.z>`), and `<new>` the release you take. The framework's backlog and changelog stay out, because yours replace them.
+The framework's tags are fetched under `refs/framework/tags/`, because your own releases also start
+at `v0.1.0` and the names would collide. `<old>` is the framework commit your repository is on:
+`REPO-01` records the first one, and after you take a release it is that release's tag,
+`refs/framework/tags/v<x.y.z>`. `<new>` is the release you take. The framework's backlog and
+changelog stay out, because yours replace them.
+
 `git apply -3` merges each change into files you edited as well, and leaves conflict markers where
-both sides changed the same lines; resolve them, run `npm run gates`, and read the framework's
-`CHANGELOG.md` section for the release, which names the changes that need something from you. Open
-the pull request with a backlog id of your own, and note the new framework version in its row.
+both sides changed the same lines. It changes nothing at all if the patch touches a file you
+deleted, such as `codeql.yml` or a scheduled lane in step 2. Leave each one out with
+`--exclude=<path>`:
+
+```sh
+git apply -3 --exclude=.github/workflows/codeql.yml framework.patch
+```
+
+Then:
+
+1. Resolve the conflicts. For `package.json` and `package-lock.json`, keep your name and version,
+   then run `npm install --package-lock-only` and `npm ci`.
+2. Run `npm run gates`.
+3. Read what the release needs from you in its changelog section, with
+   `git show refs/framework/tags/v<new>:CHANGELOG.md`.
+4. Open the pull request with a backlog id of your own, and note the new framework version in its
+   row.
