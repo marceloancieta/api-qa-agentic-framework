@@ -16,7 +16,8 @@ A comment that restates one of these is noise; when one fails, CI already says s
   `scripts/lint-harness.mjs` (how a spec drives the runner, tags, destructive isolation),
   `scripts/lint-suite.mjs` (real identifiers in specs, registries and `docs/`),
   `scripts/lint-docs.mjs` (dead links and paths, orphan docs under `docs/`, backlog shape, closing
-  commits, count claims, ADR index, lesson guards, registry shape, destructive recovery) and
+  commits, count claims, cited contract notes, ADR index, lesson guards, registry shape,
+  destructive recovery) and
   `scripts/lint-layers.mjs` (the core importing a pack, a spec sending a request without a client).
 - **The pull-request title**: the `title` job of `.github/workflows/ci.yml` runs
   `scripts/commit-title.mjs` on every pull request's title.

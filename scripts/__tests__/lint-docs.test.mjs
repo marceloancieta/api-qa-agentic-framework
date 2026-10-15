@@ -37,6 +37,27 @@ test('closing-commit names every absent hash of a row', () => {
   ]);
 });
 
+test('note-citation names the missing ids and the file that should define them', () => {
+  const messages = lintDocs(FIXTURE_DIR)
+    .filter((f) => f.rule === 'note-citation')
+    .map((f) => f.message)
+    .sort();
+  const notes = 'services/demo/docs/contract-notes.md';
+  assert.deepEqual(
+    messages,
+    [
+      `DN-03 to DN-01 is a reversed range in ${notes}`,
+      `DN-03 to DN-05: DN-04 is not a note in ${notes}`,
+      `DN-04 is not a note in ${notes}`,
+      `DN-06 is not a note in ${notes}`,
+      `DN-07 is not a note in ${notes}`,
+      `DN-1 is not a note in ${notes}`,
+      'DN-02 is already defined at line 8',
+      `prefix DN is already used by ${notes}; give this pack its own`,
+    ].sort(),
+  );
+});
+
 test('closing-commit is not checked when the root is not a git repository', () => {
   assert.deepEqual(closingCommit(lintDocs(FIXTURE_DIR)), []);
 });
