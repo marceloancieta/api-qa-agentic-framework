@@ -25,6 +25,10 @@ const number = (key) => {
   return match[1];
 };
 
+// GitHub returns labels as objects; a request may send their names.
+const labelNames = (labels = []) =>
+  labels.map((label) => (typeof label === 'string' ? label : label.name));
+
 async function expectOk(response, what) {
   if (response.ok) return response.json;
   throw new Error(`GitHub ${what}: HTTP ${response.status} ${response.text.slice(0, 200)}`);
@@ -64,7 +68,7 @@ export function createTracker(
       const response = await request('GET', `${repo}/issues/${number(key)}`);
       if (response.status === 404) return null;
       const issue = await expectOk(response, `read #${number(key)}`);
-      return { ...summary(issue), body: issue.body ?? '' };
+      return { ...summary(issue), body: issue.body ?? '', labels: labelNames(issue.labels) };
     },
 
     async searchIssues(text, { open = false, limit = SEARCH_LIMIT.default } = {}) {
@@ -90,6 +94,18 @@ export function createTracker(
         'create',
       );
       return { key: `#${issue.number}`, url: issue.html_url };
+    },
+
+    // A PATCH with `labels` replaces the issue's whole label set.
+    async updateIssue(key, { title, labels }) {
+      const change = {
+        ...(title === undefined ? {} : { title }),
+        ...(labels === undefined ? {} : { labels }),
+      };
+      await expectOk(
+        await request('PATCH', `${repo}/issues/${number(key)}`, change),
+        `update #${number(key)}`,
+      );
     },
 
     async transition(key, target) {

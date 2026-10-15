@@ -9,6 +9,8 @@
  *   node scripts/tracker/cli.mjs create --title <text> --body-file <file> [--label <name>]...
  *   node scripts/tracker/cli.mjs comment <key> --body-file <file>
  *   node scripts/tracker/cli.mjs move <key> <status or category>
+ *   node scripts/tracker/cli.mjs update <key> [--title <text>] [--add-label <name>]...
+ *                                    [--remove-label <name>]...
  */
 
 import { readFileSync } from 'node:fs';
@@ -19,7 +21,7 @@ import { createLogger } from '../lib/log.mjs';
 import { loadTracker, trackerConfig } from './index.mjs';
 
 const USAGE =
-  'Usage: tracker get <key> | search <text> [--open] [--limit <n>] | create --title <t> --body-file <f> [--label <l>] | comment <key> --body-file <f> | move <key> <status>';
+  'Usage: tracker get <key> | search <text> [--open] [--limit <n>] | create --title <t> --body-file <f> [--label <l>] | comment <key> --body-file <f> | move <key> <status> | update <key> [--title <t>] [--add-label <l>] [--remove-label <l>]';
 
 const issueLine = (issue) => ({
   key: issue.key,
@@ -36,6 +38,8 @@ export async function runCommand(argv, { tracker, log }) {
       title: { type: 'string' },
       'body-file': { type: 'string' },
       label: { type: 'string', multiple: true },
+      'add-label': { type: 'string', multiple: true },
+      'remove-label': { type: 'string', multiple: true },
       open: { type: 'boolean' },
       limit: { type: 'string' },
     },
@@ -73,6 +77,13 @@ export async function runCommand(argv, { tracker, log }) {
     case 'move':
       if (!target) throw new Error('move needs a target status or category.');
       return tracker.transition(key, target);
+    case 'update':
+      if (!key) throw new Error('update needs the key of the issue.');
+      return tracker.updateIssue(key, {
+        title: values.title,
+        addLabels: values['add-label'] ?? [],
+        removeLabels: values['remove-label'] ?? [],
+      });
     default:
       throw new Error(USAGE);
   }

@@ -54,8 +54,11 @@ severity. Wait for approval.
    with no `severity:` label: its title ends with `(unconfirmed)` and its description proposes the
    severity ([bug
    reporting](../../../docs/references/bug-reporting.md#1-confirmed-unconfirmed-or-unknown)). Add a
-   comment to an existing issue with `npm run tracker -- comment <KEY> --body-file <file>`. The
-   wrapper reads every write back and checks that placeholders survived rendering (L-04, L-47).
+   comment to an existing issue with `npm run tracker -- comment <KEY> --body-file <file>`, and
+   change its title or labels with `npm run tracker -- update <KEY> [--title "<title>"]
+   [--add-label <l>] [--remove-label <l>]` when a finding is promoted or an issue re-scoped (bug
+   reporting, sections 1 and 4). The wrapper reads every write back and checks that placeholders
+   survived rendering (L-04, L-47).
 3. Add the supporting detail as the first comment, the same way.
 4. Map the cases. Every affected case cites the one key: in the registry Defect column, and in a
    `knownGap('<KEY>', why)` arm with `@known-gap` for cases that still run. Their status does not

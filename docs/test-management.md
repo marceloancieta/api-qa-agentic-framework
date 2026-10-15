@@ -114,12 +114,18 @@ resolves every key its registries and contract notes name, and `cited:status` wo
 setup. A project with a real tracker sets its own provider in `qa-config.json`.
 
 `npm run tracker -- get <key>`, `create --title <t> --body-file <f> [--label <name>]...`,
-`comment <key> --body-file <f>`
-and `move <key> <status>` go through a verified wrapper:
+`comment <key> --body-file <f>`, `move <key> <status>` and
+`update <key> [--title <t>] [--add-label <name>]... [--remove-label <name>]...` go through a
+verified wrapper:
 
 - placeholders are wrapped in code spans before sending;
 - every write is read back;
-- where the tracker renders HTML, every `<placeholder>` must still be visible (L-47).
+- where the tracker renders HTML, every `<placeholder>` must still be visible (L-47);
+- an update reads the issue's labels first and sends the whole new set, so labels it does not name
+  are kept, and it refuses to remove a label the issue does not have.
+
+`update` needs an adapter with `updateIssue` and labels in `getIssue`; the `local`, `github` and
+`jira` adapters have both, and an adapter without them refuses an update instead of guessing.
 
 `npm run tracker -- search <text> [--open] [--limit <n>]` looks for existing issues before one is
 filed or a gap is recorded. It prints one `issue` line per match (key, status, category, url, title)

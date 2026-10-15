@@ -21,9 +21,17 @@ needed. An unconfirmed finding carries the label `type:unconfirmed-finding` and 
 `(unconfirmed)`. Its class label applies as for a defect, and the severity is proposed in the
 description instead of a `severity:` label until it is reproduced.
 
-The tracker wrapper (`npm run tracker`) gets, searches, creates, comments and moves issues; it does
-not edit them. Promoting a finding to a defect, and the re-scoping in section 4, are done today with
-a comment that records the change, then a manual edit of the labels or the title in the tracker.
+**Promoting a finding to a defect** is a comment that records the reproduction, then one update
+that drops `(unconfirmed)` from the title and swaps the labels:
+
+```sh
+npm run tracker -- update <KEY> --title "<title without (unconfirmed)>" \
+  --remove-label type:unconfirmed-finding --add-label severity:<S1-S4>
+```
+
+The wrapper (`npm run tracker`) reads every change back. An update adds and removes the labels it
+names and keeps the others, and it refuses to remove a label the issue does not have. It changes
+titles and labels only, never a description: the comment is the record of what changed.
 
 ## 2. Scope: one issue per fix location
 
@@ -74,8 +82,9 @@ and explain the deviation in the description.
 2. **Check siblings** (L-37). Find every operation that stores the same field or shares the code
    path, and test them. The result decides the level.
 3. **A wider scope found later re-scopes the existing issue.** Add a comment with the new operation
-   list and the reason, then update the list and the level tag in the tracker by hand (section 1).
-   One cause keeps one issue.
+   list and the reason, then give the title its new surface and level tag with
+   `npm run tracker -- update <KEY> --title "<new title>"` (section 1). The comment carries the new
+   list; the description keeps the one it was filed with. One cause keeps one issue.
 4. **A narrower scope found later is a split.** Keep the issue for one fix location and file the
    others, each with its own list. Agree a split with the owner first.
 5. **Propose before filing.** Show the level, the number of issues and the titles, then file.

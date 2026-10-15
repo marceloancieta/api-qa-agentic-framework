@@ -34,6 +34,36 @@ export function describeTrackerContract(name, make, { closes = 'done', reopens =
       assert.ok(id);
     });
 
+    test('a title and labels are updated and read back, keeping the labels nobody named', async () => {
+      const tracker = verifiedTracker(make());
+      const { key } = await tracker.createIssue({
+        title: 'Unknown pet id answers 500 (unconfirmed)',
+        body: BODY,
+        labels: ['class:error-handling', 'type:unconfirmed-finding'],
+      });
+      assert.deepEqual((await tracker.getIssue(key)).labels.sort(), [
+        'class:error-handling',
+        'type:unconfirmed-finding',
+      ]);
+      const promoted = await tracker.updateIssue(key, {
+        title: 'Unknown pet id answers 500',
+        addLabels: ['severity:S3'],
+        removeLabels: ['type:unconfirmed-finding'],
+      });
+      assert.deepEqual(promoted, {
+        key,
+        title: 'Unknown pet id answers 500',
+        labels: ['class:error-handling', 'severity:S3'],
+      });
+      const issue = await tracker.getIssue(key);
+      assert.equal(issue.title, 'Unknown pet id answers 500');
+      assert.deepEqual(issue.labels.sort(), ['class:error-handling', 'severity:S3']);
+      assert.equal(issue.body, BODY.replace('<petId>', '`<petId>`'), 'the body is untouched');
+
+      const retitled = await tracker.updateIssue(key, { title: 'Any unknown id answers 500' });
+      assert.deepEqual(retitled.labels, ['class:error-handling', 'severity:S3']);
+    });
+
     test('an issue moves to done and back', async () => {
       const tracker = verifiedTracker(make());
       const { key } = await tracker.createIssue({ title: 'moved', body: 'x' });
