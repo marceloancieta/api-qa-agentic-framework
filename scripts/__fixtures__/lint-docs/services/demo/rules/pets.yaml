@@ -1,0 +1,6 @@
+# Fixture: a decision table whose comments cite the pack's contract notes.
+rules:
+  - when: an id that was never created
+    then: 404 # plain text, DN-01
+  - when: an empty body
+    then: 500 # DN-07 expect-finding: note-citation

@@ -25,7 +25,7 @@ Runs before every push (pre-push hook) and needs no API:
 |---|---|---|
 | `lint-harness` | specs, through the TypeScript syntax tree | harness misuse: known gaps armed too early or untracked, metadata after a skip, assertions that cannot fail, shared fixtures mutated, I/O at module scope, unnormalized comparisons, tags outside the taxonomy, destructive cases sharing a file |
 | `lint-suite` | specs, registries and docs | real e-mail addresses, hosts, IPs, phone numbers, JWTs, UUIDs and long ids. Only reserved values are accepted (RFC 2606/6761 names, RFC 5737 ranges, 555-01xx, nil UUID, `<placeholders>`); there is no allow-list |
-| `lint-docs` | tracked Markdown | dead links and paths, orphan docs, backlog rows, closing commits missing from the history, numbering, the ADR index, lesson guards, registry shape, destructive cases without a recovery |
+| `lint-docs` | tracked Markdown; for note ids, the tracked code and data files too | dead links and paths, orphan docs, backlog rows, closing commits missing from the history, numbering, cited contract notes their pack does not define, the ADR index, lesson guards, registry shape, destructive cases without a recovery |
 | `lint-layers` | the core and the specs, through the TypeScript syntax tree | the layer boundaries of [ADR 0007](adr/0007-layered-test-architecture.md): a core file that imports from `services/`, a spec that sends a request without a client |
 
 Each linter's header lists its rule names and documents each one; `--self-test` proves them

@@ -6,6 +6,7 @@
 // Scope: every tracked Markdown file (`git ls-files`; a directory that is not a git root, such as
 // the self-test tree, is walked instead). Anything under `__fixtures__/` is linter input, not
 // documentation, and is skipped. Fenced code blocks are skipped; HTML comments are blanked first.
+// note-citation also reads the tracked code and data files (see it below).
 //
 // Rules:
 //   dead-link          `[text](target)` whose target file is missing, or whose `#anchor` names no
@@ -40,6 +41,20 @@
 //                      every ADR of an `ADRs NNNN-NNNN` range exists; a "PREFIX-01 to PREFIX-NN ...
 //                      Done" claim in the backlog matches the ids in Done exactly, with no open row
 //                      of that prefix.
+//   note-citation      every cited contract-note id exists (GATE-22). A pack defines its notes in
+//                      the `Id` table of services/<pack>/docs/contract-notes.md (`| PN-05 | ...`);
+//                      the prefix of those ids (`PN`, `VN`) is the pack's, so a new pack needs no
+//                      change here, and a prefix another pack already uses or an id defined twice is
+//                      a finding. A citation is a defined prefix with a number, alone (`PN-05`) or
+//                      as a range (`PN-07 to PN-16`, `PN-07..PN-16`, every id of it checked), not
+//                      glued to a word or another id (`TC-PN-01`). Ids are compared exactly, so
+//                      one written without its leading zero is a finding. Prefixes no pack defines
+//                      (`CON-08`, `SN-01`) are
+//                      other families and not read. Read: every Markdown file, as above, and the
+//                      tracked .mjs/.cjs/.js/.ts/.mts/.json/.yaml/.yml/.tsv/.txt files, where specs,
+//                      decision tables, lane files and workflows cite notes. CHANGELOG.md and the
+//                      ADRs are read too, because a note keeps its id for good. Not read:
+//                      scripts/__tests__/, whose made-up packs are test data like the fixtures.
 //   adr-index          each docs/adr/NNNN-title.md is listed in docs/adr/README.md and each listed
 //                      number has a file; each ADR has a `**Status:**` line whose value is one of
 //                      ADR_STATUSES and matches the index; every cited `ADR NNNN` exists.
@@ -93,6 +108,9 @@ const STAGE_TOKEN = /\bE\d+(?:\.\d+)?\b/g;
 const CLOSING = /^`[0-9a-f]{7,40}`(?:\s*,\s*`[0-9a-f]{7,40}`)*$/;
 const PATH_EXT = /\.(?:md|mjs|cjs|js|mts|ts|json|ya?ml)$/;
 const CODE_EXT = /\.(?:mjs|cjs|js|mts|ts)$/;
+const NOTES_FILE = /^services\/([^/]+)\/docs\/contract-notes\.md$/;
+const NOTE_ID = /^([A-Z][A-Z0-9]*)-\d{2,}$/;
+const CITING_EXT = /\.(?:md|mjs|cjs|js|mts|ts|json|ya?ml|tsv|txt)$/;
 
 // ---------------------------------------------------------------------------------------------
 // Corpus: the files, and each Markdown file split into analysable lines.
@@ -719,6 +737,96 @@ function checkCounts(corpus, backlog, out) {
   });
 }
 
+/**
+ * The contract notes of every pack: the ids in the first cell of the `Id` tables of
+ * services/<pack>/docs/contract-notes.md, grouped by prefix, each prefix owned by the first pack
+ * (in path order) that defines it. A prefix another pack already owns and an id defined twice are
+ * findings, since either makes a citation ambiguous. `rows` holds the lines of the definition rows
+ * of each file, whose first cell defines an id rather than citing one.
+ */
+function noteDefinitions(corpus, out) {
+  const prefixes = new Map(); // prefix -> { pack, file, ids: id -> line }
+  const rows = new Map(); // file -> Set of line numbers
+  for (const file of corpus.files) {
+    const pack = NOTES_FILE.exec(file)?.[1];
+    if (!pack) continue;
+    const add = (line, message) => out.push(finding('note-citation', file, line, message));
+    const reported = new Set();
+    rows.set(file, new Set());
+    for (const table of tablesOf(corpus.docs.get(file) ?? [])) {
+      if (table.header[0] !== 'Id') continue;
+      for (const row of table.rows) {
+        const match = NOTE_ID.exec(row.cells[0] ?? '');
+        if (!match) continue;
+        rows.get(file).add(row.line);
+        const [id, prefix] = match;
+        if (!prefixes.has(prefix)) prefixes.set(prefix, { pack, file, ids: new Map() });
+        const owner = prefixes.get(prefix);
+        if (owner.pack !== pack) {
+          if (!reported.has(prefix)) {
+            add(
+              row.line,
+              `prefix ${prefix} is already used by ${owner.file}; give this pack its own`,
+            );
+            reported.add(prefix);
+          }
+          continue;
+        }
+        if (owner.ids.has(id))
+          add(row.line, `${id} is already defined at line ${owner.ids.get(id)}`);
+        else owner.ids.set(id, row.line);
+      }
+    }
+  }
+  return { prefixes, rows };
+}
+
+/**
+ * Lines that may cite a note: Markdown outside fences and comments, other text files as they are,
+ * and a definition row without the id it defines.
+ */
+function citingLines(corpus, file, definitionRows) {
+  const lines = corpus.docs.get(file);
+  if (!lines) return readFileSync(join(corpus.root, file), 'utf8').split(/\r?\n/);
+  return lines.map((line, index) => {
+    if (line.code) return '';
+    return definitionRows?.has(index + 1) ? line.text.replace(/^\s*\|[^|]*/, '') : line.text;
+  });
+}
+
+function checkNoteCitations(corpus, out) {
+  const { prefixes, rows } = noteDefinitions(corpus, out);
+  if (prefixes.size === 0) return;
+  const names = [...prefixes.keys()].sort((a, b) => b.length - a.length).join('|');
+  // `PN-05`, and the ranges `PN-07 to PN-16` and `PN-07..PN-16`. A note id glued to a word or to
+  // another id (`TC-PN-01`, `PN-01-x`) is part of something else.
+  const citation = new RegExp(
+    `(?<![\\w-])(${names})-(\\d+)(?:\\s*(?:\\.\\.|to)\\s*\\1-(\\d+))?(?![\\w-])`,
+    'g',
+  );
+  for (const file of corpus.files) {
+    if (file.startsWith('scripts/__tests__/') || !CITING_EXT.test(file)) continue;
+    citingLines(corpus, file, rows.get(file)).forEach((text, index) => {
+      for (const match of text.matchAll(citation)) {
+        const [whole, prefix, from, to] = match;
+        const owner = prefixes.get(prefix);
+        const id = (n) => `${prefix}-${String(n).padStart(from.length, '0')}`;
+        const low = Number(from);
+        const high = Number(to ?? from);
+        const cited = to === undefined ? [`${prefix}-${from}`] : span(low, high).map(id);
+        const absent = cited.filter((note) => !owner.ids.has(note));
+        let problem = null;
+        if (low > high) problem = `${whole} is a reversed range`;
+        else if (to === undefined && absent.length) problem = `${whole} is not a note`;
+        else if (absent.length === 1) problem = `${whole}: ${absent[0]} is not a note`;
+        else if (absent.length) problem = `${whole}: ${absent.join(', ')} are not notes`;
+        if (problem)
+          out.push(finding('note-citation', file, index + 1, `${problem} in ${owner.file}`));
+      }
+    });
+  }
+}
+
 function checkAdrs(corpus, out) {
   const adrs = adrNumbers(corpus);
   const index = `${ADR_DIR}/README.md`;
@@ -914,6 +1022,7 @@ export function lintDocs(root = REPO_ROOT, { git = root } = {}) {
   checkBacklog(backlog, out);
   checkClosingCommits(backlog, git, out);
   checkCounts(corpus, backlog, out);
+  checkNoteCitations(corpus, out);
   checkAdrs(corpus, out);
   checkGuards(corpus, backlog, out);
   checkRegistries(corpus, out);
