@@ -5,6 +5,75 @@ All notable changes to this project are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and each section is generated from the
 commit history by `scripts/changelog.mjs`.
 
+## [0.4.0] - 2026-10-15
+
+### Upgrading from 0.3.0
+
+- **The DAST lane writes only where it may.** It refuses an environment whose pack entry does not
+  set `allow_writes: true` (exit 2), and runs the entry's `recovery` after the scan, so a local
+  Petstore is restarted and its data reset. It scans with the pack's `workers` (`service.json`) as
+  ZAP's threads per host; the Petstore's `1` makes its scan slower.
+- **The DAST and performance lanes authenticate** as the pack's `default` actor (FUT-10). They need
+  the variables of the entry's `auth` (`API_KEY` for the Petstore, `VAMPI_USER_*` and
+  `npm run vampi:users` for VAmPI), and stop with exit 2 when the credential cannot be obtained or
+  would expire during the run. `--actor anonymous` sends none, as 0.3.0 did. The performance lane
+  now plans the operations the contract secures, so its plan and p95 change, and it refuses an API
+  key sent in the query.
+- **The example performance plans changed**: the Petstore's `perf.json` adds `tags`, so
+  `GET /pet/findByTags` is planned; VAmPI's leaves out `GET /books/v1/{book_title}` (VN-09).
+- **`@quarantine` was documented wrongly.** 0.3.0 said the gate lanes leave it out; only the
+  published lane does, and the suite, known-gap and destructive lanes run quarantined tests until
+  GATE-23.
+- **The drift workflow and `Jenkinsfile.drift`** run the known-gap and published lanes with
+  `--service petstore`; a repository with packs of its own adds them there.
+- **The DAST, performance and differential workflows** also run on pull requests that change
+  `scripts/lib/**`, `qa-config.example.json`, a pack's contract or `service.json`.
+- **New and optional**: the `basic` and `oauth2_client_credentials` auth strategies; the scripts
+  `lanes:diff`, `petstore:reference:up` and `down`, `vampi:users` and `auth:live`; the pack files
+  `dast-false-positives.tsv` and `diff.json`; a `reference` environment in
+  `qa-config.example.json`. A `qa-config.json` of your own needs its own reference environment for
+  `lanes:diff`.
+- **`.claude/settings.json`** also denies `Edit` for `~/.ssh/**`, `**/credentials*`,
+  `**/.env.*.local`, `*.pfx` and `*.p12`, as it already denied reading them.
+- **A new gate test**, `scripts/__tests__/ruleset.test.mjs`, requires
+  `.github/rulesets/main.json` whose required checks are `title`, `gates` and `e2e (petstore)`,
+  each a job of `ci.yml`. A copy that renamed those jobs updates both.
+- **Messages that name a credential variable** print a redaction marker instead of a name that is
+  not shaped like an environment variable (GATE-18).
+- **The `petstore` compose image is pinned by digest** (PET-04), so a re-pushed `1.0.28` tag is no
+  longer picked up.
+
+### Features
+
+- **auth:** basic and OAuth 2.0 client credentials strategies (#34) (FUT-04) `e43cc17`
+- **gates:** authenticated DAST and performance lanes (#37) (FUT-10) `741aad0`
+- **gates:** scan the Petstore in the DAST lane (#38) (FUT-10) `708dae7`
+- **gates:** differential lane between two deployments (#40) (FUT-06) `a7ecb5c`
+
+### Fixes
+
+- **compose:** pin the Petstore image by digest (#49) (PET-04) `3181e28`
+- **gates:** keep excluded operations out of ZAP's import (#36) (FUT-01) `4cc7ec6`
+- **hooks:** hook tests ignore inherited git environment (#44) (GATE-19) `5a5da42`
+- **security:** messages print only names shaped like variables (#43) (GATE-18) `120973e`
+- **security:** cap the DAST definition and explain its write (#48) (GATE-20) `764f467`
+
+### Other
+
+- **docs(backlog):** plan v0.4.0 (#33) (DOC-07) `1b3694d`
+- **docs(backlog):** records its closing commit (#35) (FUT-04) `144c4f8`
+- **docs(backlog):** records its closing commits (#39) (FUT-10) `677b090`
+- **docs(backlog):** record their closing commits (#42) (FUT-03, FUT-06) `a535680`
+- **docs(backlog):** record their closing commits (#45) (GATE-18, GATE-19) `ebd3198`
+- **docs(backlog):** records its closing commit (#47) (DOC-07) `9b6aa50`
+- **docs(backlog):** record their closing commits (#50) (GATE-20, PET-04) `8022051`
+- **docs(backlog):** record their closing commits (#53) (FUT-05, DOC-08) `c93e500`
+- **docs(guides):** consumer-driven contracts as an extension (#41) (FUT-03) `fa06a96`
+- **docs(guides):** adopt the framework from its GitHub template (#51) (FUT-05) `4a516ee`
+- **docs(guides):** pre-release review of v0.4.0 (#54) (DOC-09) `d234f8c`
+- **docs(review):** documentation read against the code, ADR 0010 (#46) (DOC-07) `342a0ad`
+- **docs(review):** second documentation review against the code (#52) (DOC-08) `ce9b9a2`
+
 ## [0.3.0] - 2026-10-13
 
 ### Features
