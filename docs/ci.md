@@ -105,7 +105,7 @@ Runs only when `gates` passed. Every step fails the job when its command fails. 
 |---|---|
 | Provide `API_KEY` | The variable that the `petstore` pack's `auth.env` names in qa-config. See [secrets and variables](#secrets-and-variables). |
 | `npm run petstore:up` | Starts the pinned Petstore image and waits for its healthcheck. |
-| `npx playwright test --project=api-petstore` | The `api-petstore` project, after its `preflight-petstore` project: the job starts only the Petstore; VAmPI runs in [`e2e-vampi`](#e2e-vampi). When the API is not answering, the preflight fails once with the reason and no case runs. `@destructive` cases are left out. |
+| `npx playwright test --project=api-petstore` | The `api-petstore` project, after its `preflight-petstore` project: the job starts only the Petstore; VAmPI runs in [`e2e-vampi`](#e2e-vampi). When the API is not answering, the preflight fails once with the reason and no case runs. `@destructive` and `@quarantine` cases are left out. |
 | `npm run lanes:destructive -- --service petstore` | Last. Each `@destructive` case runs alone and is followed by its pack's recovery, a restart of the container, and a wait until the API answers (L-59). Its results join the run above under the same run id. |
 | Rebuild the local tool's definitions | Only for the example's `local` tool: its store (`reports/tm/local`) is not tracked, so a fresh runner starts empty, and `npm run tm:publish` rebuilds the definitions from the registries. A real definitions-first tool is published by `qa-publish` after its review gate, never by CI; a results-first tool (Allure TestOps) needs no definitions. |
 | `npm run tm:report -- --service petstore` | Reports the suite and the destructive lane as one run to the configured tool. |

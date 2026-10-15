@@ -87,6 +87,8 @@ What "green" means here:
 - Cases tagged `@destructive` are left out of every normal run, because they leave the service
   broken for other callers. `npm run lanes:destructive` runs each one alone and restarts the
   container after it.
+- Cases tagged `@quarantine` were confirmed flaky and are left out of every run, lanes included,
+  until their fix lands. Only `npm run lanes:flake` still runs them.
 - If a pack's `preflight-<pack>` project fails, none of that pack's API cases ran. Its message
   names the missing variable or the host that did not answer.
 

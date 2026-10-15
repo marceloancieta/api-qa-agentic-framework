@@ -14,8 +14,9 @@
  *     that differ between the tracked digest (docs/discovery/<pack>-digest.json) and the pack's
  *     current description. Operations reached through a changed named schema count as changed, and
  *     so does changed operation text, since prose can announce a behaviour change.
- *   - Tests tagged `@quarantine` are left out, as this lane is the only one that leaves them out
- *     today; the suite, known-gap and destructive lanes still run them (GATE-23).
+ *   - Tests tagged `@quarantine` are left out, as every run but the flake lane's leaves them out
+ *     (the `grepInvert` of each `api-<pack>` project, `projectTagFilter` in scripts/lib/tags.mjs);
+ *     the lane also passes `--grep-invert @quarantine` and reports them as quarantined.
  *   - Tests tagged `@destructive` are left out: they run only in the destructive lane, each alone
  *     and followed by its pack's recovery (scripts/destructive-lane.mjs).
  *

@@ -46,8 +46,8 @@ matrix, and `traceability:write` writes it to `docs/traceability/<pack>.md`.
 |---|---|
 | `npm run lanes:known-gap` | Every case armed with `test.fail(true, await knownGap(...))`, each in its own Playwright process. A gap that starts passing is reported for investigation before the arm is removed. |
 | `npm run lanes:published` | Registry cases with status `published`, zero retries. `lanes:published:changed` runs only those whose endpoints changed against the tracked digest (`:live` compares with the pack's `spec_url` in the environment). |
-| `npm run lanes:destructive` | Every `@destructive` case (L-59), each alone in its own Playwright process in its pack's `api-<pack>` project, followed by the `recovery` command of that pack's entry in the active qa-config environment and a wait until the pack's base URL answers below 500, for up to `recovery.ready_timeout_s` seconds (default 60). Every other run leaves these cases out (each `api-<pack>` project's `grepInvert`), so the known-gap and published lanes skip them too. A failed recovery stops the lane. Before any case runs, it refuses a pack the environment does not configure or whose entry has `allow_writes` false or no recovery. Its results join the latest run in `allure-results/` (same run id, nothing cleared), so `tm:report` reports the shared run and the destructive cases together; `--new-run` starts a run of its own. |
-| `npm run lanes:flake` | A selection repeated N times (`--repeat-each`, default 5) with retries forced to 0. Reports tests whose repeats disagree and what to quarantine or release. |
+| `npm run lanes:destructive` | Every `@destructive` case (L-59), each alone in its own Playwright process in its pack's `api-<pack>` project, followed by the `recovery` command of that pack's entry in the active qa-config environment and a wait until the pack's base URL answers below 500, for up to `recovery.ready_timeout_s` seconds (default 60). Every other run leaves these cases out (each `api-<pack>` project's `grepInvert`), so the known-gap and published lanes skip them too, and so does the flake lane. A failed recovery stops the lane. Before any case runs, it refuses a pack the environment does not configure or whose entry has `allow_writes` false or no recovery. Its results join the latest run in `allure-results/` (same run id, nothing cleared), so `tm:report` reports the shared run and the destructive cases together; `--new-run` starts a run of its own. |
+| `npm run lanes:flake` | A selection repeated N times (`--repeat-each`, default 5) with retries forced to 0. Reports tests whose repeats disagree and what to quarantine or release. The only run that includes `@quarantine` cases ([quarantine](#quarantine)). |
 | `npm run lanes:dast -- --service <pack>` | An OWASP ZAP API scan of the pack (FUT-01): the OpenAPI document is fetched from the pack's `spec_url` (at most 16 MiB; a larger one stops the lane with 2), ZAP (the `zap` compose service, pinned by digest, profile `dast`) attacks the pack's base URL, injecting into the query, the body and the URL path, and writes `reports/dast/<pack>.json` and `.html` for the quality gate's `dast` check. The pack's policy is `services/<pack>/dast-rules.tsv` (ZAP's IGNORE, WARN and FAIL per rule) and `services/<pack>/dast-exclude.txt` (URLs a scan must not call: ZAP skips them in the spider and the active scan, and the lane removes the matching paths from the definition, because ZAP's import sends every operation once whatever the exclusions say), and `services/<pack>/dast-false-positives.tsv` (alerts the pack has shown to be false, each rule and URL with the evidence: ZAP marks them False Positive, so neither its exit nor the report the quality gate counts includes them, and the lane lists them). Exit 1 means an alert of a FAIL rule. An active scan writes to the API, so the lane scans only where the pack's entry has `allow_writes: true`, with the pack's `workers` (service.json) as ZAP's threads per host when it sets them, and runs the entry's `recovery` after the scan (for the Petstore, a container restart); a recovery that fails ends the lane with 2. The header of `scripts/dast-lane.mjs` has the details. |
 | `npm run lanes:perf -- --service <pack>` | A performance smoke of the pack (FUT-02), described [below](#performance-lane). k6 (the `k6` compose service, pinned by digest, profile `perf`) sends the pack's GET operations at a steady rate and writes `reports/perf/<pack>.json` for the quality gate's `p95_latency` check. Exit 1 means a request answered something other than the success status its operation declares. |
 | `npm run lanes:diff -- --service <pack> --reference <env>` | A differential comparison of two deployments of the pack (FUT-06), described [below](#differential-lane): the same read-only requests to a reference and a candidate environment, every difference in status, media type, body or contract reported, and those the pack accepted in `services/<pack>/diff.json` told apart. |
@@ -105,12 +105,20 @@ published and flake lanes. A Playwright process killed by a signal, timed out or
 never read as a pass. Child processes are mapped through `scripts/lib/spawn.mjs` (`exitCodeOf`),
 and `scripts/__tests__/package-scripts.test.mjs` keeps every npm script chain on `&&`.
 
-**Quarantine.** A test that `lanes:flake` confirms as flaky gets the tag `@quarantine` and a link to
-the issue that tracks the fix. Today only the published lane leaves quarantined tests out
-(`--grep-invert @quarantine`); the suite, the known-gap and the destructive lanes still run them, so
-a quarantined test still fails those runs until GATE-23 leaves it out of every gate. Quarantine is
-temporary: the flake lane keeps running quarantined tests and lists those that passed every repeat
-as candidates for release.
+### Quarantine
+
+A test that `lanes:flake` confirms as flaky gets the tag `@quarantine` and a link to the issue that
+tracks the fix. Every run leaves it out: the suite, `--grep @smoke` and any other selection, and the
+known-gap, published and destructive lanes. The `grepInvert` of each `api-<pack>` project does it,
+the same filter that leaves `@destructive` cases out (`projectTagFilter` in `scripts/lib/tags.mjs`),
+so a command-line `--grep` cannot bring a quarantined case back. The published lane reports a
+quarantined case as `quarantined`; the known-gap and destructive lanes do not select it.
+
+Quarantine is temporary, so the flake lane is the one run that keeps quarantined tests: it sets
+`QA_INCLUDE_QUARANTINE=1` for its own Playwright process (an internal variable, never set by hand)
+and lists those that passed every repeat as candidates for release. A quarantined `@destructive`
+case runs nowhere until its quarantine ends. `scripts/__tests__/quarantine.test.mjs` checks both
+sides against the repository's own configuration.
 
 ### Performance lane
 

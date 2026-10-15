@@ -7,6 +7,7 @@ import {
 } from '@playwright/test';
 import { configuredPacks, loadLocalEnvFile, loadRuntime } from './helpers/config';
 import { loadService } from './helpers/service';
+import { projectTagFilter } from './scripts/lib/tags.mjs';
 
 loadLocalEnvFile();
 
@@ -48,9 +49,6 @@ const worktreesOfThisCheckout = new RegExp(
 // Generated output, including the sandbox copy a mutation run leaves behind if it is interrupted.
 const reportsOfThisCheckout = new RegExp(`^${escapedRoot}[\\\\/]reports[\\\\/]`);
 
-const DESTRUCTIVE = /@destructive/;
-const destructiveLane = process.env.QA_DESTRUCTIVE === '1';
-
 // Retries hide flakiness, so they are off unless a lane opts in. Gate lanes never set QA_RETRIES.
 function retries(): number {
   const raw = process.env.QA_RETRIES ?? '0';
@@ -89,10 +87,12 @@ function packProjects(pack: string): PlaywrightTestProject[] {
       metadata: { pack },
       ...(baseURL ? { use: { baseURL } } : {}),
       ...(workers ? { workers } : {}),
-      // A @destructive case breaks the service for every other caller until its recovery runs, so
-      // every run leaves it out. The destructive lane (`npm run lanes:destructive`) sets
-      // QA_DESTRUCTIVE=1, which selects only those cases, and runs each alone (L-59).
-      ...(destructiveLane ? { grep: DESTRUCTIVE } : { grepInvert: DESTRUCTIVE }),
+      // Every run leaves out @destructive cases, which break the service for every other caller
+      // until their recovery runs (L-59), and @quarantine cases, confirmed flaky. Two lanes set a
+      // variable of their own: the destructive lane (QA_DESTRUCTIVE=1) selects only the destructive
+      // cases and runs each alone, and the flake lane (QA_INCLUDE_QUARANTINE=1) keeps the
+      // quarantined ones (projectTagFilter in scripts/lib/tags.mjs).
+      ...projectTagFilter(process.env),
     },
   ];
 }

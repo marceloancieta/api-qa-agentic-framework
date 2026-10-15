@@ -52,6 +52,7 @@ test('selection reads the arm from the syntax tree, with the issue key', () => {
       ['TC-ARM-05', null, false, true],
       ['TC-ARM-10', null, true, false],
     ],
+    'TC-ARM-11 is armed but quarantined: every run but the flake lane leaves it out',
   );
   assert.equal(gaps[0].why, 'returns 500 for an empty body');
   assert.equal(gaps[0].line, 6);

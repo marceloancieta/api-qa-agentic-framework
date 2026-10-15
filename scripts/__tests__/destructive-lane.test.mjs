@@ -39,7 +39,7 @@ const record = (overrides) => ({
   ...overrides,
 });
 
-test('selection takes @destructive tests only, tagged in the title or through a describe', () => {
+test('selection takes @destructive tests only, tagged in the title or through a describe, never quarantined', () => {
   assert.deepEqual(
     findDestructive(FIXTURES).map((c) => [c.file, c.pack, c.line, c.caseId]),
     [
@@ -47,6 +47,7 @@ test('selection takes @destructive tests only, tagged in the title or through a 
       ['services/demo/specs/breaks-search.spec.ts', 'demo', 9, 'TC-DEMO-02'],
       ['services/demo/specs/breaks-search.spec.ts', 'demo', 14, 'TC-DEMO-04'],
     ],
+    'TC-DEMO-05 is destructive but quarantined: every run but the flake lane leaves it out',
   );
   assert.equal(findDestructive(FIXTURES, 'demo').length, 3, '--service keeps its own pack');
   assert.deepEqual(findDestructive(FIXTURES, 'other'), []);
