@@ -329,7 +329,9 @@ Notes on the steps:
   token exchange is not recorded as evidence ([authentication strategies](guides/add-a-service-pack.md#4-authentication-strategies)).
 - **Evidence.** `BaseClient.send` calls `attachExchange` in `helpers/evidence.ts` for every request.
   Secrets are masked and identity fields are pseudonymized with a per-run salt (`helpers/redact.ts`)
-  before anything is attached. Playwright traces are not redacted; [CI](ci.md#secrets-and-variables)
+  before anything is attached. Global setup draws the salt and puts it in `QA_ANON_SALT` for the
+  workers, keeping a value already set; it is never printed, so do not set it except to compare
+  pseudonyms across runs. Playwright traces are not redacted; [CI](ci.md#secrets-and-variables)
   explains what that means for a real credential.
 - **Reporting.** `scripts/tm/run.mjs` builds the manifest (`scripts/tm/manifest.mjs`), continues the
   run id the results were recorded under, loads the adapter named by `test_management.provider`, and

@@ -36,10 +36,14 @@ and DOC-06 for the overview pages. Released as `v0.3.0`.
 
 ## v0.4.0
 
-Extensibility and distribution. Every item is in **Done**: FUT-04, FUT-10, FUT-03 and FUT-06 for
-the extension points, GATE-18 and GATE-19, which came out of their pull requests, DOC-07 and DOC-08,
-the documentation reviews, GATE-20 and PET-04, which came out of the first one, and FUT-05 for the
+Extensibility and distribution. In **Done**: FUT-04, FUT-10, FUT-03 and FUT-06 for the extension
+points, GATE-18 and GATE-19, which came out of their pull requests, DOC-07 and DOC-08, the
+documentation reviews, GATE-20 and PET-04, which came out of the first one, and FUT-05 for the
 GitHub template.
+
+| Id | Item | Origin | Status |
+|---|---|---|---|
+| DOC-09 | Pre-release review of v0.4.0: the adoption guide checked on a one-commit copy (framework tags fetched apart from the adopter's own, `git apply` with deleted files, the scheduled lanes, the lock file), `qa-run` handing back to `qa-publish`, the quarantine comment of the published lane, `QA_ANON_SALT`. | exp | in-progress |
 
 ## v0.5.0
 
