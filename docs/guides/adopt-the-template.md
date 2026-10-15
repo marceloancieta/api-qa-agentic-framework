@@ -120,13 +120,68 @@ Set up the clone first, as in the [README](../../README.md#first-10-minutes): `n
   the guides and the onboarding tour walk through, and its suite in a container is the required
   `e2e (petstore)` check, which shows on every pull request that the core still works.
   `services/vampi/` shows login authentication, actors and an authorization matrix. Neither calls
-  anything outside the containers CI starts. Removing a pack today means editing the workflows,
-  `docker-compose.yml`, the example configuration, the scripts and docs that name it, and the
-  required checks; a procedure for it is backlog FUT-12.
+  anything outside the containers CI starts. To drop one later, see
+  [remove an example pack](#remove-an-example-pack).
 - **Keep the framework's docs and rules**: `docs/lessons-learned.md`, the ADRs and `.claude/rules/`
   are what the checks and the skills cite. Number your own ADRs after the last one in
   `docs/adr/`.
 - **Your first API** is a new pack: follow [add a service pack](add-a-service-pack.md).
+
+### Remove an example pack
+
+Once your own pack runs, an example pack you do not want goes with one command, from a working
+tree without changes:
+
+```sh
+npm run remove:service -- --name vampi --dry-run   # prints the plan, changes nothing
+npm run remove:service -- --name vampi
+```
+
+It deletes `services/<pack>/`, the pack's skill and its digest, and edits what runs the pack: its
+`package.json` scripts, its entries in `qa-config.example.json` and the environments only it used,
+its services in `docker-compose.yml`, its jobs in the workflows and its stages in the Jenkinsfiles,
+and its lines in `.env.example`, `.actrc`, `.gitleaksignore` and `NOTICE`. What is the pack's is
+read from structure, never from its name in prose: its scripts and the containers they start, the
+variables its qa-config entries name, and in CI text `services/<pack>/`, `--service <pack>`,
+`api-<pack>`, a job or stage named `(<pack>)` and its entry in a `strategy.matrix` list. A job,
+stage or line that also runs another pack is left to you. Each YAML and JSON edit is parsed back
+and compared with the expected result; a file it cannot edit that way is listed for you instead.
+
+It refuses:
+
+- the last pack, and a pack whose name is also a word of the framework (`github`, `qa`, `api`, a
+  namespace of the framework's scripts, ...), whose markers could not be told apart;
+- a removal that would leave `api.default_environment` without a pack: make an environment that
+  runs another pack the default first;
+- a working tree with changes, so that `git restore .` undoes the removal (`--force` overrides
+  that). Untracked or ignored files under the pack's directory are deleted too; the plan names
+  them first.
+
+It never edits `CHANGELOG.md`, `docs/backlog.md` or the ADRs, and only reports what your
+`qa-config.json` still says about the pack. Then it prints what is left to you:
+
+- every mention of the pack outside those history files, by file and line: the prose and examples;
+- what fails right after it and blocks `npm run gates`: the dead links and paths `lint-docs`
+  finds, and the failing tests of each test file that names the pack;
+- notes on what other packs share: a workflow job or matrix that runs them too, a `quality_gate`
+  source that read the pack's report, a Jenkinsfile function nothing calls any more.
+
+Removing `vampi` leaves docs and notes: `lint-docs`, and with it its repository test, fails on the
+dead links and paths into the removed files until you edit them. The framework's own backlog names
+a VAmPI file, and the command never edits `docs/backlog.md`; after step 3 the backlog is your own
+and that finding does not arise, otherwise edit that row by hand. `petstore` is also the example
+the guides walk through and the data that some core tests read, so its removal also leaves those
+tests, which the command names, to rewrite against your own pack.
+
+In a Jenkinsfile, a line that runs the pack is removed only when the line before it shows it stands
+alone (it opens or closes a block, or is a complete statement). A line that may be the body of an
+`if`, `else`, `for` or `while` without braces is left and noted, because removing it would hand
+that statement the next line.
+
+When the pack's job was a required check, as `e2e (petstore)` is, the command removes it from
+`.github/rulesets/main.json` and from the list in `scripts/__tests__/ruleset.test.mjs`. Change the
+ruleset on GitHub yourself, as in step 2, or every pull request waits for a check that no job
+reports; make your own pack's job required in its place.
 
 ## 5. Take a later framework release
 

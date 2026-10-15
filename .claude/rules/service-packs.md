@@ -59,3 +59,7 @@ generated contract files and its skill, from
 [the service skill template](../../docs/templates/service-skill.md). For a pack that exists without
 a skill, `--write --skill-only` writes only the skill. Never copy another pack by hand. Facts
 specific to that API would come along and be wrong.
+
+`npm run remove:service -- --name <pack>` removes one, with `--dry-run` for the plan; never delete
+a pack by hand. It lists what is left for a person
+([remove an example pack](../../docs/guides/adopt-the-template.md#remove-an-example-pack)).
