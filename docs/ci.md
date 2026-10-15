@@ -406,13 +406,22 @@ parameter is, so a variable named exactly like a parameter would be hidden.
 | `PUBLISH_ALLURE` | CI only, on by default: publish `allure-results` with the Allure plugin, which shows the report on the build page. On a Jenkins without the plugin the build prints a notice and carries on; set it to `false` to drop the notice. The single-file report is archived either way |
 | `ALLURE_TOKEN_CREDENTIALS_ID`, `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID` | CI only: report the run to Allure TestOps ([reporting to Allure TestOps](#reporting-to-allure-testops)) |
 
-The build publishes the JUnit report (`reports/junit.xml`), prints the quality gate summary and
+The build publishes the JUnit reports (`reports/junit-*.xml`), prints the quality gate summary and
 archives `reports/` (with the single-file Allure report, `reports/allure-report/index.html`),
-`playwright-report/` and `allure-results/`. Every Playwright process rewrites `reports/junit.xml`
-and `playwright-report/`, so both hold the last one, the VAmPI stage; the Allure results hold the
-whole build (CI-09). With `PUBLISH_ALLURE`, the Allure plugin also shows the
-report in the build page; it needs an Allure Commandline tool configured in Jenkins. It stops both
-APIs in every case, and on failure archives their logs.
+`playwright-report/` and `allure-results/`. Each Playwright step writes its own JUnit file and HTML
+report folder, because a later process would otherwise overwrite them (CI-09):
+
+| Step | JUnit | HTML report |
+|---|---|---|
+| Petstore suite | `reports/junit-petstore.xml` | `playwright-report/petstore/` |
+| Petstore destructive lane, one process per case | `reports/junit-petstore-destructive-<project>-<case>.xml` | `playwright-report/petstore-destructive/<project>-<case>/` |
+| VAmPI suite | `reports/junit-vampi.xml` | `playwright-report/vampi/` |
+
+The destructive lane derives each case's names from `QA_JUNIT_REPORT` and
+`PLAYWRIGHT_HTML_OUTPUT_DIR` when they are set, so a local run of the lane with them set keeps every
+case as well. The Allure results hold the whole build. With `PUBLISH_ALLURE`, the Allure plugin
+also shows the report in the build page; it needs an Allure Commandline tool configured in Jenkins.
+It stops both APIs in every case, and on failure archives their logs.
 
 ### Scheduled builds
 

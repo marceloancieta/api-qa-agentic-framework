@@ -62,7 +62,8 @@ pipeline {
     COMPOSE_PROJECT_NAME = 'qa-jenkins'
     // One run id from execution to the test-management tool (L-48), traceable to this build.
     QA_RUN_ID = "${env.BUILD_TAG}"
-    QA_JUNIT_REPORT = 'reports/junit.xml'
+    // No build-wide QA_JUNIT_REPORT: each Playwright step names its own JUnit file and HTML folder
+    // (reportsOf below), so a later step never overwrites an earlier one (CI-09).
     CI = 'true'
   }
 
@@ -107,13 +108,18 @@ pipeline {
             // when it fails, none of its cases runs. A failing suite marks the build failed but the
             // steps below still run, as in the GitHub workflow.
             suiteRan = true
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              shell 'npx playwright test --project=api-petstore'
+            withEnv(reportsOf('petstore')) {
+              catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                shell 'npx playwright test --project=api-petstore'
+              }
             }
 
             // Last, and only after the shared run: each @destructive case alone, then the recovery.
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              shell 'npm run lanes:destructive -- --service petstore'
+            // The lane gives every case its own report next to these names.
+            withEnv(reportsOf('petstore-destructive')) {
+              catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                shell 'npm run lanes:destructive -- --service petstore'
+              }
             }
 
             // The `local` tool keeps its definitions in reports/tm/local, which is not tracked, so a
@@ -150,7 +156,7 @@ pipeline {
             timeout(time: 5, unit: 'MINUTES') {
               shell 'npm run vampi:up'
             }
-            withEnv(['QA_KEEP_RESULTS=1']) {
+            withEnv(['QA_KEEP_RESULTS=1'] + reportsOf('vampi')) {
               catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                 shell 'npx playwright test --project=api-vampi'
               }
@@ -168,7 +174,7 @@ pipeline {
           // One index.html that opens from disk (allurerc.mjs), archived with the reports, so the
           // report needs no Allure plugin; PUBLISH_ALLURE adds the plugin's view on top.
           shell(returnStatus: true, 'npm run report:html')
-          junit(testResults: 'reports/junit.xml', allowEmptyResults: true)
+          junit(testResults: 'reports/junit-*.xml', allowEmptyResults: true)
           if (fileExists('reports/quality-gate.md')) {
             echo readFile('reports/quality-gate.md')
           }
@@ -250,6 +256,16 @@ def withTestManagement(Closure body) {
       body()
     }
   }
+}
+
+// The JUnit file and HTML report folder of one Playwright step (CI-09). Every Playwright process
+// writes the reports these variables name, so each step gets its own; the post step publishes
+// reports/junit-*.xml and archives playwright-report/ with one folder per step.
+def reportsOf(String step) {
+  return [
+    "QA_JUNIT_REPORT=reports/junit-${step}.xml",
+    "PLAYWRIGHT_HTML_OUTPUT_DIR=playwright-report/${step}",
+  ]
 }
 
 // The users behind VAmPI's actors user-a and user-b (qa-config, `login` auth): throwaway values

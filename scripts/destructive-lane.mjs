@@ -62,6 +62,7 @@ import {
   exitDetail,
   formatTable,
   packOfSpec,
+  processReports,
   retriedRecords,
   runLane,
   unexplainedExit,
@@ -214,9 +215,19 @@ export function latestRunId(resultsDir) {
 /**
  * The environment of the case at `index`: the lane's selection plus one run id for every case.
  * Results are kept, except by the first case of a new run, whose global setup clears old ones.
+ * With `QA_JUNIT_REPORT` or `PLAYWRIGHT_HTML_OUTPUT_DIR` in `inherited`, the case writes its own
+ * report, named by `label`, instead of overwriting the one of the case before (CI-09).
  */
-export function caseEnv(index, { runId, join: joining }) {
-  return { ...LANE_ENV, QA_RUN_ID: runId, QA_KEEP_RESULTS: joining || index > 0 ? '1' : '0' };
+export function caseEnv(
+  index,
+  { runId, join: joining, inherited = {}, label = `case-${index + 1}` },
+) {
+  return {
+    ...LANE_ENV,
+    QA_RUN_ID: runId,
+    QA_KEEP_RESULTS: joining || index > 0 ? '1' : '0',
+    ...processReports(inherited, label),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -235,7 +246,8 @@ export function caseArgs(file, line, project, config) {
 /**
  * Run each case in its own process, in its pack's project unless `project` is given, then its
  * recovery. `recover(item)` returns `{ ok, outcome, detail }`. After a failed recovery the remaining
- * cases are reported as not run.
+ * cases are reported as not run. `inherited` is the environment the lane was started with, read for
+ * the report locations each case derives its own from.
  */
 export async function runDestructive(
   cases,
@@ -248,6 +260,7 @@ export async function runDestructive(
     run,
     runId = 'lane',
     join: joining = false,
+    inherited = process.env,
   },
 ) {
   const results = [];
@@ -259,7 +272,8 @@ export async function runDestructive(
     }
     const file = relative(runRoot, join(scanRoot, item.file)).replace(/\\/g, '/');
     const own = caseProject(item.file, project);
-    const env = caseEnv(index, { runId, join: joining });
+    const label = `${own}-${item.caseId ?? `case-${index + 1}`}`;
+    const env = caseEnv(index, { runId, join: joining, inherited, label });
     const lane = (run ?? runLane)(runRoot, caseArgs(file, item.line, own, config), env);
     if (retriedRecords(lane.records).length > 0) {
       throw new Error('a case was retried although QA_RETRIES=0; gate lanes run without retries');
