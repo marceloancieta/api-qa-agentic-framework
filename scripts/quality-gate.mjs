@@ -15,9 +15,12 @@
 // Verdicts. A check is PASS, REVIEW (worth a human look; the build stays green and the artifact is
 // published) or FAIL. A configured check whose source does not exist is SKIPPED with the reason
 // printed (L-05: nothing is left out silently), or FAIL when the check says `required: true`. A
-// source that exists but cannot be read or does not have the expected shape is a FAIL naming the
-// problem: a broken report must never pass for a green one. The overall verdict is the worst
-// evaluated check; SKIPPED checks do not count, and a run where every check was skipped is SKIPPED.
+// check with fewer samples than its `min_samples` (today p95_latency, the only check with a sample
+// minimum) is treated the same way (GATE-21): SKIPPED with the count and the minimum, or FAIL when
+// required, because too little evidence for a required check is no better than none. A source that
+// exists but cannot be read or does not have the expected shape is a FAIL naming the problem: a
+// broken report must never pass for a green one. The overall verdict is the worst evaluated check;
+// SKIPPED checks do not count, and a run where every check was skipped is SKIPPED.
 //
 // Exit codes: 0 for PASS, REVIEW and SKIPPED (1 for REVIEW with --fail-on-review), 1 for FAIL
 // (and for any verdict the gate does not know), 2 for a usage or configuration error.
@@ -153,7 +156,8 @@ export function percentile(values, p) {
 /**
  * p95 of API case durations (ms). An API case is a result labelled with its operation (a `story`
  * like "GET /pet/{petId}", written by the case metadata helper). Every executed attempt counts.
- * Returns `{ value: null }` with a reason when there are fewer samples than `minSamples`.
+ * Returns `{ value: null }` with a reason when there are fewer samples than `minSamples`; exactly
+ * `minSamples` samples are enough.
  */
 export function p95FromAllure(results, minSamples = 5) {
   const api = results.filter(
@@ -174,7 +178,7 @@ export function p95FromAllure(results, minSamples = 5) {
   if (durations.length < minSamples) {
     return {
       value: null,
-      detail: `only ${durations.length} timed API case(s), fewer than min_samples ${minSamples}; ${others} other result(s) ignored`,
+      detail: `only ${durations.length} timed API case(s) (${others} other result(s) ignored), fewer than min_samples ${minSamples}`,
     };
   }
   return {
@@ -242,7 +246,8 @@ export function k6Latency(summary) {
 
 /**
  * p95 of the request durations in a k6 summary (ms): every request counts, not every test case.
- * Returns `{ value: null }` with a reason when fewer than `minSamples` requests were sent.
+ * Returns `{ value: null }` with a reason when fewer than `minSamples` requests were sent; exactly
+ * `minSamples` requests are enough.
  */
 export function p95FromK6(summary, minSamples = 5) {
   const latency = k6Latency(summary);
@@ -405,7 +410,11 @@ export const STRATEGIES = {
   },
 };
 
-/** Run one strategy: `{ check, verdict, value, threshold, detail, source }`, never throws. */
+/**
+ * Run one strategy: `{ check, verdict, value, threshold, detail, source }`, never throws. A measure
+ * returns `value: null` only when it has fewer samples than `min_samples`; like a missing source,
+ * that is SKIPPED, or FAIL when the check is required.
+ */
 export function runCheck(strategy, settings, { cwd = process.cwd(), env = process.env } = {}) {
   const threshold = strategy.threshold(settings);
   const configured = strategy.source(settings, env);
@@ -418,7 +427,11 @@ export function runCheck(strategy, settings, { cwd = process.cwd(), env = proces
   }
   try {
     const { value, detail } = strategy.measure(resolve(cwd, configured), settings);
-    if (value === null) return { ...base, verdict: 'SKIPPED', detail };
+    if (value === null) {
+      return settings.required
+        ? { ...base, verdict: 'FAIL', detail: `${detail} and the check is required` }
+        : { ...base, verdict: 'SKIPPED', detail };
+    }
     return { ...base, value, verdict: strategy.judge(value, settings), detail };
   } catch (error) {
     if (!(error instanceof InputError)) throw error;

@@ -214,7 +214,7 @@
       }
     },
     "quality_gate": {
-      "description": "Thresholds of scripts/quality-gate.mjs. Every check is optional: an absent check is not evaluated, and a configured check whose source is missing is reported as SKIPPED (or FAIL when required). Each check yields PASS, REVIEW (publish the artifact, keep the build green) or FAIL.",
+      "description": "Thresholds of scripts/quality-gate.mjs. Every check is optional: an absent check is not evaluated, and a configured check whose source is missing, or that has fewer samples than its min_samples, is reported as SKIPPED (or FAIL when required). Each check yields PASS, REVIEW (publish the artifact, keep the build green) or FAIL.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -274,7 +274,7 @@
               "exclusiveMinimum": 0
             },
             "min_samples": {
-              "description": "Fewer timings than this (requests for k6-summary, API cases for allure-results) make the check SKIPPED: a percentile of a handful of timings is noise.",
+              "description": "Fewer timings than this (requests for k6-summary, API cases for allure-results) make the check SKIPPED, or FAIL when it is required: a percentile of a handful of timings is noise. Exactly min_samples timings are enough.",
               "type": "integer",
               "minimum": 1,
               "default": 5
@@ -337,7 +337,7 @@
       "maximum": 100
     },
     "gateRequired": {
-      "description": "true turns a missing source into FAIL instead of SKIPPED.",
+      "description": "true turns a missing source, or fewer samples than the check's min_samples, into FAIL instead of SKIPPED.",
       "type": "boolean",
       "default": false
     },

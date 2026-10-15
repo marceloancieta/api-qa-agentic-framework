@@ -199,11 +199,14 @@ optional, and each one is a separate strategy:
 - `mutation_score`, from Stryker's JSON report (`npm run mutation`, below).
 
 Each check is PASS, REVIEW or FAIL. A missing source is SKIPPED with its reason, or FAIL when the
-check is `required`; malformed input is a FAIL with the reason. A latency source with fewer than
-`min_samples` samples is SKIPPED, even when the check is `required`. The worst check decides the
-verdict; SKIPPED checks do not count, and a run where every check was skipped is SKIPPED. REVIEW
-writes the artifact (`reports/quality-gate.json`) and a Markdown summary without failing the build;
-`--fail-on-review` makes it fail.
+check is `required`; malformed input is a FAIL with the reason. Too few samples count as no
+evidence: a latency source with fewer than `min_samples` samples is SKIPPED, or FAIL when the check
+is `required`, and the reason gives the count and the minimum (`only 6 timed API case(s) (2 other
+result(s) ignored), fewer than min_samples 7 and the check is required`). Exactly `min_samples`
+samples are enough to judge. The worst check decides the verdict; SKIPPED checks do not count, and
+a run where every check was skipped is SKIPPED. REVIEW writes the artifact
+(`reports/quality-gate.json`) and a Markdown summary without failing the build; `--fail-on-review`
+makes it fail.
 
 The keys of each check, whose values qa-config holds:
 
@@ -211,10 +214,10 @@ The keys of each check, whose values qa-config holds:
 |---|---|---|---|
 | `format` | `pass_rate` (`playwright-json`, the default, or `allure-results`), `p95_latency` (`allure-results`, the default, or `k6-summary`) | no | how to read the input |
 | `source` | every check | `dast`; `p95_latency` with `format: k6-summary` | where the input is. Defaults: `pass_rate` reads `$QA_JSON_REPORT` (`playwright-json`) or `allure-results`; `p95_latency` reads `allure-results`; `mutation_score` reads `reports/mutation/mutation.json` |
-| `required` | every check | no | a missing source is FAIL instead of SKIPPED |
+| `required` | every check | no | a missing source, or fewer samples than `min_samples`, is FAIL instead of SKIPPED |
 | `fail_below_pct`, `review_below_pct` | `pass_rate`, `mutation_score` | `fail_below_pct` | FAIL or REVIEW when the percentage is strictly below the value |
 | `fail_above_ms`, `review_above_ms` | `p95_latency` | `fail_above_ms` | FAIL or REVIEW when the 95th percentile is above the value |
-| `min_samples` | `p95_latency` | no | fewest timed samples to judge (default 5) |
+| `min_samples` | `p95_latency` | no | fewest timed samples to judge (default 5): requests for `k6-summary`, API cases for `allure-results`; fewer is SKIPPED, or FAIL when `required` |
 | `fail_above`, `review_above` | `dast` | `fail_above` | per risk level (`high`, `medium`, `low`, `informational`), FAIL or REVIEW when the count of alerts is above the value; a risk with no value has no limit |
 
 Exit codes: 0 for PASS, REVIEW and SKIPPED, 1 for FAIL (and for REVIEW with `--fail-on-review`), 2
