@@ -21,6 +21,7 @@ import {
   waitUntilAnswers,
 } from '../destructive-lane.mjs';
 import { findKnownGaps } from '../known-gap-lane.mjs';
+import { processReports } from '../lib/playwright-lane.mjs';
 
 const FIXTURES = join(REPO_ROOT, 'scripts', '__fixtures__', 'destructive-lane');
 const EXAMPLE = JSON.parse(readFileSync(join(REPO_ROOT, 'qa-config.example.json'), 'utf8'));
@@ -398,4 +399,44 @@ test('one run: the lane joins the latest recorded run, or starts one whose first
   assert.equal(caseEnv(0, { runId: 'r', join: false }).QA_KEEP_RESULTS, '0');
   assert.equal(caseEnv(1, { runId: 'r', join: false }).QA_KEEP_RESULTS, '1');
   assert.equal(caseEnv(1, { runId: 'r', join: false }).QA_RUN_ID, 'r');
+});
+
+test('each case writes its own JUnit and HTML report when the lane is given them (CI-09)', async () => {
+  const inherited = {
+    QA_JUNIT_REPORT: 'reports/junit-destructive.xml',
+    PLAYWRIGHT_HTML_OUTPUT_DIR: 'playwright-report/destructive',
+  };
+  const calls = [];
+  const run = (_root, args, env) => {
+    calls.push(env);
+    const line = Number(args.at(-1).split(':').at(-1));
+    return { exitCode: 0, records: [record({ line })], stdout: '', stderr: '' };
+  };
+  await runDestructive(findDestructive(FIXTURES), {
+    scanRoot: FIXTURES,
+    runRoot: FIXTURES,
+    recover: async () => ({ ok: true, outcome: 'recovered', detail: '' }),
+    run,
+    inherited,
+  });
+  assert.deepEqual(
+    calls.map((env) => [env.QA_JUNIT_REPORT, env.PLAYWRIGHT_HTML_OUTPUT_DIR.replace(/\\/g, '/')]),
+    ['TC-DEMO-01', 'TC-DEMO-02', 'TC-DEMO-04'].map((id) => [
+      `reports/junit-destructive-api-demo-${id}.xml`,
+      `playwright-report/destructive/api-demo-${id}`,
+    ]),
+  );
+
+  // Unset stays unset: the lane adds no report the run was not asked for.
+  assert.deepEqual(processReports({}, 'api-demo-TC-DEMO-01'), {});
+  assert.equal(caseEnv(0, { runId: 'r', join: false }).QA_JUNIT_REPORT, undefined);
+  // A name without .xml gets the label appended; characters a path cannot hold become dashes.
+  assert.deepEqual(processReports({ QA_JUNIT_REPORT: 'out/junit' }, 'a b/c'), {
+    QA_JUNIT_REPORT: 'out/junit-a-b-c',
+  });
+  assert.equal(
+    caseEnv(2, { runId: 'r', join: false, inherited }).QA_JUNIT_REPORT,
+    'reports/junit-destructive-case-3.xml',
+    'a case without an id is numbered',
+  );
 });

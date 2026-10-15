@@ -86,6 +86,25 @@ export function runLane(root, args, env = {}, { spawn = spawnSync } = {}) {
   }
 }
 
+/**
+ * Where one of several Playwright processes of a lane writes its JUnit and HTML reports (CI-09).
+ * Every process inherits `QA_JUNIT_REPORT` and `PLAYWRIGHT_HTML_OUTPUT_DIR`, so without this the last
+ * one overwrites the others: `reports/junit.xml` becomes `reports/junit-<label>.xml` and
+ * `playwright-report` becomes `playwright-report/<label>`. A variable that is not set stays unset.
+ */
+export function processReports(env, label) {
+  const name = String(label).replace(/[^A-Za-z0-9._-]+/g, '-');
+  const reports = {};
+  if (env.QA_JUNIT_REPORT) {
+    reports.QA_JUNIT_REPORT = /\.xml$/i.test(env.QA_JUNIT_REPORT)
+      ? env.QA_JUNIT_REPORT.replace(/\.xml$/i, `-${name}.xml`)
+      : `${env.QA_JUNIT_REPORT}-${name}`;
+  }
+  if (env.PLAYWRIGHT_HTML_OUTPUT_DIR)
+    reports.PLAYWRIGHT_HTML_OUTPUT_DIR = join(env.PLAYWRIGHT_HTML_OUTPUT_DIR, name);
+  return reports;
+}
+
 const outputTail = (lane) =>
   (lane.stderr || lane.stdout || '').trim().split('\n').slice(-3).join(' | ');
 
