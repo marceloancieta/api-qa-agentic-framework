@@ -115,11 +115,16 @@ the latest `vX.Y.Z` tag and groups them by type:
 2. `npm run changelog:write` adds the section to `CHANGELOG.md`; it refuses a version that is
    already there. For a version other than the proposed one, run
    `node scripts/changelog.mjs --version <x.y.z> --write`.
-3. Set the version in `package.json` with `npm version <x.y.z> --no-git-tag-version`.
+3. Set the version in `package.json` with `npm version <x.y.z> --no-git-tag-version`, and the same
+   version in `packages/create-api-qa/package.json` (run it there too); a test keeps them equal.
 4. Open a pull request titled `docs(changelog): <BACKLOG-ID> release <x.y.z>` with those changes,
    and the version's section of the [backlog](docs/backlog.md) saying it was released.
    After the squash merge, tag the resulting commit on `main` as `v<x.y.z>` and push the tag, with
    the owner's approval ([AGENTS.md](AGENTS.md)).
+5. Publish `create-api-qa` from the tag, with the owner's npm account: `npm run create:build`
+   writes the release into `packages/create-api-qa` (it refuses a tag whose version differs), then,
+   in that directory, `npm pack --dry-run` to read what goes out and `npm publish --access public`.
+   A published version cannot be replaced, only deprecated.
 
 ## Reporting a problem
 

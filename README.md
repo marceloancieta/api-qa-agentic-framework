@@ -30,8 +30,9 @@ decisions are recorded in [`docs/adr/`](docs/adr/README.md).
 ## First 10 minutes
 
 From a fresh clone to a green run against the example Petstore pack. To test your own APIs in a
-repository of your own, create it from the template first
-([adopt the template](docs/guides/adopt-the-template.md)), then follow these steps in it.
+repository of your own, create it from the template first, or with `npm create api-qa <directory>`
+from a release ([adopt the template](docs/guides/adopt-the-template.md)), then follow these steps
+in it.
 
 **You need:**
 
