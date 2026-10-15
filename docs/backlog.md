@@ -36,14 +36,10 @@ and DOC-06 for the overview pages. Released as `v0.3.0`.
 
 ## v0.4.0
 
-Extensibility and distribution. In **Done**: FUT-04, FUT-10, FUT-03 and FUT-06 for the extension
-points, GATE-18 and GATE-19, which came out of their pull requests, DOC-07 and DOC-08, the
-documentation reviews, GATE-20 and PET-04, which came out of the first one, and FUT-05 for the
-GitHub template.
-
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| DOC-09 | Pre-release review of v0.4.0: the adoption guide checked on a one-commit copy (framework tags fetched apart from the adopter's own, `git apply` with deleted files, the scheduled lanes, the lock file), `qa-run` handing back to `qa-publish`, the quarantine comment of the published lane, `QA_ANON_SALT`. | exp | in-progress |
+Extensibility and distribution. Every item is in **Done**: FUT-04, FUT-10, FUT-03 and FUT-06 for
+the extension points, GATE-18 and GATE-19, which came out of their pull requests, DOC-07, DOC-08
+and DOC-09, the documentation reviews, GATE-20 and PET-04, which came out of the first one, and
+FUT-05 for the GitHub template. Released as `v0.4.0`.
 
 ## v0.5.0
 
@@ -167,3 +163,4 @@ GitHub template.
 | PET-04 | The `petstore` compose service is pinned by tag and digest (`1.0.28@sha256:dc991f…`), checked against the registry, Docker Hub and the local image, like `petstore-reference`. | `3181e28` |
 | FUT-05 | The repository as a GitHub template: `docs/guides/adopt-the-template.md` from **Use this template** to green gates (settings, the adoption pull request, taking a later release as a diff from the framework commit), `docs/templates/backlog.md`, the `main` ruleset as `.github/rulesets/main.json` kept equal to the `ci.yml` job names by a test, and one `closing-commit` finding for a history that holds none of the cited hashes; each step walked through on a single-commit copy. | `4a516ee` |
 | DOC-08 | Second documentation review: four reviewers by area read the docs, rules, skills, agents, guides, packs and workflows against the code, 76 findings applied, recorded (GATE-23, CI-09) or left as history; drift lanes scoped to the Petstore, lane workflows triggered by what they import, `Edit` denied wherever `Read` is, `SECURITY.md`, the VAmPI MIT notice. | `ce9b9a2` |
+| DOC-09 | Pre-release review of v0.4.0: the adoption guide walked on a one-commit copy, so taking a framework release fetches its tags under `refs/framework/tags/` and leaves deleted files out of `git apply`; the scheduled lanes and the lock file among the adoption steps; `qa-run` hands back to `qa-publish` for results-first tools; the published lane's quarantine comment, `QA_ANON_SALT`; the 0.4.0 upgrade notes in `CHANGELOG.md`. | `d234f8c` |
