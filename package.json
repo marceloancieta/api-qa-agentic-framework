@@ -43,6 +43,7 @@
     "contract:decision-tables": "node scripts/derive-decision-tables.mjs --write",
     "contract:check": "node scripts/contract-check.mjs",
     "scaffold:service": "node scripts/scaffold-service.mjs",
+    "create:build": "node scripts/build-create-package.mjs",
     "remove:service": "node scripts/remove-service.mjs",
     "lint:harness": "node scripts/lint-harness.mjs",
     "lint:suite": "node scripts/lint-suite.mjs",

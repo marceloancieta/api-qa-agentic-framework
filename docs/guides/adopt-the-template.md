@@ -3,7 +3,14 @@
 The framework's GitHub repository is a template repository: **Use this template** creates a
 repository of your own from it, where you add a service pack for each API you test. This guide
 covers the steps from that new repository to green gates, and how to take a later framework release
-into it. Publishing the scaffolder as an npm package is separate work (backlog FUT-11).
+into it.
+
+Without GitHub first, `npm create api-qa <directory>` does steps 1 and 3 on your machine from a
+framework release (the [`create-api-qa`](../../packages/create-api-qa/README.md) package): it
+unpacks the release, starts your own backlog with `REPO-01` naming the release and its commit,
+reduces the changelog to its header, names the package after the directory at version `0.0.0`,
+makes the first commit on `main` and runs `npm ci`. Then create the GitHub repository from that
+clone and continue with step 2.
 
 The copy is yours from the start. Nothing links it back to the framework, so removing it, or the
 framework no longer being a template, changes nothing in a copy that already exists.

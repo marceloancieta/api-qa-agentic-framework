@@ -39,3 +39,10 @@ Thumbs.db
 
 # Mutation testing (Stryker) and quality gate output
 /reports/
+
+# The create-api-qa package's release files, written by npm run create:build
+/packages/create-api-qa/framework.tar.gz
+/packages/create-api-qa/framework.json
+/packages/create-api-qa/LICENSE
+/packages/create-api-qa/NOTICE
+/packages/create-api-qa/*.tgz

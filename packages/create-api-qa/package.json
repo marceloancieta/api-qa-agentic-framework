@@ -1,0 +1,33 @@
+{
+  "name": "create-api-qa",
+  "version": "0.4.0",
+  "description": "Create a project from the API QA agentic framework: npm create api-qa <directory>.",
+  "type": "module",
+  "bin": {
+    "create-api-qa": "bin/create-api-qa.mjs"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "framework.tar.gz",
+    "framework.json",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "api-testing",
+    "playwright",
+    "openapi",
+    "qa",
+    "claude-code"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marceloancieta/api-qa-agentic-framework.git",
+    "directory": "packages/create-api-qa"
+  }
+}
