@@ -341,6 +341,11 @@ export function readBacklog(corpus) {
   return model;
 }
 
+/** The backlog model of `docs/backlog.md` content, read as the rules read it (release-check). */
+export function parseBacklog(text) {
+  return readBacklog({ docs: new Map([[BACKLOG, analyse(text)]]) });
+}
+
 function stageComplete(backlog, stage) {
   if ([...backlog.done.keys()].some((id) => id === stage || id.startsWith(`${stage}-`))) {
     return true;
