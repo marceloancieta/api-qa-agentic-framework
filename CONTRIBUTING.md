@@ -133,8 +133,11 @@ the latest `vX.Y.Z` tag and groups them by type:
      `LICENSE`, `NOTICE` and `packages/create-api-qa/framework.json`, which must name `v<x.y.z>`;
    - `npm publish --access public`; its `prepublishOnly` refuses a package without those files or
      built from another tag. A published version cannot be replaced, only deprecated;
-   - read it back: `npm view create-api-qa@<x.y.z> version`, then
-     `npm create api-qa@<x.y.z> <temporary-directory> -- --skip-install`.
+   - read it back from a directory outside the repository:
+     `npm view create-api-qa@<x.y.z> version`, then
+     `npm create api-qa@<x.y.z> <temporary-directory> -- --skip-install`. Inside
+     `packages/create-api-qa`, npm takes the local package of the same name and version for the
+     project instead of the published one, and the command fails.
 
 ## Reporting a problem
 
