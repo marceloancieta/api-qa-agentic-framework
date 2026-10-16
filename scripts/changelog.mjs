@@ -225,6 +225,18 @@ export function nextVersion(latest, commits) {
   return { version: `${major}.${minor}.${patch + 1}`, bump: 'patch', reason: 'no feature' };
 }
 
+/** The first version heading of a changelog, `## [x.y.z] - date`; an Unreleased one is skipped. */
+const FIRST_RELEASE = /^## \[(?!Unreleased\])([^\]]*)\]/im;
+
+/**
+ * The version of the latest section of a changelog, the first version heading (sections are added
+ * on top), as written in its brackets; null when it has none. Version numbers elsewhere in the text
+ * are not headings and are not read.
+ */
+export function latestRelease(text) {
+  return FIRST_RELEASE.exec(text ?? '')?.[1] ?? null;
+}
+
 /**
  * `existing` changelog text (null when the file does not exist) with `section` added above the
  * first version heading, after the header and any Unreleased section. Throws when `version` is
@@ -235,7 +247,7 @@ export function insertSection(existing, section, version) {
   if (new RegExp(`^## \\[${escapeRegExp(version)}\\]`, 'm').test(text)) {
     throw refusal(`Version ${version} is already in the changelog; nothing was written.`);
   }
-  const first = /^## \[(?!Unreleased\])/im.exec(text);
+  const first = FIRST_RELEASE.exec(text);
   if (!first) return `${text.trimEnd()}\n\n${section}`;
   const before = text.slice(0, first.index).trimEnd();
   return `${before}\n\n${section}\n${text.slice(first.index)}`;

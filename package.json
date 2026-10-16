@@ -79,7 +79,8 @@
     "cited:status": "node scripts/cited-status.mjs",
     "commit:title": "node scripts/commit-title.mjs",
     "changelog": "node scripts/changelog.mjs --next",
-    "changelog:write": "node scripts/changelog.mjs --next --write"
+    "changelog:write": "node scripts/changelog.mjs --next --write",
+    "release:check": "node scripts/release-check.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

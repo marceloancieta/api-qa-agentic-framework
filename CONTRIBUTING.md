@@ -123,9 +123,11 @@ the latest `vX.Y.Z` tag and groups them by type:
    the version's section of the [backlog](docs/backlog.md) saying it was released, and every item
    closed since the last release moved to **Done** with its closing commit, the item merged just
    before the release included. Nothing is committed after the release: merge the items first,
-   then this pull request. After the squash merge, tag the resulting commit on `main` as
-   `v<x.y.z>`, push the tag and create the GitHub release from it, with the owner's approval
-   ([AGENTS.md](AGENTS.md)).
+   then this pull request. After the squash merge, check out the resulting commit on `main` and
+   run `npm run release:check`: the versions, the backlog section and the history scans, which
+   need gitleaks, as `scripts/release-check.mjs` describes. It stops at the first failure and says
+   what to fix. Then tag that commit as `v<x.y.z>`, push the tag and create the GitHub release
+   from it, with the owner's approval ([AGENTS.md](AGENTS.md)).
 5. In the framework's repository only (a copy never publishes it), publish `create-api-qa` from
    the tag, with the owner's npm account; nothing in the repository changes:
    - with the tag checked out (`git switch --detach v<x.y.z>`), `npm run create:build` writes the

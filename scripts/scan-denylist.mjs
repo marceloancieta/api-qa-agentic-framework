@@ -18,6 +18,8 @@
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 function git(args, options = {}) {
   return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 512 * 1024 * 1024, ...options });
@@ -42,8 +44,13 @@ export function scanText(text, where, terms) {
   return hits;
 }
 
+/** Where the denylist of the repository at `cwd` lives, whether or not it exists. */
+export function denylistPath(cwd = process.cwd()) {
+  return resolve(cwd, git(['rev-parse', '--git-path', 'info/denylist'], { cwd }).trim());
+}
+
 function loadDenylist() {
-  const path = git(['rev-parse', '--git-path', 'info/denylist']).trim();
+  const path = denylistPath();
   return existsSync(path) ? parseDenylist(readFileSync(path, 'utf8')) : null;
 }
 
@@ -147,4 +154,4 @@ function main() {
   process.exit(1);
 }
 
-main();
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();
