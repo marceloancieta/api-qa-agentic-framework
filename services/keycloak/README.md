@@ -62,7 +62,7 @@ serve it, so `spec_url` is the published one.
 
 | Feature | Contract | Registry |
 |---|---|---|
-| `USERS` | [users](docs/features/users.md) | not yet designed |
+| `USERS` | [users](docs/features/users.md) | [users](registry/users.md) |
 
 Where the API departs from its contract is recorded in
 [`docs/contract-notes.md`](docs/contract-notes.md).
