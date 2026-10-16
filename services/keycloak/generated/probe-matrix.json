@@ -7,11 +7,11 @@
   },
   "totals": {
     "scheduled": {
-      "covered": 0,
+      "covered": 1,
       "total": 963
     },
     "exploratory": {
-      "covered": 0,
+      "covered": 1,
       "total": 7758
     },
     "service-wide": {
@@ -5753,11 +5753,11 @@
     {
       "operation": "GET /admin/realms/{realm}/users",
       "scheduled": {
-        "covered": 0,
+        "covered": 1,
         "total": 12
       },
       "exploratory": {
-        "covered": 0,
+        "covered": 1,
         "total": 8
       },
       "service-wide": {
@@ -209828,7 +209828,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/keycloak/specs/users-errors.spec.ts"]
     },
     {
       "id": "p-365cea7720",
@@ -209908,7 +209909,8 @@
         "outcome": "reject",
         "status": "4xx"
       },
-      "covered": false
+      "covered": true,
+      "coveredBy": ["services/keycloak/specs/users-errors.spec.ts"]
     },
     {
       "id": "p-d75e08f937",

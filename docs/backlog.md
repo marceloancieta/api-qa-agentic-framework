@@ -58,6 +58,7 @@ Release automation, adoption on real repositories, and a wider worked example.
 | FUT-14 | `npm run framework:update -- --to v<x.y.z>`: take a later framework release in a copy, in place of the manual fetch, diff and three-way apply of [adopt the template](guides/adopt-the-template.md#5-take-a-later-framework-release). Removed example packs stay out, conflicts are left as git leaves them, and a dry run shows what would change. | plan | todo |
 | FUT-15 | A third example pack whose `auth` is `oauth2_client_credentials`: the strategy exists in `helpers/auth.ts` and `scripts/lib/auth-tokens.mjs`, but no pack uses it, so it has never run against a real token endpoint. A local identity provider and a small API in compose, phases 0 to 2 on a sample, and a CI job outside the required checks. | plan | todo |
 | PET-05 | Automate the `pet-update` registry: its cases are approved and none has a spec, the only Petstore registry without one (`npm run coverage:status`). Through `qa-automate` with its review, then `qa-publish`. | exp | todo |
+| CORE-19 | A caller's own `bearer` (`RequestOptions`) is renewed when the auth strategy issued that token: after a `401`, `BaseClient.send` calls `auth.refresh`, and `tokenStrategy` replaces any token it issued, so a case cannot resend a stale token of the same actor (found by TC-USERS-33 of the Keycloak pack, which routes it through `anonymous` until this ships). The option's doc says the strategy never replaces or renews it. Skip the refresh when the caller set `bearer`, with a test that fails today. | exp | todo |
 
 ---
 

@@ -94,6 +94,12 @@ interface KeycloakFixtures {
   workflows: WorkflowsClient;
   /** The pack's clients bound to a named credential: `default`, `anonymous` or one of the pack's qa-config `actors`. */
   actor: (name: string) => Promise<Actor>;
+  /**
+   * The bearer value an actor's strategy sends right now, for a case that resends it later as the
+   * caller's own (`bearer` request option) to prove an expired token is refused (TC-USERS-33). It
+   * never leaves the run: evidence masks the Authorization header.
+   */
+  bearerOf: (name: string) => Promise<string>;
   caseMeta: void;
 }
 
@@ -201,6 +207,18 @@ export const test = core.extend<KeycloakFixtures, KeycloakWorkerFixtures>({
     await use(async (name) => {
       const session = await actorSession(name);
       return { name, ...clientsFor(session.request, session.auth, service) };
+    });
+  },
+  bearerOf: async ({ actorSession }, use) => {
+    await use(async (name) => {
+      const session = await actorSession(name);
+      const outgoing = { headers: {} as Record<string, string>, params: {} };
+      await session.auth.apply(outgoing, session.request);
+      const value = Object.entries(outgoing.headers).find(
+        ([header]) => header.toLowerCase() === 'authorization',
+      )?.[1];
+      if (!value?.startsWith('Bearer ')) throw new Error(`actor "${name}" sends no bearer token`);
+      return value.slice('Bearer '.length);
     });
   },
 });

@@ -146,6 +146,20 @@ the disposable in-memory container: `POST /users` as `viewer` (`403`) and as `ad
 empty username (`400` `{"errorMessage": "User name is missing"}`). Design must not rely on them:
 they were not an intake measurement, and the writes stay unmeasured until a spec run.
 
+### Writes, measured by the spec run
+
+The first run of the registry's specs (2026-10-16, local, against users the cases created) measured
+the writes the intake left open. Every answer matched its case:
+
+- **A1** holds: every write answers `401` without a token, and `403` with the `error` envelope to
+  `viewer` and `no-role`; a read afterwards shows nothing changed (TC-USERS-07, 21, 27, 29, 31).
+- **A2**: `POST` answers `201` and the case learns the new id (TC-USERS-06).
+- **A3** holds: a second `DELETE` answers `404` (TC-USERS-28).
+- **R1**: a duplicate username answers `409` `{errorMessage}` on `POST` and on `PUT` (TC-USERS-08,
+  22); an update that omits a field keeps it (TC-USERS-20).
+- A body field of the wrong type answers `400` with a third error shape (KN-07, TC-USERS-10, 23); an
+  unknown realm or user answers `404` on the writes as on the reads (TC-USERS-11, 24, 25, 30).
+
 ## Gaps and discrepancies
 
 | # | Gap | Source | Issue |

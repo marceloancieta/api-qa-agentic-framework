@@ -1,3 +1,36 @@
 {
-  "envelopes": {}
+  "envelopes": {
+    "error": {
+      "description": "Refusal of the request before or around the operation: {error: '<text>'}. Measured 2026-10-16 for 401 (no or expired token, 'HTTP 401 Unauthorized'), 403 (a client without the role, 'HTTP 403 Forbidden'), 404 (an unknown user, 'User not found'; an unknown realm, 'Realm not found.'; a malformed integer query parameter, 'HTTP 404 Not Found', KN-03) and 400 (a malformed date filter). A body field of the wrong type answers 400 {error: 'unknown_error', error_description: 'Cannot parse the JSON'}, where error is a code (measured by the spec run, 2026-10-16). The contract declares no body for these (KN-07).",
+      "status": [400, 401, 403, 404],
+      "content_type": "application/json",
+      "schema": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "field_paths": []
+    },
+    "error-message": {
+      "description": "Refusal of a request body the server has read: {errorMessage: '<text>'}. Measured 2026-10-16 by the spec run for 400 on a user without a username ('User name is missing') and 409 on a duplicate username, on create and update (KN-07); the spec gives the 400 and 409 bodies an empty schema. The text names the field in prose; no key names it.",
+      "status": [400, 409],
+      "content_type": "application/json",
+      "schema": {
+        "type": "object",
+        "required": ["errorMessage"],
+        "properties": {
+          "errorMessage": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "field_paths": []
+    }
+  }
 }
