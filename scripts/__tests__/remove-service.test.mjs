@@ -5,6 +5,7 @@
 // framework must survive.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { gitEnv } from '../lib/git.mjs';
 import { spawnSync } from 'node:child_process';
 import {
   cpSync,
@@ -903,7 +904,7 @@ test('a compose edit that would leave a dependency dangling is not made, and is 
 
 test('untracked and ignored files under the deleted paths are named before they are lost', () => {
   const root = fixtureRepo();
-  const git = (...args) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+  const git = (...args) => spawnSync('git', args, { cwd: root, env: gitEnv(), encoding: 'utf8' });
   if (git('init', '-q').status !== 0) return;
   git('add', '.');
   writeFileSync(join(root, 'services/pet/local-notes.md'), 'mine\n');

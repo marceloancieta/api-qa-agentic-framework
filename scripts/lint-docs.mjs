@@ -94,6 +94,7 @@ import { finding, report, selfTest } from './lib/lint.mjs';
 import { loadRegistries } from './lib/registry.mjs';
 import { DESTRUCTIVE_TAG } from './lib/tags.mjs';
 import { parseCli, REPO_ROOT } from './lib/cli.mjs';
+import { gitEnv } from './lib/git.mjs';
 
 export const FIXTURE_DIR = join(import.meta.dirname, '__fixtures__', 'lint-docs');
 export const STATUSES = ['todo', 'in-progress', 'blocked', 'wont-do'];
@@ -126,7 +127,7 @@ function walk(root, dir = '') {
 function listFiles(root) {
   let files;
   if (existsSync(join(root, '.git'))) {
-    files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
+    files = execFileSync('git', ['ls-files', '-z'], { cwd: root, env: gitEnv(), encoding: 'utf8' })
       .split('\0')
       .filter(Boolean);
   } else files = walk(root);
@@ -509,13 +510,10 @@ function checkBacklog(backlog, out) {
 }
 
 /**
- * Git run in `dir`. The GIT_* variables of a calling hook (`GIT_DIR`, `GIT_INDEX_FILE`) are left out,
- * so they cannot point it at another repository.
+ * Git run in `dir`, without the GIT_* variables of a calling hook (`scripts/lib/git.mjs`).
  */
 function gitIn(dir) {
-  const env = Object.fromEntries(
-    Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('GIT_')),
-  );
+  const env = gitEnv();
   return (args, { input, extraEnv = {} } = {}) =>
     execFileSync('git', args, {
       cwd: dir,

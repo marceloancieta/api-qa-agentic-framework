@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { gitEnv } from '../lib/git.mjs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -235,7 +236,7 @@ test('usage errors are reported before git is read', () => {
 /** A throwaway repository with its own identity; the working repository is never touched. */
 function tempRepository() {
   const dir = mkdtempSync(join(tmpdir(), 'changelog-'));
-  const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+  const git = (...args) => execFileSync('git', args, { cwd: dir, env: gitEnv(), encoding: 'utf8' });
   git('init', '-q');
   git('config', 'user.name', 'Changelog Test');
   git('config', 'user.email', 'changelog-test@example.invalid');

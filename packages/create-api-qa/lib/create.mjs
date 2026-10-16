@@ -70,8 +70,13 @@ function emptyOrMissing(dir) {
   return !existsSync(dir) || readdirSync(dir).length === 0;
 }
 
+// git's own variables (GIT_DIR, GIT_INDEX_FILE, ...), which a calling git hook exports, would point
+// every git command at that repository instead of the project being created (GATE-25).
+const withoutGit = (env) =>
+  Object.fromEntries(Object.entries(env).filter(([name]) => !/^GIT_/i.test(name)));
+
 const run = (command, args, cwd, options = {}) =>
-  spawnSync(command, args, { cwd, encoding: 'utf8', ...options });
+  spawnSync(command, args, { cwd, encoding: 'utf8', env: withoutGit(process.env), ...options });
 
 const gitConfig = (key) => {
   const result = run('git', ['config', '--get', key], process.cwd());

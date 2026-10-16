@@ -37,6 +37,7 @@ import { escapeRegExp } from './lib/text.mjs';
 import { describeExit, exitCodeOf, spawnFailure } from './lib/spawn.mjs';
 import { parseBacklog } from './lint-docs.mjs';
 import { denylistPath } from './scan-denylist.mjs';
+import { gitEnv } from './lib/git.mjs';
 
 /** The root package name of the framework's own repository; a copy renames it. */
 export const FRAMEWORK_NAME = 'api-qa-agentic-framework';
@@ -191,6 +192,7 @@ export function releaseCheck({
       run: () => {
         const status = spawn('git', ['status', '--porcelain', '--untracked-files=no'], {
           cwd: root,
+          env: gitEnv(),
           encoding: 'utf8',
         });
         if (exitCodeOf(status) !== 0) {

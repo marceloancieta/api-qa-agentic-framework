@@ -51,6 +51,7 @@ import { pathToFileURL } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 import { packVariable, REPO_ROOT, servicePacks } from './lib/cli.mjs';
 import { describeExit, exitCodeOf } from './lib/spawn.mjs';
+import { gitEnv } from './lib/git.mjs';
 import { checkNamesOf, workflowCheckNames } from './lib/workflow.mjs';
 
 const NAME = /^[a-z][a-z0-9-]*$/;
@@ -1297,7 +1298,7 @@ export function reservedNames(root = REPO_ROOT, packs = servicePacks(root)) {
   return [...new Set([...RESERVED, ...framework])];
 }
 
-const git = (root, args) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+const git = (root, args) => spawnSync('git', args, { cwd: root, env: gitEnv(), encoding: 'utf8' });
 
 /**
  * Decide everything; changes nothing. `{ pack, deletions, edits: Map(file -> text | null), changes,
