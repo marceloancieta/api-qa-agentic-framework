@@ -5,6 +5,64 @@ All notable changes to this project are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and each section is generated from the
 commit history by `scripts/changelog.mjs`.
 
+## [0.5.0] - 2026-10-16
+
+### Upgrading from 0.4.0
+
+- **`@quarantine` cases run only in the flake lane.** They are left out of `npm test`,
+  `--grep @smoke` and any other selection, and of the known-gap, published and destructive lanes;
+  a command-line `--grep` cannot bring one back. Pass rates and case counts change, a quarantined
+  known gap is no longer checked by `lanes:known-gap`, and a quarantined `@destructive` case runs
+  nowhere. Run one by hand with `npm run lanes:flake`; `QA_INCLUDE_QUARANTINE` is internal, never
+  set it. `coverage:status` does not report a published quarantined case as missing from the run.
+- **A `required` quality-gate check with too few samples fails.** `p95_latency` below its
+  `min_samples` is now FAIL (exit 1) when the check says `required: true`, and stays SKIPPED
+  otherwise. The detail reads
+  `only N timed API case(s) (M other result(s) ignored), fewer than min_samples K`, with
+  `and the check is required` at the end when it fails.
+- **`lint-docs` checks contract-note citations** (`note-citation`), so `npm run gates` can newly
+  fail: every cited id of a prefix some pack defines must exist in that pack's
+  `services/<pack>/docs/contract-notes.md` `Id` table, in Markdown, the changelog, the ADRs and
+  tracked code and data files; ids compare exactly (a number without its leading zero is another
+  id) and two packs may not share a prefix.
+  Choose prefixes that are not id families of the repository (`L`, `TC`, `REQ`, the backlog
+  prefixes).
+- **Jenkins writes one JUnit file and HTML folder per step.** `QA_JUNIT_REPORT` is no longer set for
+  the whole build: `reports/junit.xml` is gone, the `junit` step reads `reports/junit-*.xml` and
+  `playwright-report/` holds one folder per step. A Playwright stage of your own needs
+  `withEnv(reportsOf('<step>')) { ... }`, and anything that read `reports/junit.xml` must change.
+  With `QA_JUNIT_REPORT` or `PLAYWRIGHT_HTML_OUTPUT_DIR` set, `lanes:destructive` writes one file or
+  folder per case, locally too.
+- **Tracker adapters can update issues.** `npm run tracker -- update <key>` changes the title and
+  the labels, and promoting an unconfirmed finding or re-scoping an issue now uses it. An adapter of
+  your own needs `updateIssue(key, { title, labels })` and `labels` from `getIssue`; without them
+  `update` refuses and the other commands are unchanged.
+- **New scripts.** `remove:service` removes a service pack (try `--dry-run` first); after removing
+  one, leave its paths out of later release patches (adopt guide, "Remove an example pack").
+  `create:build` and `packages/create-api-qa/` publish the framework itself and are not for a copy:
+  keep or delete them as the adopt guide says. The scaffolder writes the contract-notes `Id` table.
+- **Taking this release.** The patch adds `scripts/lib/tags.d.mts`, `.gitignore` lines and an
+  import of `scripts/lib/tags.mjs` in `playwright.config.ts`, which conflicts if you edited that
+  file. A new project can also start with `npm create api-qa <directory>` instead of the template.
+
+### Features
+
+- **create:** npm create api-qa from a framework release (#63) (FUT-11) `337ec1f`
+- **gates:** lint-docs checks every cited contract-note id (#57) (GATE-22) `e62c9db`
+- **scripts:** remove a service pack with one command (#61) (FUT-12) `493527a`
+- **tracker:** update an issue's title and labels with a read-back (#59) (TM-09) `b5a10d6`
+
+### Fixes
+
+- **ci:** one JUnit and HTML report per Jenkins step (#60) (CI-09) `bf0f6be`
+- **gates:** a required check with too few samples fails (#56) (GATE-21) `a8fc159`
+- **gates:** leave @quarantine out of every run but the flake lane (#58) (GATE-23) `1ba469e`
+
+### Other
+
+- **docs(backlog):** record their closing commits (#62) (GATE-21, GATE-22, GATE-23, TM-09, CI-09, FUT-12) `da1d63c`
+- **docs(guides):** pre-release review of v0.5.0 (#64) (DOC-10) `e86d2c6`
+
 ## [0.4.0] - 2026-10-15
 
 ### Upgrading from 0.3.0

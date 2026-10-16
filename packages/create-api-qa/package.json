@@ -1,6 +1,6 @@
 {
   "name": "create-api-qa",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Create a project from the API QA agentic framework: npm create api-qa <directory>.",
   "type": "module",
   "bin": {

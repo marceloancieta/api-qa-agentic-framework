@@ -129,8 +129,8 @@ the latest `vX.Y.Z` tag and groups them by type:
    the tag, with the owner's npm account; nothing in the repository changes:
    - with the tag checked out (`git switch --detach v<x.y.z>`), `npm run create:build` writes the
      release into `packages/create-api-qa`, and refuses a tag whose version differs;
-   - in that directory, `npm pack --dry-run` must list `framework.tar.gz`, `framework.json`,
-     `LICENSE` and `NOTICE`, with `framework.json` naming `v<x.y.z>`;
+   - in that directory, `npm pack --dry-run` must list the four release files, `framework.tar.gz`,
+     `LICENSE`, `NOTICE` and `packages/create-api-qa/framework.json`, which must name `v<x.y.z>`;
    - `npm publish --access public`; its `prepublishOnly` refuses a package without those files or
      built from another tag. A published version cannot be replaced, only deprecated;
    - read it back: `npm view create-api-qa@<x.y.z> version`, then
