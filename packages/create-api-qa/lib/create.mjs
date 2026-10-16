@@ -9,8 +9,9 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { readTar, safePath } from './tar.mjs';
 
+// npm keeps the flags before `--` for itself, so the package's own flags come after it.
 export const USAGE =
-  'Usage: npm create api-qa <directory> [-- --name <package-name>] [--skip-git] [--skip-install]';
+  'Usage: npm create api-qa <directory> -- [--name <package-name>] [--skip-git] [--skip-install]';
 
 // npm's rule for a package name, scoped or not.
 const NAME = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
@@ -127,7 +128,7 @@ export function createProject(
   if (git) {
     if (!gitConfig('user.email')) {
       log(
-        'git has no user.email, so nothing was committed; set it, then commit the files yourself.',
+        'git has no user.email, so there is no repository yet: set it, then run `git init -b main`, `git add -A` and commit.',
       );
     } else {
       const steps = [
@@ -167,7 +168,7 @@ export function nextSteps({ dir, installed }) {
   return [
     '',
     'Next:',
-    `  cd ${dir}`,
+    `  cd "${dir}"`,
     ...(installed ? [] : ['  npm ci']),
     '  cp .env.example .env            # then fill in what your packs need',
     '  npm run gates                   # passes before you change anything',

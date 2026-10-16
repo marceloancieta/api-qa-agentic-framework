@@ -23,7 +23,10 @@ Write requests are not; the credential exchange of the pack's auth strategy is t
 - Optional: an issue key (read it with `npm run tracker -- get <KEY>`), or an intake request written
   from [the intake template](../../../docs/templates/intake.md).
 - The pack's skill `.claude/skills/<pack>-api/SKILL.md`, if there is one, and
-  `services/<pack>/docs/contract-notes.md`.
+  `services/<pack>/docs/contract-notes.md`. A new note is a row of its `Id` table with the pack's
+  own prefix (`<PREFIX>-NN`, the next number; never reuse one); a pack's first note chooses the
+  prefix, one no other pack and no id family of the repository uses (`L`, `TC`, `REQ`, the backlog
+  prefixes).
 
 ## Steps
 

@@ -10,7 +10,9 @@ framework release (the [`create-api-qa`](../../packages/create-api-qa/README.md)
 unpacks the release, starts your own backlog with `REPO-01` naming the release and its commit,
 reduces the changelog to its header, names the package after the directory at version `0.0.0`,
 makes the first commit on `main` and runs `npm ci`. Then create the GitHub repository from that
-clone and continue with step 2.
+clone and continue with step 2. Of step 3 two things remain, since there is no adoption pull
+request: add your copyright line to `NOTICE`, and move `REPO-01` to **Done** with the hash of that
+first commit.
 
 The copy is yours from the start. Nothing links it back to the framework, so removing it, or the
 framework no longer being a template, changes nothing in a copy that already exists.
@@ -133,6 +135,11 @@ Set up the clone first, as in the [README](../../README.md#first-10-minutes): `n
   are what the checks and the skills cite. Number your own ADRs after the last one in
   `docs/adr/`.
 - **Your first API** is a new pack: follow [add a service pack](add-a-service-pack.md).
+- **`packages/create-api-qa/` publishes the framework itself.** It is harmless in your copy, where
+  its tests pass, but its release step in CONTRIBUTING is for the framework's repository only:
+  never publish it. To delete it, also delete `scripts/build-create-package.mjs`, the
+  `create:build` script, `scripts/__tests__/create-api-qa.test.mjs` and its `.gitignore` lines,
+  then the links `lint-docs` reports, and leave those paths out of later releases (step 5).
 
 ### Remove an example pack
 
@@ -184,6 +191,12 @@ In a Jenkinsfile, a line that runs the pack is removed only when the line before
 alone (it opens or closes a block, or is a complete statement). A line that may be the body of an
 `if`, `else`, `for` or `while` without braces is left and noted, because removing it would hand
 that statement the next line.
+
+When you later take a framework release (step 5), leave the removed pack out of the patch, since
+`git apply` changes nothing when a patched file is missing:
+`--exclude='services/<pack>/*' --exclude='.claude/skills/<pack>-api/*' --exclude=docs/discovery/<pack>-digest.json`.
+Hunks in the files the command edited (workflows, `docker-compose.yml`, the Jenkinsfile) may
+conflict where they touch the lines it removed.
 
 When the pack's job was a required check, as `e2e (petstore)` is, the command removes it from
 `.github/rulesets/main.json` and from the list in `scripts/__tests__/ruleset.test.mjs`. Change the

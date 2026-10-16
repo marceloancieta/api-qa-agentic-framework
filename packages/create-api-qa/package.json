@@ -6,6 +6,9 @@
   "bin": {
     "create-api-qa": "bin/create-api-qa.mjs"
   },
+  "scripts": {
+    "prepublishOnly": "node lib/prepublish.mjs"
+  },
   "files": [
     "bin/",
     "lib/",
