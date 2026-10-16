@@ -47,6 +47,21 @@ Gates, tracker, CI and distribution. Every item is in **Done**: GATE-21, GATE-22
 the gates, TM-09 for the tracker, CI-09 for Jenkins, FUT-12 for removing an example pack, FUT-11
 for `npm create api-qa`, and DOC-10, the pre-release review. Released as `v0.5.0`.
 
+## v0.6.0
+
+Release automation, adoption on real repositories, and a wider worked example.
+
+| Id | Item | Origin | Status |
+|---|---|---|---|
+| DOC-11 | Releases step 5 reads the published package back with `npm create api-qa@<x.y.z>` without saying where ([contributing](../CONTRIBUTING.md#releases)). Run inside `packages/create-api-qa`, npm takes the local package of the same name and version for the project and fails. Say that the read-back runs outside the repository. | exp | todo |
+| GATE-24 | `npm run release:check`: the checks before a release tag as one command that stops at the first failure, among them the history scans (`npm run scan:secrets`, `scripts/scan-denylist.mjs --history`), the root and `create-api-qa` versions equal to the changelog's latest section, and no open row left in that version's backlog section. Today they are separate [release](../CONTRIBUTING.md#releases) steps that nothing runs together. Each failure with its fixture. | exp | todo |
+| CI-10 | Publish `create-api-qa` from GitHub Actions when a `v<x.y.z>` tag is pushed, with npm trusted publishing (OIDC, no stored token) and provenance, built from the tag by `npm run create:build`, behind a protected environment that keeps the owner's approval. It replaces the manual publish of releases step 5, and a repository created from the template never runs it. | practice | todo |
+| FUT-13 | Adoption walked on real repositories: one created with **Use this template** and one with `npm create api-qa`, each pushed to GitHub and taken to green CI by following [adopt the template](guides/adopt-the-template.md). Whether GitHub runs the workflows on a copy's first commit, as the guide states, has not been checked. Fix what the walk finds. | plan | todo |
+| FUT-14 | `npm run framework:update -- --to v<x.y.z>`: take a later framework release in a copy, in place of the manual fetch, diff and three-way apply of [adopt the template](guides/adopt-the-template.md#5-take-a-later-framework-release). Removed example packs stay out, conflicts are left as git leaves them, and a dry run shows what would change. | plan | todo |
+| FUT-15 | A third example pack whose `auth` is `oauth2_client_credentials`: the strategy exists in `helpers/auth.ts` and `scripts/lib/auth-tokens.mjs`, but no pack uses it, so it has never run against a real token endpoint. A local identity provider and a small API in compose, phases 0 to 2 on a sample, and a CI job outside the required checks. | plan | todo |
+| CI-11 | Make `e2e (vampi)` and the `dast` jobs required checks; today only `title`, `gates` and `e2e (petstore)` are ([contributing](../CONTRIBUTING.md#branches-and-pull-requests)). A required check must run on every pull request, and `dast.yml` runs on some paths only, so decide that first. Changes `.github/rulesets/main.json`, its test and the live ruleset, with the owner's approval. | exp | todo |
+| PET-05 | Automate the `pet-update` registry: its cases are approved and none has a spec, the only Petstore registry without one (`npm run coverage:status`). Through `qa-automate` with its review, then `qa-publish`. | exp | todo |
+
 ---
 
 ## Done
