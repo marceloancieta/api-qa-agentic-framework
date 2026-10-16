@@ -809,7 +809,10 @@ export function deriveProbeMatrix(model, { service = null, references = new Map(
 // Output
 
 const WIDTH = 100;
-const flat = (value) => !isObject(value) && !Array.isArray(value);
+// The formatter keeps an empty object or array on the line of its array, like a plain value.
+const flat = (value) =>
+  (!isObject(value) && !Array.isArray(value)) ||
+  (Array.isArray(value) ? value.length === 0 : Object.keys(value).length === 0);
 
 // JSON laid out the way the repository formatter lays it out, so a regenerated file passes the
 // format check unchanged: objects always open, arrays of plain values on one line when they fit.

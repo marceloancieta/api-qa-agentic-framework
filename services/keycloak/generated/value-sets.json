@@ -1,0 +1,116 @@
+{
+  "generatedBy": "scripts/derive-value-sets.mjs",
+  "source": "services/keycloak/openapi.json",
+  "valueSets": [
+    {
+      "key": "BruteForceStrategy",
+      "kind": "schema",
+      "schema": "BruteForceStrategy",
+      "path": "",
+      "source": "enum",
+      "values": ["LINEAR", "MULTIPLE"],
+      "nullable": false,
+      "typeName": "BruteForceStrategy",
+      "constName": "BRUTE_FORCE_STRATEGY_VALUES"
+    },
+    {
+      "key": "DecisionEffect",
+      "kind": "schema",
+      "schema": "DecisionEffect",
+      "path": "",
+      "source": "enum",
+      "values": ["PERMIT", "DENY"],
+      "nullable": false,
+      "typeName": "DecisionEffect",
+      "constName": "DECISION_EFFECT_VALUES"
+    },
+    {
+      "key": "DecisionStrategy",
+      "kind": "schema",
+      "schema": "DecisionStrategy",
+      "path": "",
+      "source": "enum",
+      "values": ["AFFIRMATIVE", "UNANIMOUS", "CONSENSUS"],
+      "nullable": false,
+      "typeName": "DecisionStrategy",
+      "constName": "DECISION_STRATEGY_VALUES"
+    },
+    {
+      "key": "KeyUse",
+      "kind": "schema",
+      "schema": "KeyUse",
+      "path": "",
+      "source": "enum",
+      "values": ["SIG", "ENC", "JWT_SVID"],
+      "nullable": false,
+      "typeName": "KeyUse",
+      "constName": "KEY_USE_VALUES"
+    },
+    {
+      "key": "Logic",
+      "kind": "schema",
+      "schema": "Logic",
+      "path": "",
+      "source": "enum",
+      "values": ["POSITIVE", "NEGATIVE"],
+      "nullable": false,
+      "typeName": "Logic",
+      "constName": "LOGIC_VALUES"
+    },
+    {
+      "key": "MembershipType",
+      "kind": "schema",
+      "schema": "MembershipType",
+      "path": "",
+      "source": "enum",
+      "values": ["UNMANAGED", "MANAGED"],
+      "nullable": false,
+      "typeName": "MembershipType",
+      "constName": "MEMBERSHIP_TYPE_VALUES"
+    },
+    {
+      "key": "PolicyEnforcementMode",
+      "kind": "schema",
+      "schema": "PolicyEnforcementMode",
+      "path": "",
+      "source": "enum",
+      "values": ["ENFORCING", "PERMISSIVE", "DISABLED"],
+      "nullable": false,
+      "typeName": "PolicyEnforcementMode",
+      "constName": "POLICY_ENFORCEMENT_MODE_VALUES"
+    },
+    {
+      "key": "Status",
+      "kind": "schema",
+      "schema": "Status",
+      "path": "",
+      "source": "enum",
+      "values": ["PENDING", "EXPIRED"],
+      "nullable": false,
+      "typeName": "Status",
+      "constName": "STATUS_VALUES"
+    },
+    {
+      "key": "StepExecutionStatus",
+      "kind": "schema",
+      "schema": "StepExecutionStatus",
+      "path": "",
+      "source": "enum",
+      "values": ["COMPLETED", "PENDING"],
+      "nullable": false,
+      "typeName": "StepExecutionStatus",
+      "constName": "STEP_EXECUTION_STATUS_VALUES"
+    },
+    {
+      "key": "UnmanagedAttributePolicy",
+      "kind": "schema",
+      "schema": "UnmanagedAttributePolicy",
+      "path": "",
+      "source": "enum",
+      "values": ["ENABLED", "ADMIN_VIEW", "ADMIN_EDIT"],
+      "nullable": false,
+      "typeName": "UnmanagedAttributePolicy",
+      "constName": "UNMANAGED_ATTRIBUTE_POLICY_VALUES"
+    }
+  ]
+}

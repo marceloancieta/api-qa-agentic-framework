@@ -133,6 +133,13 @@ const DETECTORS = [
     accept: () => true,
   },
   {
+    // The digest's hash of one operation (`"GET /path": "<16 hex>"`, from swagger-digest) is
+    // generated too, and sometimes all decimal. Only that shape is consumed.
+    rule: 'numeric-id',
+    pattern: /"(?:GET|PUT|POST|DELETE|PATCH|HEAD|OPTIONS|TRACE) \/[^"]*": "[0-9a-f]{16}"/g,
+    accept: () => true,
+  },
+  {
     rule: 'numeric-id',
     pattern: /(?<![\w.,])\d{9,}(?![\w]|[.,]\d)/g,
     accept: () => false,

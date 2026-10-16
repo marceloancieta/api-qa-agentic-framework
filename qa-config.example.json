@@ -39,6 +39,38 @@
                 "password_env": "VAMPI_USER_B_PASSWORD"
               }
             }
+          },
+          "keycloak": {
+            "base_url": "http://localhost:8180",
+            "spec_url": "https://www.keycloak.org/docs-api/26.7.5/rest-api/openapi.json",
+            "allow_writes": true,
+            "recovery": { "command": "docker compose restart keycloak", "ready_timeout_s": 120 },
+            "auth": {
+              "type": "oauth2_client_credentials",
+              "token_url": "http://localhost:8180/realms/qa/protocol/openid-connect/token",
+              "client_id_env": "KEYCLOAK_ADMIN_CLIENT_ID",
+              "client_secret_env": "KEYCLOAK_ADMIN_CLIENT_SECRET"
+            },
+            "actors": {
+              "admin": {
+                "type": "oauth2_client_credentials",
+                "token_url": "http://localhost:8180/realms/qa/protocol/openid-connect/token",
+                "client_id_env": "KEYCLOAK_ADMIN_CLIENT_ID",
+                "client_secret_env": "KEYCLOAK_ADMIN_CLIENT_SECRET"
+              },
+              "viewer": {
+                "type": "oauth2_client_credentials",
+                "token_url": "http://localhost:8180/realms/qa/protocol/openid-connect/token",
+                "client_id_env": "KEYCLOAK_VIEWER_CLIENT_ID",
+                "client_secret_env": "KEYCLOAK_VIEWER_CLIENT_SECRET"
+              },
+              "no-role": {
+                "type": "oauth2_client_credentials",
+                "token_url": "http://localhost:8180/realms/qa/protocol/openid-connect/token",
+                "client_id_env": "KEYCLOAK_NO_ROLE_CLIENT_ID",
+                "client_secret_env": "KEYCLOAK_NO_ROLE_CLIENT_SECRET"
+              }
+            }
           }
         }
       },

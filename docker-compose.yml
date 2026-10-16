@@ -38,6 +38,15 @@
 # 1.0.26 is the newest release whose behaviour differs from 1.0.28 (1.0.27 answers the same); it
 # sits in the `diff` profile, is bound to 127.0.0.1 and is pinned by tag and digest.
 # PETSTORE_REFERENCE_PORT moves its host port when 8081 is taken.
+#
+# Third pack: the Keycloak Admin REST API (OpenAPI 3.0), whose token endpoint is the same server's
+# (FUT-15).
+#   npm run keycloak:up   -> http://localhost:8180 (admin API under /admin/realms/qa)
+# Development mode, in-memory: stopping the container discards every write. At start it imports
+# services/keycloak/realm/qa-realm.json, the `qa` realm with three service-account clients, and
+# fills its ${...} placeholders from the container's environment: the client secrets are passed
+# through from the host (KEYCLOAK_*_CLIENT_SECRET) and never written in a file. Bound to 127.0.0.1;
+# KEYCLOAK_PORT moves the host port when 8180 is taken. Pinned by tag and digest: 26.7.5.
 x-vampi: &vampi
   image: erev0s/vampi@sha256:0a5a224b6e14ae7da6a6ea265178ff71286ff903aec74adee98f660bb0e4ca12
   healthcheck:
@@ -88,6 +97,32 @@ services:
       tokentimetolive: '60'
     ports:
       - '127.0.0.1:${VAMPI_VULNERABLE_PORT:-5002}:5000'
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.5@sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85
+    command: ['start-dev', '--import-realm']
+    environment:
+      KC_HEALTH_ENABLED: 'true'
+      KC_DB: dev-mem
+      KEYCLOAK_ADMIN_CLIENT_ID:
+      KEYCLOAK_ADMIN_CLIENT_SECRET:
+      KEYCLOAK_VIEWER_CLIENT_ID:
+      KEYCLOAK_VIEWER_CLIENT_SECRET:
+      KEYCLOAK_NO_ROLE_CLIENT_ID:
+      KEYCLOAK_NO_ROLE_CLIENT_SECRET:
+    volumes:
+      - ./services/keycloak/realm:/opt/keycloak/data/import:ro
+    ports:
+      - '127.0.0.1:${KEYCLOAK_PORT:-8180}:8080'
+    healthcheck:
+      # The image has no curl or wget: bash asks the management port's readiness endpoint.
+      test:
+        [
+          'CMD-SHELL',
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 40
   zap:
     image: zaproxy/zap-stable:20260807@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
     profiles: [dast]
