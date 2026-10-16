@@ -47,6 +47,7 @@
     "scaffold:service": "node scripts/scaffold-service.mjs",
     "create:build": "node scripts/build-create-package.mjs",
     "remove:service": "node scripts/remove-service.mjs",
+    "framework:update": "node scripts/framework-update.mjs",
     "lint:harness": "node scripts/lint-harness.mjs",
     "lint:suite": "node scripts/lint-suite.mjs",
     "lint:docs": "node scripts/lint-docs.mjs",

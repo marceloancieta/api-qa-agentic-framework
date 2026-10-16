@@ -162,6 +162,7 @@ redaction, schema validation and controlled test data.
 | **Needs** | Node, the npm dependencies, a qa-config environment and its credentials, and `scripts/lib/`: the core imports the contract normalizer, token issuing (`auth-tokens.mjs`), variable-name redaction (`env-names.mjs`), the state comparison and the log and text helpers from it, and `playwright.config.ts` the tag filter of each pack project (`tags.mjs`). |
 | **Start a pack** | `npm run scaffold:service -- --name <pack> --spec <file\|url>` prints the plan; add `--write` to create the pack. |
 | **Remove a pack** | `npm run remove:service -- --name <pack>` deletes it and what runs it, then lists what is left to edit; `--dry-run` prints the plan ([remove an example pack](docs/guides/adopt-the-template.md#remove-an-example-pack)). |
+| **Take a release** | `npm run framework:update -- --to v<x.y.z>` merges a later framework release into your repository and leaves conflicts as git does; `--dry-run` lists what would change ([take a later framework release](docs/guides/adopt-the-template.md#5-take-a-later-framework-release)). |
 | **You can skip** | `.claude/`, `AGENTS.md` and `CLAUDE.md`, registries, the contract and lint scripts, the test-management and tracker adapters, CI. |
 
 Results still land in `allure-results/` and `playwright-report/`. A test title that starts with a
