@@ -72,8 +72,10 @@ lists what it writes. In short:
   each of those operations, because a parameterless `GET` is not always safe to call (VAmPI's
   `GET /createdb` recreates its database). Leave one out with `--skip-smoke "GET /path"`, repeated
   as needed;
-- `README.md`, the pack's map, and `services/<pack>/docs/contract-notes.md`, empty until the first
-  intake;
+- `README.md`, the pack's map, and `services/<pack>/docs/contract-notes.md`, an empty table until
+  the first intake. Its ids are `<PREFIX>-NN` with a prefix of the pack's own, which no other pack
+  uses and which is not an id family of the repository (`L`, `TC`, `REQ`, the backlog prefixes);
+  `lint-docs` checks every cited id against the table;
 - `generated/` and `docs/discovery/<pack>-digest.json`, from the contract tools;
 - `.claude/skills/<pack>-api/SKILL.md`, from
   [the service skill template](../templates/service-skill.md).

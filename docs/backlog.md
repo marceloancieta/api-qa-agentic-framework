@@ -45,7 +45,8 @@ FUT-05 for the GitHub template. Released as `v0.4.0`.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| FUT-11 | `npx create-api-qa`: the scaffolder published as an npm package. Publishing needs the owner's npm account and cannot be fully undone, so it waits for its own approval. | plan | todo |
+| FUT-11 | `npm create api-qa <directory>`: a project from a framework release, published as the npm package `create-api-qa`. Publishing needs the owner's npm account and cannot be fully undone, so it waits for its own approval. | plan | in-progress |
+| DOC-10 | Pre-release review of v0.5.0: the docs, rules, skills and READMEs read against the code of the release's items, and the new paths (`npm create api-qa`, the release steps, `tracker -- update`, `remove:service`) walked as a newcomer would. | exp | in-progress |
 
 ---
 

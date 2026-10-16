@@ -305,8 +305,9 @@ Notes on the steps:
   each pack under `services/` (a folder with a `service.json`) a `preflight-<pack>` setup project
   and an `api-<pack>` project that depends on it (and, only under `npm run auth:live`, the
   `auth-live` project). `--project=api-<pack>` runs one pack and
-  `--project=api-*` every pack. Each `api-<pack>` project leaves out `@destructive` cases, which
-  `npm run lanes:destructive` runs alone ([lanes](quality-gates.md#lanes)).
+  `--project=api-*` every pack. Each `api-<pack>` project leaves out `@destructive` and
+  `@quarantine` cases (`projectTagFilter` in `scripts/lib/tags.mjs`), which only
+  `npm run lanes:destructive` and `npm run lanes:flake` run ([lanes](quality-gates.md#lanes)).
 - **Configuration per pack.** A pack's projects read its entry in the active environment
   (`api.environments.<env>.packs.<pack>`, [ADR 0009](adr/0009-per-pack-configuration.md)): base
   URL, contract URL, credentials, actors and `allow_writes`; the destructive lane reads its

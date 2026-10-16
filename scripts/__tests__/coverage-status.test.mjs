@@ -3,7 +3,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { coverageStatus, inspectTest, RULES } from '../coverage-status.mjs';
@@ -111,6 +120,28 @@ test('a spec is judged by its latest run, and a retried case keeps its last atte
     'TC-ITEM-09 is published but the latest run of services/shop/specs/items.spec.ts in allure-results has no result for shop-v1-TC-ITEM-09',
   );
   assert.ok(!status['findings'].some((f) => f['case'] === 'TC-ITEM-08'));
+});
+
+test('a published case tagged @quarantine is not reported for a missing result', async () => {
+  // Since GATE-23 a quarantined case runs only in the flake lane, whose results join no run.
+  const copy = mkdtempSync(join(tmpdir(), 'coverage-quarantine-'));
+  try {
+    cpSync(ROOT, copy, { recursive: true });
+    const spec = join(copy, ...SPEC.split('/'));
+    const source = readFileSync(spec, 'utf8');
+    writeFileSync(
+      spec,
+      source.replace(
+        "'TC-ITEM-09 reads an unknown item'",
+        "'TC-ITEM-09 reads an unknown item @quarantine'",
+      ),
+    );
+    const status = await coverageStatus(copy);
+    assert.ok(!status['findings'].some((f) => f['case'] === 'TC-ITEM-09'));
+    assert.equal(status['findings'].length, EXPECTED.length - 1);
+  } finally {
+    rmSync(copy, { recursive: true, force: true });
+  }
 });
 
 // GATE-14: runs of part of the suite, from scripts/__fixtures__/coverage-status/runs/.

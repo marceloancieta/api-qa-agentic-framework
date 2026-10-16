@@ -16,6 +16,7 @@ import {
   renamePackage,
 } from '../../packages/create-api-qa/lib/create.mjs';
 import { paxRecords, readTar, safePath } from '../../packages/create-api-qa/lib/tar.mjs';
+import { publishProblems } from '../../packages/create-api-qa/lib/prepublish.mjs';
 
 const temporary = [];
 const tempDir = (prefix) => {
@@ -245,6 +246,27 @@ test('the CLI prints its usage without one directory, and the package version fo
   assert.equal(main([], { packageDir: PACKAGE_DIR, log: (line) => lines.push(line) }), 2);
   assert.equal(main(['--help'], { packageDir: PACKAGE_DIR, log: (line) => lines.push(line) }), 0);
   assert.match(lines[0], /^Usage: npm create api-qa <directory>/);
+});
+
+test('publishing refuses a package without its release files or built from another tag', () => {
+  const dir = tempDir('create-publish-');
+  writeFileSync(join(dir, 'package.json'), '{ "version": "1.2.3" }\n');
+  assert.deepEqual(publishProblems(dir), [
+    'missing framework.tar.gz, framework.json, LICENSE, NOTICE: run npm run create:build from the release tag',
+  ]);
+  for (const file of ['framework.tar.gz', 'LICENSE', 'NOTICE']) writeFileSync(join(dir, file), 'x');
+  const release = (version, ref) =>
+    writeFileSync(join(dir, 'framework.json'), JSON.stringify({ version, ref, commit: 'c' }));
+  release('1.2.3', 'HEAD');
+  assert.deepEqual(publishProblems(dir), [
+    'framework.json was built from HEAD, not from the tag v1.2.3',
+  ]);
+  release('1.2.2', 'v1.2.2');
+  assert.equal(publishProblems(dir).length, 2);
+  release('1.2.3', 'v1.2.3');
+  assert.deepEqual(publishProblems(dir), []);
+  const pkg = JSON.parse(readFileSync(join(PACKAGE_DIR, 'package.json'), 'utf8'));
+  assert.equal(pkg.scripts.prepublishOnly, 'node lib/prepublish.mjs');
 });
 
 // Released together: `npm version` at the root and in the package (CONTRIBUTING, releases). Only

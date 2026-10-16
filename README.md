@@ -49,7 +49,8 @@ cd api-qa-agentic-framework
 npm ci
 ```
 
-The suite uses Playwright's API client only, so no browser download is needed.
+After `npm create api-qa`, skip this step: it already ran `npm ci`. The suite uses Playwright's API
+client only, so no browser download is needed.
 
 **2. Configure.** Create a local `.env` copied from `.env.example`, and set `API_KEY` in it to any
 non-empty value. The Petstore accepts any key; the preflight refuses an empty one. The file is
@@ -154,7 +155,7 @@ redaction, schema validation and controlled test data.
 | | |
 |---|---|
 | **Uses** | `helpers/` (base client, authentication strategies, evidence and redaction, schema validation, state comparison, resource guards, known gaps, seeded data and clock), `fixtures/` (the core fixtures, global setup, preflight), `playwright.config.ts`, and one service pack per API with its clients, builders, flows and specs ([ADR 0007](docs/adr/0007-layered-test-architecture.md)). |
-| **Needs** | Node, the npm dependencies, a qa-config environment and its credentials, and `scripts/lib/`: the core imports the contract normalizer, token issuing (`auth-tokens.mjs`), variable-name redaction (`env-names.mjs`), the state comparison and the log and text helpers from it. |
+| **Needs** | Node, the npm dependencies, a qa-config environment and its credentials, and `scripts/lib/`: the core imports the contract normalizer, token issuing (`auth-tokens.mjs`), variable-name redaction (`env-names.mjs`), the state comparison and the log and text helpers from it, and `playwright.config.ts` the tag filter of each pack project (`tags.mjs`). |
 | **Start a pack** | `npm run scaffold:service -- --name <pack> --spec <file\|url>` prints the plan; add `--write` to create the pack. |
 | **Remove a pack** | `npm run remove:service -- --name <pack>` deletes it and what runs it, then lists what is left to edit; `--dry-run` prints the plan ([remove an example pack](docs/guides/adopt-the-template.md#remove-an-example-pack)). |
 | **You can skip** | `.claude/`, `AGENTS.md` and `CLAUDE.md`, registries, the contract and lint scripts, the test-management and tracker adapters, CI. |
@@ -267,7 +268,7 @@ None of these is needed for a green run. Turn on what your project uses.
 | Read | For |
 |---|---|
 | [Onboarding](docs/onboarding.md) | a guided tour: layout, phases, where facts live, reading order, common gotchas |
-| [Adopt the template](docs/guides/adopt-the-template.md) | a repository of your own from the GitHub template: settings, the first pull request, later framework releases |
+| [Adopt the template](docs/guides/adopt-the-template.md) | a repository of your own from the GitHub template or `npm create api-qa`: settings, the first pull request, removing an example pack, later framework releases |
 | [Add a test case](docs/guides/add-a-test-case.md) | from a designed case to a passing spec |
 | [Add a service pack](docs/guides/add-a-service-pack.md) | testing a new API |
 | [Consumer-driven contracts](docs/guides/consumer-driven-contracts.md) | what Pact-style consumer contracts would add, when they pay off, and where they would sit (not implemented) |

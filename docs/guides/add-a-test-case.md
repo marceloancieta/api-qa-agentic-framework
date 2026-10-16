@@ -257,8 +257,9 @@ npm run tm:report -- --service petstore
 The run prints its seed (`QA_SEED`) and its run id; `tm:report` reuses the run id, reports the
 latest results of the pack and closes the run. With the `allure-report` provider,
 `npm run tm:open` serves the report. The [qa-run skill](../../.claude/skills/qa-run/SKILL.md) lists
-the other selections: a tag such as `--grep @smoke`, the published lane, the known-gap lane, and the
-destructive lane, which is the only way `@destructive` cases run.
+the other selections: a tag such as `--grep @smoke`, the published lane, the known-gap lane, the
+destructive lane, which is the only way `@destructive` cases run, and the flake lane, the only run
+that keeps `@quarantine` cases.
 
 ## What the checks will say
 

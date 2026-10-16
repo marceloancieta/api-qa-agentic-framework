@@ -115,16 +115,26 @@ the latest `vX.Y.Z` tag and groups them by type:
 2. `npm run changelog:write` adds the section to `CHANGELOG.md`; it refuses a version that is
    already there. For a version other than the proposed one, run
    `node scripts/changelog.mjs --version <x.y.z> --write`.
-3. Set the version in `package.json` with `npm version <x.y.z> --no-git-tag-version`, and the same
-   version in `packages/create-api-qa/package.json` (run it there too); a test keeps them equal.
+3. Set the version in `package.json` with `npm version <x.y.z> --no-git-tag-version`. In the
+   framework's repository, set the same version in the `create-api-qa` package, which a test keeps
+   equal: `(cd packages/create-api-qa && npm version <x.y.z> --no-git-tag-version)`.
 4. Open a pull request titled `docs(changelog): <BACKLOG-ID> release <x.y.z>` with those changes,
-   and the version's section of the [backlog](docs/backlog.md) saying it was released.
-   After the squash merge, tag the resulting commit on `main` as `v<x.y.z>` and push the tag, with
-   the owner's approval ([AGENTS.md](AGENTS.md)).
-5. Publish `create-api-qa` from the tag, with the owner's npm account: `npm run create:build`
-   writes the release into `packages/create-api-qa` (it refuses a tag whose version differs), then,
-   in that directory, `npm pack --dry-run` to read what goes out and `npm publish --access public`.
-   A published version cannot be replaced, only deprecated.
+   the version's section of the [backlog](docs/backlog.md) saying it was released, and every item
+   closed since the last release moved to **Done** with its closing commit, the item merged just
+   before the release included. Nothing is committed after the release: merge the items first,
+   then this pull request. After the squash merge, tag the resulting commit on `main` as
+   `v<x.y.z>`, push the tag and create the GitHub release from it, with the owner's approval
+   ([AGENTS.md](AGENTS.md)).
+5. In the framework's repository only (a copy never publishes it), publish `create-api-qa` from
+   the tag, with the owner's npm account; nothing in the repository changes:
+   - with the tag checked out (`git switch --detach v<x.y.z>`), `npm run create:build` writes the
+     release into `packages/create-api-qa`, and refuses a tag whose version differs;
+   - in that directory, `npm pack --dry-run` must list `framework.tar.gz`, `framework.json`,
+     `LICENSE` and `NOTICE`, with `framework.json` naming `v<x.y.z>`;
+   - `npm publish --access public`; its `prepublishOnly` refuses a package without those files or
+     built from another tag. A published version cannot be replaced, only deprecated;
+   - read it back: `npm view create-api-qa@<x.y.z> version`, then
+     `npm create api-qa@<x.y.z> <temporary-directory> -- --skip-install`.
 
 ## Reporting a problem
 

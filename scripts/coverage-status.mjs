@@ -59,6 +59,7 @@ import { floorAxisCases, loadRegistries, STATUSES } from './lib/registry.mjs';
 import { loadModel } from './lib/openapi.mjs';
 import { operationFloor } from './derive-floor.mjs';
 import { groupRuns } from './lib/results.mjs';
+import { QUARANTINE_TAG } from './lib/tags.mjs';
 
 /** Every rule a finding can carry, in report order. */
 const CASE_IDENTITY = /^[a-z][a-z0-9-]*-[a-z0-9][a-z0-9.-]*-TC-[A-Z][A-Z0-9]*-\d+$/;
@@ -397,7 +398,11 @@ export async function coverageStatus(root, { pack = null, resultsDir = null } = 
               }
             }
           }
-          if (row.status === 'published' && results.found) {
+          // A quarantined case runs only in the flake lane, whose results join no run (GATE-23), so
+          // its missing result is expected: the published lane reports it as quarantined.
+          const quarantined =
+            tests.length > 0 && tests.every((entry) => entry.test.tags.includes(QUARANTINE_TAG));
+          if (row.status === 'published' && results.found && !quarantined) {
             if (!run) notRun.set(spec, (notRun.get(spec) ?? 0) + 1);
             else if (!latest) {
               at(

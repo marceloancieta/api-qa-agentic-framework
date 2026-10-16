@@ -47,7 +47,8 @@ the pack has `allow_writes` true.
    npm run lint:qa
    npx playwright test services/<pack>/specs/<file> --list
    ```
-   Every designed case of the file appears exactly once in the listing; `lint:qa` (the harness
+   Every designed case of the file appears exactly once in the listing, except the `@destructive`
+   and `@quarantine` ones (below); `lint:qa` (the harness
    linter's tag taxonomy) already holds each title to exactly one layer tag. `@destructive` cases
    are left out of every run and listing; add `QA_DESTRUCTIVE=1` to list them. `@quarantine` cases
    are left out too, and only `npm run lanes:flake` runs them.

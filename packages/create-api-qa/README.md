@@ -22,18 +22,23 @@ The package carries one framework release, the one its version names. In the new
 4. makes the first commit on `main`, when git has a `user.email`;
 5. runs `npm ci`.
 
-It refuses a directory that exists and is not empty.
+It refuses a directory that exists and is not empty. The package's own options go after `--`,
+because npm keeps the options before it for itself:
 
 ```text
-npm create api-qa <directory> [-- --name <package-name>] [--skip-git] [--skip-install]
+npm create api-qa <directory> -- [--name <package-name>] [--skip-git] [--skip-install]
 ```
 
 ## Then
 
-`npm run gates` passes before you change anything. Create the GitHub repository from the new
-clone, set it up as the framework's guide `docs/guides/adopt-the-template.md` describes (step 2),
-and add your first API as a service pack with `npm run scaffold:service`
-(`docs/guides/add-a-service-pack.md`).
+`npm run gates` passes before you change anything. Of the adoption steps in the framework's guide
+`docs/guides/adopt-the-template.md`, these remain:
+
+- add your copyright line to `NOTICE` for what you add (step 3), and move `REPO-01` to **Done**
+  with the hash of the first commit;
+- create the GitHub repository from the new clone and set it up (step 2);
+- add your first API as a service pack with `npm run scaffold:service`
+  (`docs/guides/add-a-service-pack.md`).
 
 ## License
 
