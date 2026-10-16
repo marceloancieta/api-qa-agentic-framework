@@ -75,6 +75,14 @@ The existing linters and their fixtures in `scripts/__fixtures__/` are the examp
 | `commit-msg` | the local denylist scan on the message | Passes with a notice when there is no denylist. |
 | `pre-push` | `npm run gates` | The same gate CI runs. `QA_NO_GATES=1` skips it for one push. |
 
+A hook exports git's own variables (`GIT_DIR`, `GIT_INDEX_FILE`, `GIT_WORK_TREE`) to what it runs,
+and from a linked worktree they point at that worktree's repository. A script or test that runs git
+on a repository of its own, a temporary one or a directory it was given, therefore passes
+`env: gitEnv()` (`scripts/lib/git.mjs`), or its commands land in the repository being pushed;
+`scripts/__tests__/git-env.test.mjs` runs those suites under a decoy `GIT_DIR`. The scans of what is
+being committed keep the variables, because a pre-commit hook's `GIT_INDEX_FILE` is the index the
+commit is made from.
+
 The denylist is a private, untracked list of terms you must never publish, kept in
 `.git/info/denylist`; the [README](README.md#optional-pieces) explains it.
 

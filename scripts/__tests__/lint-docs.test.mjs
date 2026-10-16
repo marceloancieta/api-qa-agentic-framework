@@ -2,6 +2,7 @@
 // repository checked rule by rule.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { gitEnv } from '../lib/git.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -65,9 +66,7 @@ test('closing-commit is not checked when the root is not a git repository', () =
 test('closing-commit reports a history that holds none of the cited hashes once', () => {
   const copy = mkdtempSync(join(tmpdir(), 'lint-docs-copy-'));
   try {
-    const env = Object.fromEntries(
-      Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('GIT_')),
-    );
+    const env = gitEnv();
     const git = (...args) => execFileSync('git', args, { cwd: copy, env, stdio: 'pipe' });
     git('init', '-q', '--initial-branch=main');
     git(

@@ -1,5 +1,6 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { gitEnv } from '../lib/git.mjs';
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -29,7 +30,12 @@ after(() => {
 });
 
 const git = (...args) =>
-  spawnSync('git', args, { cwd: REPO_ROOT, encoding: 'buffer', maxBuffer: 256 << 20 }).stdout;
+  spawnSync('git', args, {
+    cwd: REPO_ROOT,
+    env: gitEnv(),
+    encoding: 'buffer',
+    maxBuffer: 256 << 20,
+  }).stdout;
 const HEAD = git('rev-parse', 'HEAD').toString('utf8').trim();
 const ROOT = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'));
 const IN_FRAMEWORK = ROOT.name === 'api-qa-agentic-framework';
@@ -177,7 +183,8 @@ function releaseRepository(version) {
   }
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'));
   writeFileSync(join(root, 'package.json'), `${JSON.stringify({ ...pkg, version }, null, 2)}\n`);
-  const inRoot = (...args) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+  const inRoot = (...args) =>
+    spawnSync('git', args, { cwd: root, env: gitEnv(), encoding: 'utf8' });
   inRoot('init', '-q');
   inRoot('add', '-A');
   inRoot('-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-q', '-m', 'x');

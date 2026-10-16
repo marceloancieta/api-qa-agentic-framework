@@ -45,6 +45,7 @@ import { readTextIfExists, REPO_ROOT } from './lib/cli.mjs';
 import { escapeRegExp } from './lib/text.mjs';
 import { createLogger } from './lib/log.mjs';
 import { describeExit, spawnFailure } from './lib/spawn.mjs';
+import { gitEnv } from './lib/git.mjs';
 
 export const COMMIT_TYPES = [
   'feat',
@@ -254,7 +255,12 @@ export function insertSection(existing, section, version) {
 }
 
 function git(args, cwd) {
-  const result = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const result = spawnSync('git', args, {
+    cwd,
+    env: gitEnv(),
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
   if (spawnFailure(result) || result.status !== 0) {
     const detail = (result.stderr ?? '').trim() || describeExit(result);
     throw new Error(`git ${args.join(' ')} failed: ${detail}`);

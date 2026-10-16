@@ -17,11 +17,17 @@ import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { REPO_ROOT } from './lib/cli.mjs';
+import { gitEnv } from './lib/git.mjs';
 
 export const PACKAGE_DIR = join(REPO_ROOT, 'packages', 'create-api-qa');
 
 function git(args, root) {
-  const result = spawnSync('git', args, { cwd: root, encoding: 'buffer', maxBuffer: 256 << 20 });
+  const result = spawnSync('git', args, {
+    cwd: root,
+    env: gitEnv(),
+    encoding: 'buffer',
+    maxBuffer: 256 << 20,
+  });
   if (result.status !== 0)
     throw new Error(`git ${args.join(' ')}: ${result.stderr.toString('utf8').trim()}`);
   return result.stdout;
