@@ -43,10 +43,9 @@ FUT-05 for the GitHub template. Released as `v0.4.0`.
 
 ## v0.5.0
 
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| FUT-11 | `npm create api-qa <directory>`: a project from a framework release, published as the npm package `create-api-qa`. Publishing needs the owner's npm account and cannot be fully undone, so it waits for its own approval. | plan | in-progress |
-| DOC-10 | Pre-release review of v0.5.0: the docs, rules, skills and READMEs read against the code of the release's items, and the new paths (`npm create api-qa`, the release steps, `tracker -- update`, `remove:service`) walked as a newcomer would. | exp | in-progress |
+Gates, tracker, CI and distribution. Every item is in **Done**: GATE-21, GATE-22 and GATE-23 for
+the gates, TM-09 for the tracker, CI-09 for Jenkins, FUT-12 for removing an example pack, FUT-11
+for `npm create api-qa`, and DOC-10, the pre-release review. Released as `v0.5.0`.
 
 ---
 
@@ -165,3 +164,5 @@ FUT-05 for the GitHub template. Released as `v0.4.0`.
 | TM-09 | `npm run tracker -- update <key> [--title] [--add-label]... [--remove-label]...`: the verified wrapper reads the labels, sends the whole new set and reads title and labels back, keeps the labels it does not name, and refuses an empty request, an empty title, a label both added and removed, and removing a label the issue lacks. The local, GitHub and Jira adapters pass a new tracker-contract case; bug reporting promotes and re-scopes with it. | `b5a10d6` |
 | CI-09 | Jenkins writes one JUnit file and HTML report folder per Playwright step (`reportsOf` in the `Jenkinsfile`) and publishes `reports/junit-*.xml`; the destructive lane derives a name per case from `QA_JUNIT_REPORT` and `PLAYWRIGHT_HTML_OUTPUT_DIR`. A real build on the Windows agent published the Petstore suite, both destructive cases and VAmPI. | `bf0f6be` |
 | FUT-12 | `npm run remove:service -- --name <pack> [--dry-run]` removes an example pack: what the scaffolder created, and its scripts, compose services, configuration, workflow jobs and matrix entries, Jenkins stages, required checks and variables, decided by structural markers and parsed back after each edit; it lists the remaining mentions and what blocks the gates, and refuses reserved names, the last pack and a dirty tree. Reviewed twice; removing VAmPI leaves only the lint-docs findings it prints. | `493527a` |
+| FUT-11 | `npm create api-qa <directory>`: the `create-api-qa` package (`packages/create-api-qa`) carries one framework release, built from its tag by `npm run create:build`, and creates a project from it with the adoption steps applied (its own backlog with `REPO-01`, the changelog's header, the package renamed at `0.0.0`, a first commit, `npm ci`); no dependency, its own tar reader; `prepublishOnly` refuses a package without its release files. A project created from the packed package passes `npm ci` and `npm run gates`. Published from each release tag with the owner's npm account (CONTRIBUTING, releases). | `337ec1f` |
+| DOC-10 | Pre-release review of v0.5.0: a published `@quarantine` case no longer fails `coverage:status`; `npm create api-qa` options after `--`; the release steps for the framework only, with the publish checks and the rule that the release pull request records every Done item; the `npm create` path, a copy's `packages/create-api-qa/` and later releases after removing a pack in the adopt guide; the contract-notes table and prefix from the scaffolder; `@quarantine` and per-case reports across the docs. | `e86d2c6` |
