@@ -20,6 +20,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { REPO_ROOT, servicePacks } from '../lib/cli.mjs';
+import { checkNamesOf } from '../lib/workflow.mjs';
 import {
   applyRemoval,
   bracketsBalanced,
@@ -373,7 +374,9 @@ test('a workflow loses the pack jobs, its matrix entries and path filters; nothi
     'services/*/service.json',
     'services/petstore/seed.mjs',
   ]);
-  assert.deepEqual(result.removedJobs, [{ id: 'e2e-pet', name: 'e2e (pet)' }]);
+  assert.deepEqual(result.removedJobs, [
+    { id: 'e2e-pet', name: 'e2e (pet)', checks: ['e2e (pet)'] },
+  ]);
   assert.ok(!result.text.includes('The pet pack end to end'));
   assert.ok(result.notes.some((note) => /job dast names pet in a matrix include/.test(note)));
 });
@@ -764,6 +767,46 @@ test('the plan deletes and edits what belongs to the pack, never a history file,
   );
 });
 
+test('a required check of a matrix job goes by the names the job reports, not by its written name', () => {
+  const root = fixtureRepo();
+  writeFileSync(
+    join(root, '.github/workflows/scan.yml'),
+    text(
+      'name: scan',
+      'on: pull_request',
+      'jobs:',
+      '  scan-pet:',
+      '    name: scan (pet ${{ matrix.mode }})',
+      '    strategy:',
+      '      matrix:',
+      '        mode: [secure, vulnerable]',
+      '    steps:',
+      '      - run: npm run pet:up',
+      '  scan-petstore:',
+      '    name: scan (petstore ${{ matrix.mode }})',
+      '    strategy:',
+      '      matrix:',
+      '        mode: [secure]',
+      '    steps:',
+      '      - run: npm run petstore:up',
+    ),
+  );
+  const checks = ['title', 'scan (pet secure)', 'scan (pet vulnerable)', 'scan (petstore secure)'];
+  writeFileSync(
+    join(root, '.github/rulesets/main.json'),
+    `${JSON.stringify({ rules: [{ type: 'required_status_checks', parameters: { required_status_checks: checks.map((context) => ({ context })) } }] }, null, 2)}\n`,
+  );
+  const plan = planRemoval({ name: 'pet', root });
+  assert.deepEqual(plan.removedChecks, ['scan (pet secure)', 'scan (pet vulnerable)']);
+  applyRemoval(plan, root);
+  assert.deepEqual(
+    JSON.parse(
+      readFileSync(join(root, '.github/rulesets/main.json'), 'utf8'),
+    ).rules[0].parameters.required_status_checks.map((check) => check.context),
+    ['title', 'scan (petstore secure)'],
+  );
+});
+
 test('a workflow with CRLF line endings is edited and keeps them', () => {
   const root = fixtureRepo(PACKS, { workflow: WORKFLOW.replace(/\n/g, '\r\n') });
   const plan = planRemoval({ name: 'pet', root });
@@ -1015,37 +1058,49 @@ for (const pack of PACKS_HERE) {
     );
 
     // A required check whose job is gone left the ruleset, its test and the notes.
-    const names = (jobs) => [...jobs.values()].map((job) => job.name);
+    const names = (jobs) =>
+      [...jobs].flatMap(([key, job]) => checkNamesOf(key.slice(key.indexOf(':') + 1), job));
     const gone = requiredBefore.filter(
       (c) => names(jobsBefore).includes(c) && !names(jobsAfter).includes(c),
     );
     assert.deepEqual(plan.removedChecks, gone);
     for (const check of gone) {
       assert.ok(!read('scripts/__tests__/ruleset.test.mjs').includes(`'${check}'`));
-      assert.ok(plan.notes.some((note) => note.includes(`GitHub still requires ${check}`)));
+      assert.ok(
+        plan.notes.some((note) => /GitHub still requires/.test(note) && note.includes(check)),
+        `a note names ${check}`,
+      );
     }
   });
 }
 
-test(
-  'this repository: removing petstore drops the required e2e (petstore) check and keeps the others',
-  {
-    skip:
-      (!PACKS_HERE.includes('petstore') || PACKS_HERE.length < 2) &&
-      'needs the petstore pack and another one',
-  },
-  () => {
-    const root = copyOfRepository();
-    const required = requiredOf(root);
-    const plan = planRemoval({ name: 'petstore', root });
-    assert.deepEqual(
-      plan.removedChecks,
-      required.includes('e2e (petstore)') ? ['e2e (petstore)'] : [],
-    );
-    applyRemoval(plan, root);
-    assert.deepEqual(
-      requiredOf(root),
-      required.filter((check) => check !== 'e2e (petstore)'),
-    );
-  },
-);
+// The example packs' required checks, by name: VAmPI's DAST job is a matrix job, so its checks are
+// the names it reports, not its written name.
+const PACK_CHECKS = {
+  petstore: ['e2e (petstore)', 'dast (petstore)'],
+  vampi: ['e2e (vampi)', 'dast (vampi secure)', 'dast (vampi vulnerable)'],
+};
+for (const [pack, checks] of Object.entries(PACK_CHECKS)) {
+  test(
+    `this repository: removing ${pack} drops its required checks and keeps the others`,
+    {
+      skip:
+        (!PACKS_HERE.includes(pack) || PACKS_HERE.length < 2) &&
+        `needs the ${pack} pack and another one`,
+    },
+    () => {
+      const root = copyOfRepository();
+      const required = requiredOf(root);
+      const plan = planRemoval({ name: pack, root });
+      assert.deepEqual(
+        plan.removedChecks,
+        required.filter((check) => checks.includes(check)),
+      );
+      applyRemoval(plan, root);
+      assert.deepEqual(
+        requiredOf(root),
+        required.filter((check) => !checks.includes(check)),
+      );
+    },
+  );
+}

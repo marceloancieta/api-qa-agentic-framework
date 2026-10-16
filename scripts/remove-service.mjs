@@ -51,6 +51,7 @@ import { pathToFileURL } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 import { packVariable, REPO_ROOT, servicePacks } from './lib/cli.mjs';
 import { describeExit, exitCodeOf } from './lib/spawn.mjs';
+import { checkNamesOf, workflowCheckNames } from './lib/workflow.mjs';
 
 const NAME = /^[a-z][a-z0-9-]*$/;
 /** Files that record what happened; a removal never edits them. */
@@ -690,6 +691,7 @@ export function editWorkflow(text, scope, file = 'workflow') {
   const removedJobs = owned.map((job) => ({
     id: job.key,
     name: before.jobs?.[job.key]?.name ?? job.key,
+    checks: checkNamesOf(job.key, before.jobs?.[job.key]),
   }));
   if (owned.length > 0 && owned.length === section.blocks.length) {
     return {
@@ -1396,17 +1398,20 @@ export function planRemoval({ name, root = REPO_ROOT, reserved }) {
     );
   }
 
-  // A required check goes only when no job of any workflow reports that name any more.
+  // A required check goes only when no job of any workflow reports that name any more. A matrix
+  // job reports one name per combination (scripts/lib/workflow.mjs).
   const remaining = workflows.flatMap((file) => {
     const text = plan.edits.has(file) ? plan.edits.get(file) : read(root, file);
     if (text === null) return [];
     try {
-      return Object.entries(parseYamlText(text).jobs ?? {}).map(([id, job]) => job?.name ?? id);
+      return workflowCheckNames(parseYamlText(text));
     } catch {
       return [];
     }
   });
-  const gone = removedJobs.map((job) => job.name).filter((jobName) => !remaining.includes(jobName));
+  const gone = [...new Set(removedJobs.flatMap((job) => job.checks))].filter(
+    (check) => !remaining.includes(check),
+  );
   for (const file of files(root, '.github/rulesets', /\.json$/)) {
     attempt(file, (text) => {
       const { text: out, removed } = editRuleset(text, gone);

@@ -63,7 +63,7 @@ gh repo edit <owner>/<name> --enable-squash-merge --squash-merge-commit-message 
   --enable-merge-commit=false --enable-rebase-merge=false --delete-branch-on-merge
 
 # The rules of main: pull requests only, squash merges, linear history, no force push or deletion,
-# and the required checks `title`, `gates` and `e2e (petstore)`.
+# and the required checks: `title`, `gates`, each pack's `e2e` job and the `dast` jobs.
 gh api -X POST repos/<owner>/<name>/rulesets --input .github/rulesets/main.json
 
 # Private vulnerability reporting, which CONTRIBUTING points security reports to.
@@ -71,9 +71,10 @@ gh api -X PUT repos/<owner>/<name>/private-vulnerability-reporting
 ```
 
 The ruleset can also be imported in **Settings** > **Rules** > **Rulesets** > **New ruleset** >
-**Import a ruleset**. `scripts/__tests__/ruleset.test.mjs` keeps its required checks equal to job
-names of `.github/workflows/ci.yml`. If you rename a required job, update the file, the expected
-list in that test, and then the ruleset on GitHub.
+**Import a ruleset**. `scripts/__tests__/ruleset.test.mjs` keeps its required checks equal to names
+that jobs report in workflows running on every pull request ([required checks](../ci.md#required-checks)).
+If you rename a required job, update the file, the expected list in that test, and then the
+ruleset on GitHub.
 
 Then decide on the parts that depend on the repository ([CI security](../ci-security.md)):
 
@@ -198,10 +199,11 @@ When you later take a framework release (step 5), leave the removed pack out of 
 Hunks in the files the command edited (workflows, `docker-compose.yml`, the Jenkinsfile) may
 conflict where they touch the lines it removed.
 
-When the pack's job was a required check, as `e2e (petstore)` is, the command removes it from
-`.github/rulesets/main.json` and from the list in `scripts/__tests__/ruleset.test.mjs`. Change the
-ruleset on GitHub yourself, as in step 2, or every pull request waits for a check that no job
-reports; make your own pack's job required in its place.
+When the pack's jobs were required checks, as `e2e (petstore)` and `dast (petstore)` are, the
+command removes them from `.github/rulesets/main.json` and from the list in
+`scripts/__tests__/ruleset.test.mjs`. Change the ruleset on GitHub yourself, as in step 2, or every
+pull request waits for a check that no job reports; make your own pack's jobs required in their
+place.
 
 ## 5. Take a later framework release
 
