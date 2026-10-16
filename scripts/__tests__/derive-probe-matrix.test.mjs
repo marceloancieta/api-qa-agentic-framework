@@ -198,3 +198,21 @@ test('the written matrix is deterministic and needs no reformatting', async () =
   const options = { ...(await prettier.resolveConfig(join(FIXTURES, 'x.json'))), parser: 'json' };
   assert.equal(await prettier.format(text, options), text);
 });
+
+test('formatJson lays out empty objects and arrays inside arrays as the formatter does', async () => {
+  // A probe value of `[{}, {}]` (an array of empty objects) was written open and failed the
+  // format check of the Keycloak pack's matrix.
+  const prettier = await import('prettier');
+  const options = { ...(await prettier.resolveConfig(join(FIXTURES, 'x.json'))), parser: 'json' };
+  const values = [
+    { value: [{}, {}] },
+    { value: [[], []] },
+    { value: [{}, 1, 'a', null] },
+    { value: [{ a: 1 }, {}] },
+    { value: Array.from({ length: 40 }, () => ({})) },
+  ];
+  for (const value of values) {
+    const text = formatJson(value);
+    assert.equal(await prettier.format(text, options), text, JSON.stringify(value));
+  }
+});

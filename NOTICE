@@ -8,6 +8,10 @@ documents (services/petstore/openapi.json and scripts/__fixtures__/openapi/petst
 petstore-v3.json), from the swagger-api Petstore sample, licensed under the Apache License,
 Version 2.0.
 
+The Keycloak service pack includes the Keycloak Admin REST API OpenAPI document
+(services/keycloak/openapi.json, release 26.7.5), from the Keycloak project, licensed under the
+Apache License, Version 2.0.
+
 The VAmPI service pack includes the VAmPI OpenAPI document (services/vampi/openapi.yaml, one
 example edited), from the erev0s/VAmPI project, licensed under the MIT License:
 

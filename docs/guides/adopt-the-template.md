@@ -63,7 +63,7 @@ gh repo edit <owner>/<name> --enable-squash-merge --squash-merge-commit-message 
   --enable-merge-commit=false --enable-rebase-merge=false --delete-branch-on-merge
 
 # The rules of main: pull requests only, squash merges, linear history, no force push or deletion,
-# and the required checks: `title`, `gates`, each pack's `e2e` job and the `dast` jobs.
+# and the required checks: `title`, `gates`, the Petstore and VAmPI `e2e` jobs and the `dast` jobs.
 gh api -X POST repos/<owner>/<name>/rulesets --input .github/rulesets/main.json
 
 # Private vulnerability reporting, which CONTRIBUTING points security reports to.

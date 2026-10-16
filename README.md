@@ -16,7 +16,9 @@ Each API under test is a **service pack** in `services/<name>/`.
 [`services/petstore/`](services/petstore/README.md) is the worked example, run against Swagger
 Petstore v3 in Docker. [`services/vampi/`](services/vampi/README.md) is a second pack, against the
 deliberately vulnerable VAmPI in a secure and a vulnerable mode: it shows login authentication,
-actors and an authorization matrix that detects the vulnerable mode's flaw. Test only environments
+actors and an authorization matrix that detects the vulnerable mode's flaw.
+[`services/keycloak/`](services/keycloak/README.md), a third pack, tests the Keycloak Admin REST
+API with OAuth 2.0 client credentials from the same server's token endpoint. Test only environments
 you are authorized to test, as named in qa-config; never production.
 
 Beyond the functional suite, two lanes run tools in containers against a pack: an OWASP ZAP security
@@ -37,7 +39,8 @@ in it.
 **You need:**
 
 - Node.js at the major version in `.nvmrc` (with nvm, `nvm use` reads it);
-- Docker with Compose v2, for the local Petstore container (and later for VAmPI, ZAP and k6);
+- Docker with Compose v2, for the local Petstore container (and later for VAmPI, Keycloak, ZAP
+  and k6);
 - git. [gitleaks](https://github.com/gitleaks/gitleaks) is needed only once you install the git
   hooks ([CONTRIBUTING](CONTRIBUTING.md#git-hooks)).
 
@@ -75,7 +78,8 @@ npx playwright test --project=unit --project=api-petstore   # unit tests, the Pe
 ```
 
 `npm test` runs every pack. The example configuration also has VAmPI, whose preflight fails until
-`npm run vampi:up` has started it and the `VAMPI_USER_*` variables of `.env.example` are set.
+`npm run vampi:up` has started it and the `VAMPI_USER_*` variables of `.env.example` are set, and
+Keycloak, which needs the `KEYCLOAK_*` variables and `npm run keycloak:up`.
 
 **5. Read the results.** The terminal lists every case. `playwright-report/` holds the HTML report,
 and `allure-results/` holds the raw results with the redacted request and response of every call.

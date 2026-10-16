@@ -192,11 +192,12 @@ it is. The token exchange is never recorded as evidence, because it carries the 
 client secret and returns the token. A `401` to a token that was already replaced while the request
 was in flight is sent again with the current one, and simultaneous `401`s share one renewal.
 
-The VAmPI pack uses `login` for its default credential and for each actor. No example pack uses
-`basic` or `oauth2_client_credentials`, so their unit tests run them against a token server
-started inside the test. `npm run auth:live` also runs `oauth2_client_credentials` against a
-public OAuth 2.0 mock (`helpers/__live__/`), on demand and outside the gates: the mock answers any
-request with a token, so that check proves the wire format only.
+The VAmPI pack uses `login` for its default credential and for each actor, and the Keycloak pack
+uses `oauth2_client_credentials` against the token endpoint of the server it tests, one
+service-account client per actor. No example pack uses `basic`, so its unit tests run it against a
+server started inside the test. `npm run auth:live` also runs `oauth2_client_credentials` against
+a public OAuth 2.0 mock (`helpers/__live__/`), on demand and outside the gates: the mock answers
+any request with a token, so that check proves the wire format only.
 
 A strategy only decorates outgoing requests, so clients and specs never know which scheme is in
 use, and a caller's explicit value is never overwritten, which lets a case send a deliberately bad

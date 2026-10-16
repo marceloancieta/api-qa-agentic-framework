@@ -12,7 +12,7 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e (petstore)` and `e2e (vampi)` |
+| `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e (petstore)`, `e2e (vampi)` and `e2e (keycloak)` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift (petstore)` |
 | `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, `pull_request` | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
 | `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `perf (petstore)`, `perf (vampi)` |
@@ -137,6 +137,17 @@ runner.
 | `npx playwright test --project=api-vampi` | The pack on the secure mode, after `preflight-vampi`. |
 | `npm run coverage:status`, `npm run quality:gate`, the Allure report | As in `e2e`, on the secure-mode run. The run is not reported to the test-management tool: the pack has no published cases yet. |
 
+### `e2e-keycloak`
+
+The third pack (FUT-15), whose `oauth2_client_credentials` auth gets its tokens from the token
+endpoint of the Keycloak it tests. It is not a required check.
+
+| Step | Why |
+|---|---|
+| Provide the Keycloak clients | `KEYCLOAK_*_CLIENT_ID` and `KEYCLOAK_*_CLIENT_SECRET` of the realm's three service-account clients, behind actors `admin`, `viewer` and `no-role`: throwaway secrets per run, masked. |
+| `npm run keycloak:up` | Starts Keycloak in development mode; it imports `services/keycloak/realm/qa-realm.json` with those secrets (`services/keycloak/up.mjs` refuses to start without them). |
+| `npx playwright test --project=api-keycloak` | The pack, after `preflight-keycloak`. |
+
 ### Why docker compose and not a service container
 
 The backlog item asked for a service container. The workflow starts the Petstore with
@@ -254,9 +265,9 @@ The job uploads `reports/diff/` as `diff-petstore-<attempt>`.
 ## Required checks
 
 The branch ruleset, `.github/rulesets/main.json`, lists the checks a pull request needs before it
-merges: `title`, `gates`, the end-to-end job of each pack and the jobs of `dast.yml` (CI-11). The
-`perf.yml` and `diff.yml` jobs are not required; they run on the pull requests that touch their
-`paths` and every week.
+merges: `title`, `gates`, `e2e (petstore)`, `e2e (vampi)` and the jobs of `dast.yml` (CI-11). The
+`e2e (keycloak)`, `perf.yml` and `diff.yml` jobs are not required; the last two run on the pull
+requests that touch their `paths` and every week.
 
 A required check that never reports leaves the pull request waiting, so:
 
