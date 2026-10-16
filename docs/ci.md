@@ -14,13 +14,15 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 |---|---|---|
 | `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e (petstore)` and `e2e (vampi)` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift (petstore)` |
-| `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
+| `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, `pull_request` | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
 | `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `perf (petstore)`, `perf (vampi)` |
 | `.github/workflows/diff.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `diff (petstore)` |
 
-A workflow's `paths` list, in the workflow file, owns which files trigger it on a pull request: the
-lane, the scripts it imports and `scripts/lib/`, the pack files it reads, `qa-config.example.json`,
-`docker-compose.yml` and the workflow itself.
+A lane workflow's `paths` list, in the workflow file, owns which files trigger it on a pull request:
+the lane, the scripts it imports and `scripts/lib/`, the pack files it reads,
+`qa-config.example.json`, `docker-compose.yml` and the workflow itself. A workflow whose jobs are
+required checks has no such list, because a required check that does not run leaves the pull
+request waiting ([required checks](#required-checks)).
 
 ```mermaid
 flowchart LR
@@ -67,7 +69,7 @@ flowchart LR
   weekly --> perfPet
   weekly --> perfVampi
   weekly --> diffPet
-  pr -.->|"only when the lane's files change"| dastWf
+  pr --> dastWf
   pr -.->|"only when the lane's files change"| perfWf
   pr -.->|"only when the lane's files change"| diffWf
 ```
@@ -123,8 +125,9 @@ needed).
 
 ### `e2e-vampi`
 
-The second pack (CI-08), in a job of its own so that the required `e2e (petstore)` check keeps its
-meaning. It is not a required check. Both VAmPI modes run from one pinned image on the same runner.
+The second pack (CI-08), in a job of its own so that each pack has its own required check
+([required checks](#required-checks)). Both VAmPI modes run from one pinned image on the same
+runner.
 
 | Step | Why |
 |---|---|
@@ -197,10 +200,10 @@ environment, and then runs the full published lane as the daily re-run.
 ## `dast.yml`
 
 An OWASP ZAP API scan of the VAmPI pack (`npm run lanes:dast`, [quality gates](quality-gates.md#lanes)),
-one job per mode, and of the Petstore pack. A full VAmPI scan takes about 13 minutes, so the
-workflow runs weekly, on demand and on pull requests that touch its `paths`; not on every pull
-request. An active scan writes to the API, so it only ever targets the job's own disposable
-containers. The secure job scans as the pack's default actor (FUT-10): it
+one job per mode, and of the Petstore pack. The workflow runs weekly, on demand and on every pull
+request, because its three jobs are required checks (CI-11); they run side by side and each takes a
+few minutes on the runner. An active scan writes to the API, so it only ever targets the job's own
+disposable containers. The secure job scans as the pack's default actor (FUT-10): it
 generates throwaway users, as `e2e-vampi` does, and registers them with `npm run vampi:users`. The
 vulnerable job scans with `--actor anonymous`: with a token, ZAP reaches a Regex DoS that hangs
 that mode (VN-15).
@@ -247,6 +250,25 @@ release (`npm run petstore:reference:up`, the `petstore-reference` compose servi
 | `diff (petstore)` | every difference between the two releases is one `services/petstore/diff.json` accepts, and each accepted one still shows up |
 
 The job uploads `reports/diff/` as `diff-petstore-<attempt>`.
+
+## Required checks
+
+The branch ruleset, `.github/rulesets/main.json`, lists the checks a pull request needs before it
+merges: `title`, `gates`, the end-to-end job of each pack and the jobs of `dast.yml` (CI-11). The
+`perf.yml` and `diff.yml` jobs are not required; they run on the pull requests that touch their
+`paths` and every week.
+
+A required check that never reports leaves the pull request waiting, so:
+
+- a workflow whose jobs are required runs on every pull request, without a path filter, and
+  `scripts/__tests__/ruleset.test.mjs` fails when a required check is not reported by such a
+  workflow;
+- the name to require is the one the job reports: a matrix job reports one name per combination
+  (`dast (vampi secure)`, `dast (vampi vulnerable)`), never its written
+  `dast (vampi ${{ matrix.mode }})` (`scripts/lib/workflow.mjs`);
+- `npm run remove:service` takes a removed pack's checks out of the ruleset file and that test,
+  and the live ruleset on GitHub is changed by hand
+  ([adopt the template](guides/adopt-the-template.md#2-set-up-the-repository)).
 
 ## Secrets and variables
 
@@ -320,7 +342,9 @@ Each job uploads one artifact, even when a step failed, and keeps it for 14 days
   the lane needs `allow_writes: true` and restarts the service afterwards when the entry has a
   `recovery`. For the differential lane, add a reference deployment (a pinned compose service in the
   `diff` profile, or a deployed environment), a qa-config environment with an entry for the pack at
-  its URL, and the pack's `diff.json`; then copy the `diff (petstore)` job.
+  its URL, and the pack's `diff.json`; then copy the `diff (petstore)` job. To make the new jobs
+  required, add the names they report to the ruleset and its test
+  ([required checks](#required-checks)).
 - **A deployed environment.** Drop the start and stop steps, and set `QA_ENV` on the job to the
   qa-config environment. Each pack's entry there has a `base_url`, a `spec_url` and the credentials
   its `auth` names, supplied as secrets. `qa-config.json` is per machine and not tracked, so CI

@@ -26,7 +26,11 @@
         "required_status_checks": [
           { "context": "title", "integration_id": 15368 },
           { "context": "gates", "integration_id": 15368 },
-          { "context": "e2e (petstore)", "integration_id": 15368 }
+          { "context": "e2e (petstore)", "integration_id": 15368 },
+          { "context": "e2e (vampi)", "integration_id": 15368 },
+          { "context": "dast (vampi secure)", "integration_id": 15368 },
+          { "context": "dast (vampi vulnerable)", "integration_id": 15368 },
+          { "context": "dast (petstore)", "integration_id": 15368 }
         ],
         "strict_required_status_checks_policy": false
       },

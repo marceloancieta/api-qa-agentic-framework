@@ -1,6 +1,7 @@
 # DAST (FUT-01): an OWASP ZAP API scan of the VAmPI pack in both modes and of the Petstore pack,
-# weekly, on demand and on pull requests that change the lane or a pack's policy. A full scan takes
-# minutes, so it does not run on every pull request. The VAmPI secure mode is scanned with the
+# weekly, on demand and on every pull request. Its jobs are required checks (CI-11), and a required
+# check must run on every pull request, so the workflow has no path filter; the three jobs run side
+# by side in a few minutes. The VAmPI secure mode is scanned with the
 # pack's credential (FUT-10) and feeds the quality gate's `dast` check; the vulnerable mode, scanned
 # without one (VN-15), must be caught by a FAIL rule (SQL injection, VN-11). The Petstore scan
 # covers a base URL with a path, an API key in a header, one scan thread (PN-26) and the restart
@@ -12,19 +13,6 @@ on:
     - cron: '41 4 * * 1'
   workflow_dispatch:
   pull_request:
-    paths:
-      - 'scripts/dast-lane.mjs'
-      - 'scripts/quality-gate.mjs'
-      - 'scripts/destructive-lane.mjs'
-      - 'scripts/known-gap-lane.mjs'
-      - 'scripts/config-check.mjs'
-      - 'scripts/lib/**'
-      - 'services/*/dast-*'
-      - 'services/*/service.json'
-      - 'services/vampi/register-users.mjs'
-      - 'qa-config.example.json'
-      - 'docker-compose.yml'
-      - '.github/workflows/dast.yml'
 
 permissions:
   contents: read
