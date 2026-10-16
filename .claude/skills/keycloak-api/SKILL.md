@@ -24,8 +24,10 @@ linked, not copied (`.claude/rules/documentation.md`).
 ## Environments and writes
 
 The environments where this pack runs, its base URL in each and whether writes are allowed there
-are set in qa-config (`api.environments.<env>.packs.keycloak`). _Pending_: which environments exist
-for this API, and which shared records must never change.
+are set in qa-config (`api.environments.<env>.packs.keycloak`). One environment, `local`: the
+in-memory container, writes allowed, recovery restarts it. The realm `qa` has no listed user at
+start; its three service-account users are shared records and never change
+([users intake](../../../services/keycloak/docs/features/users.md#test-data)).
 
 ## Authentication and actors
 
@@ -74,8 +76,10 @@ one at the feature's first intake.
 
 ## Errors
 
-The error formats live in `services/keycloak/error-envelopes.json`, empty until the first intake
-measures them.
+Errors come in two shapes (KN-07): `{"error": "<text>"}` for `401`, `403`, `404` and query
+validation, and `{"errorMessage": "<text>"}` for a refused body. A malformed integer query
+parameter answers `404`, not `400` (KN-03). The catalogue, `services/keycloak/error-envelopes.json`,
+is written by `qa-automate`.
 
 ## Verification
 

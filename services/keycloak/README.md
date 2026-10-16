@@ -58,5 +58,11 @@ npx playwright test --project=api-keycloak
 The contract is the OpenAPI document Keycloak publishes for the release; the container does not
 serve it, so `spec_url` is the published one.
 
+## Features
+
+| Feature | Contract | Registry |
+|---|---|---|
+| `USERS` | [users](docs/features/users.md) | not yet designed |
+
 Where the API departs from its contract is recorded in
 [`docs/contract-notes.md`](docs/contract-notes.md).
