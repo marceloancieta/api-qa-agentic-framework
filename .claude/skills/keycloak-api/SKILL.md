@@ -76,8 +76,9 @@ one at the feature's first intake.
 
 ## Errors
 
-Errors come in two shapes (KN-07): `{"error": "<text>"}` for `401`, `403`, `404` and query
-validation, and `{"errorMessage": "<text>"}` for a refused body. A malformed integer query
+Errors come in three shapes (KN-07): `{"error": "<text>"}` for `401`, `403`, `404` and query
+validation; `{"errorMessage": "<text>"}` for a body the server refuses after reading it; and
+`{"error": "unknown_error", "error_description": ...}` for a body field of the wrong type. A malformed integer query
 parameter answers `404`, not `400` (KN-03). The catalogue, `services/keycloak/error-envelopes.json`,
 is written by `qa-automate`.
 

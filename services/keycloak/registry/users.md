@@ -15,6 +15,7 @@ test_data:
   <USERNAME>: a unique username from the user builder, seeded; a second one is <OTHER_USERNAME>
   <USER_ID>: the id of a user the case created, read back from the create
   <FIRST_NAME>: a first name from the builder, set at create time
+  <PASSWORD>: a password credential the seeded faker generates for the run, never a real one; evidence masks it
   <UNKNOWN_ID>: the nil UUID, which no user has
   <UNKNOWN_REALM>: a realm name no realm has, from the seeded faker
 requirements:
@@ -44,47 +45,47 @@ every refused request is followed by a read that shows nothing changed.
   changes them.
 - **Writes are unmeasured** at intake: A1 to A3 of the contract are confirmed or refuted by the
   first spec run, and a case that the run contradicts goes back to `draft` with a note here.
-- **Errors** have two shapes (KN-07); every error case asserts its envelope from the pack's
+- **Errors** have three shapes (KN-07); every error case asserts its envelope from the pack's
   catalogue, which `qa-automate` writes.
 
 ## Cases
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-USERS-01 | A user created by admin can be found by its exact username | REQ-USERS-01 | use-case | high | approved | | |
-| TC-USERS-02 | The list pages with first and max over the users of one filter | REQ-USERS-03 | boundary-value | medium | approved | | |
-| TC-USERS-03 | A client without a role cannot list users | REQ-USERS-04 | equivalence-partition | high | approved | | |
-| TC-USERS-04 | Listing the users of an unknown realm answers not found | REQ-USERS-06 | equivalence-partition | medium | approved | | |
-| TC-USERS-05 | A malformed integer in max or first answers not found, not bad request | REQ-USERS-03 | boundary-value | medium | approved | | |
-| TC-USERS-06 | Admin creates a user and reads it back by id | REQ-USERS-01 | use-case | high | approved | | |
-| TC-USERS-07 | A viewer cannot create a user, and none is created | REQ-USERS-04 | equivalence-partition | high | approved | | |
-| TC-USERS-08 | A second user with the same username is refused and the first is unchanged | REQ-USERS-02 | state-transition | high | approved | | |
-| TC-USERS-09 | A user without a username is refused and none is created | REQ-USERS-06 | equivalence-partition | medium | approved | | |
-| TC-USERS-10 | A field of the wrong type is refused and no user is created | REQ-USERS-06 | error-guessing | medium | approved | | |
-| TC-USERS-11 | Creating a user in an unknown realm answers not found | REQ-USERS-06 | equivalence-partition | low | approved | | |
-| TC-USERS-12 | The count of an exact username filter follows create and delete | REQ-USERS-03 | state-transition | high | approved | | |
-| TC-USERS-13 | A client without a role cannot count users | REQ-USERS-04 | equivalence-partition | high | approved | | |
-| TC-USERS-14 | Counting the users of an unknown realm answers not found | REQ-USERS-06 | equivalence-partition | low | approved | | |
-| TC-USERS-15 | A viewer reads a user by id with the documented representation | REQ-USERS-01 | use-case | high | approved | | |
-| TC-USERS-16 | An unknown user id answers not found | REQ-USERS-06 | equivalence-partition | medium | approved | | |
-| TC-USERS-17 | A client without a role cannot read an existing user | REQ-USERS-04 | equivalence-partition | high | approved | | |
-| TC-USERS-18 | A malformed user id answers not found | REQ-USERS-06 | error-guessing | low | approved | | |
-| TC-USERS-19 | Admin updates a user's first name and the read-back shows it | REQ-USERS-01 | use-case | high | approved | | |
-| TC-USERS-20 | An update that omits a field keeps its value | REQ-USERS-05 | state-transition | high | approved | | |
-| TC-USERS-21 | A viewer cannot update a user, and the user is unchanged | REQ-USERS-04 | equivalence-partition | high | approved | | |
-| TC-USERS-22 | Renaming a user to another user's username is refused and both are unchanged | REQ-USERS-02 | state-transition | high | approved | | |
-| TC-USERS-23 | An update with a field of the wrong type is refused and the user is unchanged | REQ-USERS-06 | error-guessing | medium | approved | | |
-| TC-USERS-24 | Updating an unknown user id answers not found | REQ-USERS-06 | equivalence-partition | medium | approved | | |
-| TC-USERS-25 | Updating a user in an unknown realm answers not found | REQ-USERS-06 | equivalence-partition | low | approved | | |
-| TC-USERS-26 | Admin deletes a user and a read answers not found | REQ-USERS-01 | use-case | high | approved | | |
-| TC-USERS-27 | A viewer cannot delete a user, and the user still exists | REQ-USERS-04 | equivalence-partition | high | approved | | |
-| TC-USERS-28 | Deleting the same user twice answers not found the second time | REQ-USERS-06 | state-transition | medium | approved | | |
-| TC-USERS-29 | A client without a role cannot delete a user | REQ-USERS-04 | equivalence-partition | high | approved | | |
-| TC-USERS-30 | Deleting an unknown user id answers not found | REQ-USERS-06 | equivalence-partition | low | approved | | |
-| TC-USERS-31 | Every users operation refuses a request without a token | REQ-USERS-04 | equivalence-partition | high | approved | | |
-| TC-USERS-32 | A client of one realm cannot list the users of another | REQ-USERS-04 | equivalence-partition | high | approved | | |
-| TC-USERS-33 | An expired token is refused and the strategy renews it | REQ-USERS-04 | state-transition | medium | approved | | |
-| TC-USERS-34 | Service accounts are left out of the unfiltered list but found by username | REQ-USERS-03 | error-guessing | low | approved | | |
+| TC-USERS-01 | A user created by admin can be found by its exact username | REQ-USERS-01 | use-case | high | automated | specs/users-crud.spec.ts | |
+| TC-USERS-02 | The list pages with first and max over the users of one filter | REQ-USERS-03 | boundary-value | medium | automated | specs/users-crud.spec.ts | |
+| TC-USERS-03 | A client without a role cannot list users | REQ-USERS-04 | equivalence-partition | high | automated | specs/users-access.spec.ts | |
+| TC-USERS-04 | Listing the users of an unknown realm answers not found | REQ-USERS-06 | equivalence-partition | medium | automated | specs/users-errors.spec.ts | |
+| TC-USERS-05 | A malformed integer in max or first answers not found, not bad request | REQ-USERS-03 | boundary-value | medium | automated | specs/users-errors.spec.ts | |
+| TC-USERS-06 | Admin creates a user and reads it back by id | REQ-USERS-01 | use-case | high | automated | specs/users-crud.spec.ts | |
+| TC-USERS-07 | A viewer cannot create a user, and none is created | REQ-USERS-04 | equivalence-partition | high | automated | specs/users-access.spec.ts | |
+| TC-USERS-08 | A second user with the same username is refused and the first is unchanged | REQ-USERS-02 | state-transition | high | automated | specs/users-crud.spec.ts | |
+| TC-USERS-09 | A user without a username is refused and none is created | REQ-USERS-06 | equivalence-partition | medium | automated | specs/users-errors.spec.ts | |
+| TC-USERS-10 | A field of the wrong type is refused and no user is created | REQ-USERS-06 | error-guessing | medium | automated | specs/users-errors.spec.ts | |
+| TC-USERS-11 | Creating a user in an unknown realm answers not found | REQ-USERS-06 | equivalence-partition | low | automated | specs/users-errors.spec.ts | |
+| TC-USERS-12 | The count of an exact username filter follows create and delete | REQ-USERS-03 | state-transition | high | automated | specs/users-crud.spec.ts | |
+| TC-USERS-13 | A client without a role cannot count users | REQ-USERS-04 | equivalence-partition | high | automated | specs/users-access.spec.ts | |
+| TC-USERS-14 | Counting the users of an unknown realm answers not found | REQ-USERS-06 | equivalence-partition | low | automated | specs/users-errors.spec.ts | |
+| TC-USERS-15 | A viewer reads a user by id with the documented representation and without its credentials | REQ-USERS-01 | use-case | high | automated | specs/users-crud.spec.ts | |
+| TC-USERS-16 | An unknown user id answers not found | REQ-USERS-06 | equivalence-partition | medium | automated | specs/users-errors.spec.ts | |
+| TC-USERS-17 | A client without a role cannot read an existing user | REQ-USERS-04 | equivalence-partition | high | automated | specs/users-access.spec.ts | |
+| TC-USERS-18 | A malformed user id answers not found | REQ-USERS-06 | error-guessing | low | automated | specs/users-errors.spec.ts | |
+| TC-USERS-19 | Admin updates a user's first name and the read-back shows it | REQ-USERS-01 | use-case | high | automated | specs/users-crud.spec.ts | |
+| TC-USERS-20 | An update that omits a field keeps its value | REQ-USERS-05 | state-transition | high | automated | specs/users-crud.spec.ts | |
+| TC-USERS-21 | A viewer cannot update a user, and the user is unchanged | REQ-USERS-04 | equivalence-partition | high | automated | specs/users-access.spec.ts | |
+| TC-USERS-22 | Renaming a user to another user's username is refused and both are unchanged | REQ-USERS-02 | state-transition | high | automated | specs/users-crud.spec.ts | |
+| TC-USERS-23 | An update with a field of the wrong type is refused and the user is unchanged | REQ-USERS-06 | error-guessing | medium | automated | specs/users-errors.spec.ts | |
+| TC-USERS-24 | Updating an unknown user id answers not found | REQ-USERS-06 | equivalence-partition | medium | automated | specs/users-errors.spec.ts | |
+| TC-USERS-25 | Updating a user in an unknown realm answers not found | REQ-USERS-06 | equivalence-partition | low | automated | specs/users-errors.spec.ts | |
+| TC-USERS-26 | Admin deletes a user and a read answers not found | REQ-USERS-01 | use-case | high | automated | specs/users-crud.spec.ts | |
+| TC-USERS-27 | A viewer cannot delete a user, and the user still exists | REQ-USERS-04 | equivalence-partition | high | automated | specs/users-access.spec.ts | |
+| TC-USERS-28 | Deleting the same user twice answers not found the second time | REQ-USERS-06 | state-transition | medium | automated | specs/users-crud.spec.ts | |
+| TC-USERS-29 | A client without a role cannot delete a user | REQ-USERS-04 | equivalence-partition | high | automated | specs/users-access.spec.ts | |
+| TC-USERS-30 | Deleting an unknown user id answers not found | REQ-USERS-06 | equivalence-partition | low | automated | specs/users-errors.spec.ts | |
+| TC-USERS-31 | Every users operation refuses a request without a token | REQ-USERS-04 | equivalence-partition | high | automated | specs/users-access.spec.ts | |
+| TC-USERS-32 | A client of one realm cannot list the users of another | REQ-USERS-04 | equivalence-partition | high | automated | specs/users-access.spec.ts | |
+| TC-USERS-33 | An expired token is refused and the strategy renews it | REQ-USERS-04 | state-transition | medium | automated | specs/users-access.spec.ts | |
+| TC-USERS-34 | Service accounts are left out of the unfiltered list but found by username | REQ-USERS-03 | error-guessing | low | automated | specs/users-errors.spec.ts | |
 
 ## Case details
 
@@ -178,10 +179,12 @@ every refused request is followed by a read that shows nothing changed.
 
 ### TC-USERS-12
 
+- **Preconditions**: `admin` creates a decoy user whose username contains `<USERNAME>`
+  (`<USERNAME>-decoy`), removed when the case ends.
 - **Request**: `GET /users/count?username=<USERNAME>&exact=true` as `viewer`: before the create,
   after `admin` creates `<USERNAME>`, and after `admin` deletes it.
 - **Expected**: `200` each with `0`, `1`, `0`; at the middle step the list with the same filter
-  holds exactly as many users as the count (R4).
+  holds exactly as many users as the count (R4), and that user is `<USERNAME>`, not the decoy.
 - **Verification**: the list comparison above.
 - **Tags**: `@regression @data-integrity`.
 
@@ -201,12 +204,17 @@ every refused request is followed by a read that shows nothing changed.
 
 ### TC-USERS-15
 
-- **Preconditions**: `admin` creates `<USERNAME>` with `email`, `firstName` and `lastName`.
+- **Preconditions**: `admin` creates `<USERNAME>` with `email`, `firstName`, `lastName` and a
+  password credential `<PASSWORD>`, and `GET /users/<USER_ID>/credentials` as `admin` lists exactly one
+  credential of type `password` (the precondition is checked, not assumed).
 - **Request**: `GET /users/<USER_ID>` as `viewer`.
 - **Expected**: `200`; a `UserRepresentation` (schema) with the fields sent, `enabled` true and a
-  `createdTimestamp`; no `credentials` value (spec, description of the list).
+  `createdTimestamp`; no `credentials` value (spec, description of the list), and `<PASSWORD>`
+  nowhere in the body. A user that stores a credential is what makes the absence a finding: without
+  one, an answer that exposed credentials would still pass (changed at the automate review, approved
+  by the owner on 2026-10-16).
 - **Verification**: response only.
-- **Tags**: `@smoke`.
+- **Tags**: `@smoke @security`.
 
 ### TC-USERS-16
 
@@ -270,7 +278,8 @@ every refused request is followed by a read that shows nothing changed.
 
 ### TC-USERS-23
 
-- **Preconditions**: `admin` creates `<USERNAME>`.
+- **Preconditions**: `admin` creates `<USERNAME>` disabled (`enabled: false`), so an applied `"yes"`
+  would show in the read-back.
 - **Request**: `PUT /users/<USER_ID>` as `admin` with `enabled: "yes"`.
 - **Expected**: `400` with an error envelope (spec; unmeasured, as TC-USERS-10).
 - **Verification**: the read-back equals the representation before the request.
