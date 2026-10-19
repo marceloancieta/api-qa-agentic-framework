@@ -96,6 +96,16 @@ test('a bearer value of the caller is sent as is, never replaced or renewed', as
   expect(sent).toEqual(['Bearer not-a-jwt']);
 });
 
+// The caller resends a token the strategy issued (an expired token of the same actor): the strategy
+// would recognise it as its own, so the client must not ask it to renew.
+test('a token of the strategy sent by the caller is final, as bearer or as a header', async () => {
+  const sent: string[] = [];
+  const books = new Books(expiringContext(sent), renewable());
+  expect((await books.read(undefined, true, 'stale')).status()).toBe(401);
+  expect((await books.read({ Authorization: 'Bearer stale' })).status()).toBe(401);
+  expect(sent).toEqual(['Bearer stale', 'Bearer stale']);
+});
+
 // eslint-disable-next-line no-empty-pattern -- Playwright requires the destructuring form.
 test('a 401 to a renewable credential is sent once more, and both exchanges are recorded', async ({}, testInfo) => {
   const sent: string[] = [];

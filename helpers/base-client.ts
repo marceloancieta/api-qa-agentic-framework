@@ -68,6 +68,8 @@ export class BaseClient {
    * Send one request and record it. Any HTTP status resolves normally; deciding whether a 4xx is a
    * bug or the expected answer belongs to the spec. A 401 to a credential the auth strategy can
    * renew (an expired login token) is sent once more with the new one; both exchanges are recorded.
+   * A credential the caller set (`bearer`, or an `Authorization` header) is never renewed, even a
+   * token the strategy issued earlier: the case chose to send it.
    */
   protected async send(
     method: HttpMethod,
@@ -78,6 +80,9 @@ export class BaseClient {
     if (options.bearer !== undefined)
       outgoing.headers['Authorization'] = `Bearer ${options.bearer}`;
     const useAuth = options.auth ?? true;
+    const callerCredential =
+      options.bearer !== undefined ||
+      Object.keys(outgoing.headers).some((name) => name.toLowerCase() === 'authorization');
     if (useAuth) await this.auth.apply(outgoing, this.context);
 
     const path = typeof target === 'string' ? target : expand(target, (value) => value);
@@ -109,6 +114,7 @@ export class BaseClient {
     const response = await exchange();
     if (
       useAuth &&
+      !callerCredential &&
       response.status() === 401 &&
       this.auth.refresh &&
       (await this.auth.refresh(outgoing, this.context))
