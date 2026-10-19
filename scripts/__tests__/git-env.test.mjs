@@ -31,6 +31,7 @@ test('gitEnv drops every variable of git, in any case, and keeps the others', ()
 const SUITES = [
   'changelog.test.mjs',
   'remove-service.test.mjs',
+  'framework-update.test.mjs',
   'create-api-qa.test.mjs',
   'release-check.test.mjs',
   'lint-docs.test.mjs',

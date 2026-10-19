@@ -1301,6 +1301,16 @@ export function reservedNames(root = REPO_ROOT, packs = servicePacks(root)) {
 const git = (root, args) => spawnSync('git', args, { cwd: root, env: gitEnv(), encoding: 'utf8' });
 
 /**
+ * The paths that are a pack's alone and go with it whole: its directory, its skill and its digest
+ * (a directory ends in `/`). framework-update leaves the same paths out of a later release.
+ */
+export const packPaths = (name) => [
+  `services/${name}/`,
+  `.claude/skills/${name}-api/`,
+  `docs/discovery/${name}-digest.json`,
+];
+
+/**
  * Decide everything; changes nothing. `{ pack, deletions, edits: Map(file -> text | null), changes,
  * notes, errors, removedChecks }`, where a null text deletes the file.
  */
@@ -1324,11 +1334,7 @@ export function planRemoval({ name, root = REPO_ROOT, reserved }) {
   }
   const model = repositoryModel(root, packs);
   const scope = scopeFor(name, model);
-  const deletions = [
-    `services/${name}/`,
-    `.claude/skills/${name}-api/`,
-    `docs/discovery/${name}-digest.json`,
-  ].filter((path) => existsSync(join(root, path)));
+  const deletions = packPaths(name).filter((path) => existsSync(join(root, path)));
   const isRemoved = (file) =>
     deletions.some((path) => (path.endsWith('/') ? file.startsWith(path) : file === path));
   const plan = {

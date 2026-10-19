@@ -140,7 +140,8 @@ Set up the clone first, as in the [README](../../README.md#first-10-minutes): `n
   its tests pass, but its release step in CONTRIBUTING is for the framework's repository only:
   never publish it. To delete it, also delete `scripts/build-create-package.mjs`, the
   `create:build` script, `scripts/__tests__/create-api-qa.test.mjs` and its `.gitignore` lines,
-  then the links `lint-docs` reports, and leave those paths out of later releases (step 5).
+  then the links `lint-docs` reports. Later releases (step 5) leave the deleted paths out, and
+  fetch from the `framework` remote, or from `--remote <url>` before the first update.
 
 ### Remove an example pack
 
@@ -193,11 +194,9 @@ alone (it opens or closes a block, or is a complete statement). A line that may 
 `if`, `else`, `for` or `while` without braces is left and noted, because removing it would hand
 that statement the next line.
 
-When you later take a framework release (step 5), leave the removed pack out of the patch, since
-`git apply` changes nothing when a patched file is missing:
-`--exclude='services/<pack>/*' --exclude='.claude/skills/<pack>-api/*' --exclude=docs/discovery/<pack>-digest.json`.
-Hunks in the files the command edited (workflows, `docker-compose.yml`, the Jenkinsfile) may
-conflict where they touch the lines it removed.
+When you later take a framework release (step 5), `npm run framework:update` leaves the removed
+pack's files out. Hunks in the files this command edited (workflows, `docker-compose.yml`, the
+Jenkinsfile) may conflict where they touch the lines it removed.
 
 When the pack's jobs were required checks, as `e2e (petstore)` and `dast (petstore)` are, the
 command removes them from `.github/rulesets/main.json` and from the list in
@@ -208,32 +207,68 @@ place.
 ## 5. Take a later framework release
 
 The copy and the framework share no history, so a release is taken as the difference between the
-framework commit your repository is on and the release tag, applied to your repository:
+framework release your repository is on and the new one, merged into your repository. On a branch
+of its own, from a working tree without changes:
+
+```sh
+git switch -c chore/repo-nn-framework-<new>
+npm run framework:update -- --to v<new> --dry-run   # prints what would change, changes nothing
+npm run framework:update -- --to v<new>
+```
+
+**Where it starts.** The release `.framework-release` holds, at the root of your repository: each
+update writes it and stages it with the changes, so the next one starts there. Before the first
+update, the `REPO-01` row of your backlog: the release `npm create api-qa` unpacked, or the
+framework commit of a template copy (step 1). No other row is read, so a row that plans a release
+cannot move the start. Without either, name it with `--from v<x.y.z>` or `--from <commit>`.
+
+**Where it fetches from.** The repository `packages/create-api-qa/package.json` names, through a
+remote called `framework` that the first update adds; `--remote <url>` names another one, and is
+needed once that package is gone. The framework's tags go to `refs/framework/tags/`, because your
+own releases also start at `v0.1.0` and the names would collide. The dry run fetches into a
+temporary repository instead, so your refs and remotes stay as they are, and it also runs on a
+working tree with changes. The update refuses one, so that `git reset --hard` undoes it.
+
+**What it leaves out**, and lists:
+
+- `docs/backlog.md` and `CHANGELOG.md`, which yours replace (step 3), and `.framework-release`;
+- the files of an example pack you removed: a pack the old release has under `services/` and your
+  repository does not, with its skill and its digest;
+- changes to files you deleted, such as `codeql.yml` or a scheduled lane in step 2, files the
+  release adds under a directory you deleted, such as `packages/create-api-qa/`, and deletions of
+  files you changed, which you decide on yourself. `git apply` changes nothing at all when one
+  patched file is missing or does not match.
+
+A file the release adds whose name points to a pack you removed (a workflow named after it, say) is
+merged and marked, for you to delete if it serves only that pack. The update refuses to start when
+the release adds a file you have on disk without tracking it, such as an ignored file, at its path
+or where one of its directories goes, and lists them; move each out of the way first. Where the
+file system ignores case (Windows, macOS), it also refuses a rename that changes only the case of a
+path, which `git apply` cannot make there: make it with `git mv <old> <new>`, commit, and run the
+update again.
+
+Everything else is merged with `git apply -3`, which merges each change into files you edited as
+well and leaves conflict markers where both sides changed the same lines. The command lists the
+conflicted files and exits non-zero; the merged changes are staged.
+
+**A copy on `v0.5.0` or earlier** has no `framework:update` yet, so it takes the next release by
+hand. `<old>` is `refs/framework/tags/v<x.y.z>` for the release your `REPO-01` row names, or the
+framework commit it names; never a bare `v<x.y.z>`, which is your own tag:
 
 ```sh
 git remote add --no-tags framework <framework-repository-url>
 git fetch framework '+refs/tags/*:refs/framework/tags/*'
-git switch -c chore/repo-nn-framework-<new>
-git diff <old> refs/framework/tags/v<new> -- . \
+git diff --binary <old> refs/framework/tags/v<new> -- . \
   ':(exclude)docs/backlog.md' ':(exclude)CHANGELOG.md' > framework.patch
-git apply -3 framework.patch
+git apply -3 --exclude=<path> framework.patch
 rm framework.patch
 ```
 
-The framework's tags are fetched under `refs/framework/tags/`, because your own releases also start
-at `v0.1.0` and the names would collide. `<old>` is the framework commit your repository is on:
-`REPO-01` records the first one, and after you take a release it is that release's tag,
-`refs/framework/tags/v<x.y.z>`. `<new>` is the release you take. The framework's backlog and
-changelog stay out, because yours replace them.
-
-`git apply -3` merges each change into files you edited as well, and leaves conflict markers where
-both sides changed the same lines. It changes nothing at all if the patch touches a file you
-deleted, such as `codeql.yml` or a scheduled lane in step 2. Leave each one out with
-`--exclude=<path>`:
-
-```sh
-git apply -3 --exclude=.github/workflows/codeql.yml framework.patch
-```
+Give one `--exclude` per file you deleted and one per removed pack's path
+(`--exclude='services/<pack>/*' --exclude='.claude/skills/<pack>-api/*'
+--exclude=docs/discovery/<pack>-digest.json`), since `git apply` changes nothing when a patched file
+is missing. Then write `v<new>` into `.framework-release` and add it: later updates use the
+command, which starts from that file and fetches through the `framework` remote added here.
 
 Then:
 
@@ -242,5 +277,5 @@ Then:
 2. Run `npm run gates`.
 3. Read what the release needs from you in its changelog section, with
    `git show refs/framework/tags/v<new>:CHANGELOG.md`.
-4. Open the pull request with a backlog id of your own, and note the new framework version in its
-   row.
+4. Open the pull request with a backlog id of your own. It carries `.framework-release`, from which
+   the next update starts.
