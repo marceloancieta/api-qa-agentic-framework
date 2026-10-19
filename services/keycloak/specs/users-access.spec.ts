@@ -395,21 +395,17 @@ test.describe('Users access', () => {
         '65 seconds and sends `GET /admin/realms/qa/users?username=<USERNAME>&exact=true` with that ' +
         'token as its own `Authorization` header: `401` with the `error` envelope (M-12). The same ' +
         'request through the `admin` client answers `200` with `[]`, because its strategy renewed ' +
-        'the token. The token travels through a client without a credential of its own, so the ' +
-        'request carries that token and nothing else; sent right after it was taken, it answers ' +
-        '`200`, so the later `401` is about its age.',
+        'the token. The client never renews a token the caller set; sent right after it was taken, ' +
+        'it answers `200`, so the later `401` is about its age.',
     );
     test.setTimeout(TOKEN_AGE_MS + 60_000);
 
     const admin = await actor('admin');
-    // Workaround until CORE-19 ships: admin's own client would renew the caller's bearer after the
-    // 401, so the token travels through the anonymous client, which has no strategy to renew it.
-    const carrier = await actor('anonymous');
     const filter = { username: aUsername(faker, PREFIX), exact: true };
     const stale = await bearerOf('admin');
 
     await test.step('Assert: the fresh token is accepted', async () => {
-      const response = await carrier.users.getAdminRealmsRealmUsers(REALM, {
+      const response = await admin.users.getAdminRealmsRealmUsers(REALM, {
         params: filter,
         bearer: stale,
       });
@@ -420,7 +416,7 @@ test.describe('Users access', () => {
       await new Promise((resolve) => setTimeout(resolve, TOKEN_AGE_MS));
     });
     await test.step('Assert: the expired token is refused', async () => {
-      const response = await carrier.users.getAdminRealmsRealmUsers(REALM, {
+      const response = await admin.users.getAdminRealmsRealmUsers(REALM, {
         params: filter,
         bearer: stale,
       });
