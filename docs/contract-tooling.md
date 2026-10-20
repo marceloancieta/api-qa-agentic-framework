@@ -9,7 +9,7 @@ and cover every pack without it, takes the same source flags:
 
 | Flag | Source |
 |---|---|
-| `--service <name>` | The pack's `services/<name>/service.json` names its document. Needed when the repository has more than one pack, as it does with the two example packs: `npm run contract:digest -- --service petstore`. |
+| `--service <name>` | The pack's `services/<name>/service.json` names its document. Needed when the repository has more than one pack, as it does with the example packs: `npm run contract:digest -- --service petstore`. |
 | `--spec <file\|url>` | An explicit document. |
 | `--live` | The pack's `spec_url` in the active qa-config environment (`api.environments.<env>.packs.<pack>`; `QA_ENV` selects the environment, `QA_<PACK>_SPEC_URL` overrides the URL for one run). Needs a pack: `--service`, or the only one. |
 

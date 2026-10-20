@@ -53,6 +53,7 @@ Release automation, adoption on real repositories, and a wider worked example.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
+| DOC-12 | Pre-release review of v0.6.0: the docs, rules, skills and READMEs read against the code of the v0.6.0 items, and the new paths walked (`framework:update`, `release:check`, the publish workflow, the Keycloak pack, adoption on real repositories). | plan | in-progress |
 
 ---
 

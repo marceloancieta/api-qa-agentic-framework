@@ -60,7 +60,7 @@ non-empty value. The Petstore accepts any key; the preflight refuses an empty on
 ignored by git and read only on your machine.
 
 You do not need a `qa-config.json` yet. Without one, `qa-config.example.json` applies: it targets the
-local Petstore and VAmPI, allows writes there, and keeps test-management and tracker data in local
+local Petstore, VAmPI and Keycloak, allows writes there, and keeps test-management and tracker data in local
 files.
 Copy it to `qa-config.json` when you want per-machine changes.
 
