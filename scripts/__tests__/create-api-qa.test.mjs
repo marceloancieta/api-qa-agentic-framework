@@ -2,10 +2,11 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { gitEnv } from '../lib/git.mjs';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
+import { parse } from 'yaml';
 import { REPO_ROOT } from '../lib/cli.mjs';
 import { buildPackage, PACKAGE_DIR } from '../build-create-package.mjs';
 import {
@@ -274,6 +275,40 @@ test('publishing refuses a package without its release files or built from anoth
   assert.deepEqual(publishProblems(dir), []);
   const pkg = JSON.parse(readFileSync(join(PACKAGE_DIR, 'package.json'), 'utf8'));
   assert.equal(pkg.scripts.prepublishOnly, 'node lib/prepublish.mjs');
+});
+
+// CI-10: the package is published by .github/workflows/publish.yml, with the OIDC token of that
+// workflow alone. A copy keeps the file, and the repository guard skips the job there.
+test('the package is published from a release tag of its own repository, with no stored token', () => {
+  const workflowDir = join(REPO_ROOT, '.github', 'workflows');
+  const text = readFileSync(join(workflowDir, 'publish.yml'), 'utf8');
+  const workflow = parse(text);
+  assert.deepEqual(workflow.on, { push: { tags: ['v[0-9]+.[0-9]+.[0-9]+'] } });
+  assert.deepEqual(workflow.permissions, {});
+  const jobs = Object.values(workflow.jobs);
+  assert.equal(jobs.length, 1);
+  const [job] = jobs;
+  const { repository } = JSON.parse(readFileSync(join(PACKAGE_DIR, 'package.json'), 'utf8'));
+  const [, slug] = repository.url.match(/github\.com\/(.+?)(?:\.git)?$/);
+  assert.equal(job.if, `\${{ github.repository == '${slug}' }}`);
+  assert.equal(job.environment, 'npm');
+  assert.deepEqual(job.permissions, { contents: 'read', 'id-token': 'write' });
+  assert.doesNotMatch(text, /secrets\.|NODE_AUTH_TOKEN|NPM_TOKEN/);
+
+  const runs = job.steps.map((step) => step.run ?? '');
+  const installs = runs.join('\n').match(/npm (?:ci|install|i)\b.*/g);
+  assert.deepEqual(installs, ['npm install --global npm@11.21.0']);
+  assert.ok(runs.some((run) => run.includes('build-create-package.mjs --ref "$TAG"')));
+  assert.ok(runs.some((run) => /^npm publish --access public --provenance$/m.test(run)));
+
+  // No other workflow can mint the token npm trusts.
+  for (const file of readdirSync(workflowDir).filter((name) => name !== 'publish.yml')) {
+    assert.doesNotMatch(
+      readFileSync(join(workflowDir, file), 'utf8'),
+      /id-token:\s*write/,
+      `${file} grants id-token: write`,
+    );
+  }
 });
 
 // Released together: `npm version` at the root and in the package (CONTRIBUTING, releases). Only

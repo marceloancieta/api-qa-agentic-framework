@@ -1,0 +1,98 @@
+# Publishes `create-api-qa` from a release tag (backlog CI-10), with npm trusted publishing: npm
+# trusts this workflow file through GitHub's OIDC token, so no npm token is stored anywhere, and the
+# package carries a provenance statement that links it to this run and the tagged commit. The job
+# waits in the `npm` environment until the owner approves it. CONTRIBUTING (releases, step 5) owns
+# the order of the release steps; docs/ci-security.md explains the setup on npm and on GitHub.
+#
+# Only the framework's repository publishes: a repository created from it keeps this file, but its
+# tags skip the job, so GitHub never creates the environment there.
+name: publish
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions: {}
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  create-api-qa:
+    name: publish (create-api-qa)
+    # The repository packages/create-api-qa/package.json names (a test keeps them equal).
+    if: ${{ github.repository == 'marceloancieta/api-qa-agentic-framework' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: npm
+    permissions:
+      contents: read
+      # The OIDC token npm exchanges for a short-lived publish credential, and signs provenance with.
+      id-token: write
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Check out the full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tagged commit is compared with main, which needs main's history.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      # Nothing else is installed: a job that can publish runs no dependency's install script.
+      # Trusted publishing needs npm 11.5.1 or later, newer than the npm that Node 22 bundles.
+      - name: Install a pinned npm
+        run: |
+          npm install --global npm@11.21.0
+          npm --version
+
+      - name: The tag is a release on main
+        run: |
+          commit="$(git rev-parse --verify "${TAG}^{commit}")"
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "::error::${TAG} (${commit}) is not on main: releases are tags on main (CONTRIBUTING, releases)."
+            exit 1
+          fi
+          echo "${TAG} is ${commit} on main."
+
+      # Refuses a tag whose framework version differs from the package's.
+      - name: Build the package from the tag
+        run: node scripts/build-create-package.mjs --ref "$TAG"
+
+      - name: List what the package holds
+        working-directory: packages/create-api-qa
+        run: npm pack --dry-run
+
+      # prepublishOnly refuses a package without its release files or built from another tag.
+      - name: Publish with provenance
+        working-directory: packages/create-api-qa
+        run: npm publish --access public --provenance
+
+      # Outside the repository: inside it, npm takes the local package for the published one.
+      - name: Read the published version back
+        working-directory: ${{ runner.temp }}
+        run: |
+          version="${TAG#v}"
+          for attempt in 1 2 3 4 5 6; do
+            if [ "$(npm view "create-api-qa@${version}" version 2>/dev/null)" = "$version" ]; then
+              break
+            fi
+            if [ "$attempt" = 6 ]; then
+              echo "::error::create-api-qa@${version} is not visible on the registry after publishing."
+              exit 1
+            fi
+            sleep 20
+          done
+          npm create "api-qa@${version}" readback -- --skip-install --skip-git
+          test -f readback/package.json
