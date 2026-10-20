@@ -1,6 +1,6 @@
 # CI security workflows
 
-The supply-chain and review automation of the repository (backlog CI-02 and CI-05): what each piece
+The supply-chain and review automation of the repository (backlog CI-02, CI-05 and CI-10): what each piece
 does, which secrets it reads, how an adopter turns it on or off, and what can be tried locally with
 `act` before a push. The workflow files own the details (triggers, pinned versions, permissions);
 this page explains them.
@@ -10,6 +10,7 @@ this page explains them.
 | `.github/dependabot.yml` | weekly (Monday) | opens update pull requests for npm packages and actions | Dependabot's own | none |
 | `.github/workflows/codeql.yml` | push to `main`, pull requests to `main`, weekly, manual | CodeQL analysis of JavaScript and TypeScript | `contents: read`, `security-events: write`, `actions: read` | none |
 | `.github/workflows/secret-scan.yml` | every push, pull requests, manual | gitleaks over the full history | `contents: read` | none |
+| `.github/workflows/publish.yml` | push of a `v<x.y.z>` tag, in the framework's repository only | publishes `create-api-qa` with npm trusted publishing and provenance, after the owner's approval | `contents: read`, `id-token: write` | none |
 | `.github/workflows/pr-review.yml` | pull requests (opened, updated, reopened, ready for review) | Claude reviews the change against `.github/review-rubric.md` and comments | `contents: read`, `pull-requests: write` | `ANTHROPIC_API_KEY`, optional |
 
 Each workflow in this table sets `permissions: {}` at the top and grants each job only what it
@@ -87,6 +88,39 @@ the comments in step.
 - **Enable or remove.** Nothing to configure; delete the file to remove it. An ARM runner would need
   the `linux_arm64` archive and its checksum.
 
+## Publishing create-api-qa
+
+- **What.** A release tag publishes the `create-api-qa` package, the one behind
+  `npm create api-qa`, built from that tag. The order of the release steps is in
+  [CONTRIBUTING](../CONTRIBUTING.md#releases).
+- **No stored token.** npm trusts the workflow, not a secret: the job asks GitHub for an OIDC token
+  (`id-token: write`), and npm exchanges it for a credential that is valid for this one publish.
+  The same token signs the provenance statement npm shows on the package page, which names the
+  repository, the workflow and the tagged commit. No other workflow is granted `id-token: write`
+  (`scripts/__tests__/create-api-qa.test.mjs` checks it, along with the trigger, the guard and the
+  permissions).
+- **The owner's approval.** The job runs in the `npm` environment, whose protection rule makes it
+  wait for a reviewer. Approving the deployment is the moment the owner used to type
+  `npm publish`.
+- **Nothing installed but npm.** A job that can publish runs no dependency's install script, so it
+  skips `npm ci`: building the package needs only git and Node. It installs one pinned npm,
+  because trusted publishing needs npm 11.5.1 or later and Node 22 bundles npm 10. Dependabot does
+  not read that pin. Update it by hand, to a release at least two weeks old, and change the
+  expected command in the test with it.
+- **Copies.** A repository created from the framework keeps the workflow. The job runs only when
+  `github.repository` is the repository `packages/create-api-qa/package.json` names, so a copy's
+  tags skip it, and GitHub never creates the environment there. To delete the package from a copy,
+  see [adopt the template](guides/adopt-the-template.md#4-what-to-keep).
+- **Setup, once, by the owner.** On npm, in the package's settings, add a trusted publisher of type
+  GitHub Actions with the repository's owner and name, the workflow file `publish.yml` and the
+  environment `npm` (npm's documentation, "Trusted publishing for npm packages"). On GitHub, create
+  the environment `npm` under **Settings** > **Environments**, with the owner as required reviewer
+  and a deployment rule that allows only tags matching `v*`. Once a release has been published this
+  way, set the package's publishing access on npm to require two-factor authentication and
+  disallow tokens, so only the workflow and the owner, with two factors, can publish.
+- **A failed run.** A tag never moves. A run that failed before publishing is re-run once the cause
+  outside the repository is fixed. A cause inside the repository becomes the next patch release.
+
 ## AI pull-request review
 
 - **What.** On each non-draft pull request, Claude (model `claude-opus-5-5`, through
@@ -130,6 +164,7 @@ security workflow needs.
 | `secret-scan.yml` | Fully: the checkout step uses the local repository with its history, the download and checksum check run as written. Needs network access to the gitleaks release and a runner image with `curl`, `tar` and `sha256sum`. | nothing missing |
 | `codeql.yml` | Not meaningfully: analysis needs the CodeQL bundle and the upload needs the code scanning API of a real repository. | alerts, pull-request annotations |
 | `pr-review.yml` | The skip path: run without the secret and the review job is skipped. The review itself needs a real pull request (the action reads it and checks the actor's permission through the GitHub API) and a key passed with `act -s`; hosted secrets are not available to `act`. | inline and summary comments, fork behaviour |
+| `publish.yml` | Not meaningfully: the repository guard skips the job, and publishing needs GitHub's OIDC token, the environment's approval and npm's trusted publisher. The build it runs is `npm run create:build`, which runs locally. | OIDC, approval, provenance, the publish |
 | `dependabot.yml` | Not a workflow; nothing to run. Its syntax is checked by GitHub when the file reaches the default branch. | update pull requests, cooldown, grouping |
 
 The pinned `actions/checkout` and `actions/setup-node` releases run on the `node24` runtime, so

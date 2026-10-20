@@ -398,6 +398,7 @@ What `act` does not reproduce:
 | `dast.yml`, `perf.yml`, `diff.yml` | not tried under `act`: each starts ZAP, k6 or the reference Petstore with `docker compose` from inside the job, and the reference also binds `127.0.0.1`. Run the lanes on the host instead (`npm run lanes:dast`, `lanes:perf`, `lanes:diff`) |
 | `codeql.yml` | needs GitHub code scanning to receive the results |
 | `pr-review.yml` `review` | needs `ANTHROPIC_API_KEY` and a pull request on GitHub to read and comment on |
+| `publish.yml` | needs GitHub's OIDC token, the `npm` environment and npm's trusted publisher ([CI security](ci-security.md#publishing-create-api-qa)) |
 | `schedule` triggers | run the scheduled job with `workflow_dispatch` instead |
 | `dependabot.yml` | Dependabot is a GitHub service, not a workflow |
 

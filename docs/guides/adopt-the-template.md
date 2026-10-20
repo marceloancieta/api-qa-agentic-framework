@@ -138,9 +138,11 @@ Set up the clone first, as in the [README](../../README.md#first-10-minutes): `n
 - **Your first API** is a new pack: follow [add a service pack](add-a-service-pack.md).
 - **`packages/create-api-qa/` publishes the framework itself.** It is harmless in your copy, where
   its tests pass, but its release step in CONTRIBUTING is for the framework's repository only:
-  never publish it. To delete it, also delete `scripts/build-create-package.mjs`, the
-  `create:build` script, `scripts/__tests__/create-api-qa.test.mjs` and its `.gitignore` lines,
-  then the links `lint-docs` reports. Later releases (step 5) leave the deleted paths out, and
+  never publish it. `.github/workflows/publish.yml` publishes it from the framework's tags, and
+  skips the job in any other repository. To delete the package, also delete that workflow,
+  `scripts/build-create-package.mjs`, the `create:build` script,
+  `scripts/__tests__/create-api-qa.test.mjs` and its `.gitignore` lines, then the links
+  `lint-docs` reports. Later releases (step 5) leave the deleted paths out, and
   fetch from the `framework` remote, or from `--remote <url>` before the first update.
 
 ### Remove an example pack

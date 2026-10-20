@@ -134,21 +134,22 @@ the latest `vX.Y.Z` tag and groups them by type:
    then this pull request. After the squash merge, check out the resulting commit on `main` and
    run `npm run release:check`: the versions, the backlog section and the history scans, which
    need gitleaks, as `scripts/release-check.mjs` describes. It stops at the first failure and says
-   what to fix. Then tag that commit as `v<x.y.z>`, push the tag and create the GitHub release
-   from it, with the owner's approval ([AGENTS.md](AGENTS.md)).
-5. In the framework's repository only (a copy never publishes it), publish `create-api-qa` from
-   the tag, with the owner's npm account; nothing in the repository changes:
-   - with the tag checked out (`git switch --detach v<x.y.z>`), `npm run create:build` writes the
-     release into `packages/create-api-qa`, and refuses a tag whose version differs;
-   - in that directory, `npm pack --dry-run` must list the four release files, `framework.tar.gz`,
-     `LICENSE`, `NOTICE` and `packages/create-api-qa/framework.json`, which must name `v<x.y.z>`;
-   - `npm publish --access public`; its `prepublishOnly` refuses a package without those files or
-     built from another tag. A published version cannot be replaced, only deprecated;
-   - read it back from a directory outside the repository:
-     `npm view create-api-qa@<x.y.z> version`, then
-     `npm create api-qa@<x.y.z> <temporary-directory> -- --skip-install`. Inside
-     `packages/create-api-qa`, npm takes the local package of the same name and version for the
-     project instead of the published one, and the command fails.
+   what to fix. Then tag that commit as `v<x.y.z>` and push the tag, with the owner's approval
+   ([AGENTS.md](AGENTS.md)).
+5. In the framework's repository only, the tag starts `.github/workflows/publish.yml`, which
+   publishes `create-api-qa` from it ([CI security](docs/ci-security.md#publishing-create-api-qa));
+   in a copy the job is skipped. It waits in the `npm` environment until the owner approves the
+   deployment on the run's page. It then checks that the tag is on `main`, builds the package
+   from the tag with `npm run create:build` (which refuses a tag whose version differs), lists what
+   `npm pack` would hold, and publishes with provenance; `prepublishOnly` refuses a package without
+   its release files or built from another tag. Last, it reads the version back with `npm view`
+   and `npm create api-qa@<x.y.z> <directory> -- --skip-install --skip-git`, outside the
+   repository. A run that fails for a reason outside the repository (a rejected approval, npm's
+   trusted publisher, the registry) is re-run once that is fixed. A tag never moves, so a fix in the
+   repository becomes the next patch release. A published version cannot be replaced, only
+   deprecated.
+6. Once the package is published, create the GitHub release from the tag; its notes recommend
+   `npm create api-qa`.
 
 ## Reporting a problem
 
