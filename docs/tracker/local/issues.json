@@ -1,5 +1,5 @@
 {
-  "next": 8,
+  "next": 12,
   "issues": {
     "LOCAL-1": {
       "title": "Petstore v3 /user [OpGroup]: after a user is created without a username, every lookup of an unknown username answers 500",
@@ -88,6 +88,58 @@
       "status": "open",
       "category": "open",
       "comments": []
+    },
+    "LOCAL-8": {
+      "title": "Petstore v3 /pet [OpGroup]: writes store pets the contract refuses: no name or photo URLs, a status outside the value set, fields of the wrong type or null",
+      "body": "## Error\n\n`PUT /pet` and the form update `POST /pet/{petId}` answer `200` and store pets the contract refuses.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `PUT /pet` with a stored pet's body, `name` removed | pet `<PET_ID>` with a name | `200`, stored without `name` | `200`, `400`, `404`, `422`, `default` |\n| `PUT /pet` with `photoUrls` removed | pet with two photo URLs | `200` | same |\n| `PUT /pet` with `status: \"<MEMBER>-unknown\"` | pet with a valid status | `200`, stored as sent | same |\n| `PUT /pet` with `name` a number, `photoUrls` a string or `null`, a `photoUrls` item a number or `null`, `status` a number or `null` | pet `<PET_ID>` | `200` | same |\n| `PUT /pet` with `category`, `tags`, `category.id`, `tags[].id`, `category.name` or `tags[].name` `null`, a fraction or a number | pet with a category and a tag | `200` | same |\n| `POST /pet/<PET_ID>?name=<NAME>&status=<MEMBER>-unknown` | pet with a valid status | `200`, stored as sent | `200`, `400`, `default` |\n\nOperations covered:\n\n- `POST /pet` (the create stores an out-of-set `status` too, contract note PN-21)\n- `PUT /pet`\n- `POST /pet/{petId}`\n\n## Expected\n\n`400` with the `{code, message}` input error, and the stored pet unchanged: `name` and `photoUrls`\nare required, `status` is limited to `available`, `pending`, `sold`, and each field has a declared\ntype.\n\n## Suggested fix\n\nValidate the `Pet` body (required fields, the `status` value set, field types) before it is stored,\nin the code the create, the update and the form update share.\n\n## Reproduce\n\n1. `POST /pet` with a valid pet `<PET_ID>`.\n2. `PUT /pet` with the same body and `status` set to `available-unknown`: `200`.\n3. `GET /pet/<PET_ID>`: the stored status is `available-unknown`.\n\n## Environment\n\nLocal environment, Petstore v3 (`swaggerapi/petstore3:1.0.28`), 2026-10-19. Measured by the spec run\nof the Petstore pack on pets it created (TC-PET-30 to TC-PET-34, TC-PET-44), which assert the\nrefusal and the unchanged state; contract notes PN-06 and PN-21. Class `validation` (stored as sent\nbut should be refused), with `silent-write` (a numeric `name` is stored as text). Severity `S3`:\nwrong data in reads, one resource; no other caller's data and no read is broken. Cause measured, not\nread in code.\n",
+      "labels": [
+        "class:validation",
+        "severity:S3"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Detail from the run of 2026-10-19 (redacted evidence attached to each case's result):\n\n- Of the 11 top-level variants of TC-PET-33, ten answer `200`; `id: null` answers `500` (filed\n  separately: a body without an id). Of the nested variants of TC-PET-34, every `null`, fraction and\n  wrong-typed value answers `200`; the int64 overflow of `category.id` and `tags[].id` answers `400`\n  as expected.\n- A pet stored this way no longer matches the `Pet` schema on read (for example `photoUrls: null` or\n  `status` outside the value set), so a client that validates responses fails on it.\n- The form update with the upper-case form of a member (`SOLD`) is stored as sent too.\n- Searches by status kept answering `200` while these pets existed; every case deleted its pet and\n  confirmed the delete with a `404` read.\n"
+      ]
+    },
+    "LOCAL-9": {
+      "title": "Petstore v3 /pet [OpGroup]: a pet body without an id answers 500",
+      "body": "## Error\n\nA pet body without an `id`, or with `id: null`, answers `500` instead of being stored or refused.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `PUT /pet` with `{}` | any | `500` `{\"code\":500,\"message\":\"There was an error processing your request. It has been logged (ID: <LOG_ID>)\"}` | `200`, `400`, `404`, `422`, `default` |\n| `PUT /pet` with a full pet body and `id: null` | pet `<PET_ID>` | `500`, pet unchanged | same |\n| `POST /pet` with a valid pet body without `id` | any | `500`, nothing stored (contract note PN-01) | `200`, `400`, `422`, `default` |\n\nOperations covered:\n\n- `POST /pet`\n- `PUT /pet`\n\n## Expected\n\nThe create assigns an id (`id` is optional in `Pet`) and answers `200`; the update refuses a body\nthat names no pet with `400`. Never a `5xx` for a body the client controls.\n\n## Suggested fix\n\nHandle a missing `id` before the store is called: generate one on create, refuse with `400` on\nupdate.\n\n## Reproduce\n\n1. `PUT /pet` with `{}`: `500`.\n2. `POST /pet` with `{\"name\": \"<NAME>\", \"photoUrls\": []}`: `500`, and no pet is stored.\n\n## Environment\n\nLocal environment, Petstore v3 (`swaggerapi/petstore3:1.0.28`), 2026-10-19. Measured by the spec run\nof the Petstore pack (TC-PET-39 asserts an input error for `{}`; the `id: null` variant of TC-PET-33);\nthe create was measured at intake (contract note PN-01). Class `broken`: a valid create without an id\ncannot succeed, with `validation` for the update's status code. Severity `S3`: a valid request\nfails, and clients route around it by sending an id. Cause measured, not read in code.\n",
+      "labels": [
+        "class:broken",
+        "severity:S3"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Detail: the `500` body carries only a log reference, so the cause is not exposed. The pet named by\nthe rest of the body was read back unchanged after the `id: null` update, so nothing is damaged;\nthe defect is the answer and, for the create, the missing id assignment. TC-PET-39 cites this issue;\nthe `id: null` variant sits inside TC-PET-33, which cites the issue about refused bodies being\nstored.\n"
+      ]
+    },
+    "LOCAL-10": {
+      "title": "Petstore v3 POST /pet/{petId} [Endpoint]: a form update without name is refused, and one without status removes the pet's status",
+      "body": "## Error\n\nThe form update treats `name` as required and `status` as replaced: without `name` it is refused,\nand without `status` the pet loses its status.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `POST /pet/<PET_ID>?status=<OTHER_STATUS>` | pet with a name and status | `400` plain text `No Name provided. Try again?`, nothing changed | `200`, `400`, `default` |\n| `POST /pet/<PET_ID>?name=<NAME>` | pet with status `pending` | `200`, the pet is stored without `status` | same |\n| `POST /pet/<PET_ID>?name=<NAME>&status=<OTHER_STATUS>` | pet with every field | `200`, only `name` and `status` change | same |\n\n## Expected\n\nBoth query parameters are optional. A request with only `status` changes the status and keeps the\nname; a request with only `name` changes the name and keeps the status.\n\n## Suggested fix\n\nApply each parameter only when it is present, instead of requiring `name` and overwriting `status`\nwith the absent value.\n\n## Reproduce\n\n1. `POST /pet` with a pet `<PET_ID>` whose status is `pending`.\n2. `POST /pet/<PET_ID>?name=<NAME>`: `200`.\n3. `GET /pet/<PET_ID>`: the body has no `status`.\n\n## Environment\n\nLocal environment, Petstore v3 (`swaggerapi/petstore3:1.0.28`), 2026-10-19. Measured by the spec run\nof the Petstore pack on pets it created (TC-PET-42 asserts the status-only update, TC-PET-43 that\nthe status is kept); contract note PN-23. Class `silent-write` (an omitted value is changed), with\n`broken` (a valid status-only request is refused). Severity `S2`: one operation quietly loses stored\ndata with a visible effect. Cause measured, not read in code.\n",
+      "labels": [
+        "class:silent-write",
+        "severity:S2"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Detail: the refusal without `name` is plain text outside the `{code, message}` envelope (contract\nnote PN-08). The same `400` answers a request with no parameter at all. The pet that lost its status\nno longer appears in any `findByStatus` search until a later write sets one again, so the damage is\nrepairable through the API but visible to every reader.\n"
+      ]
+    },
+    "LOCAL-11": {
+      "title": "Petstore v3 POST /pet/{petId}/uploadImage [Endpoint]: an upload answers a Pet instead of an ApiResponse and adds a server temporary-file path to the pet's photo URLs",
+      "body": "## Error\n\nAn image upload answers the whole `Pet` instead of the declared `ApiResponse`, and appends a server\ntemporary-file path to the pet's `photoUrls`, where every reader of the pet sees it.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `POST /pet/<PET_ID>/uploadImage`, `application/octet-stream`, a small image | pet with two photo URLs | `200` with a `Pet` whose `photoUrls` ends with `/tmp/inflector<DIGITS>.tmp` | `200` `ApiResponse`, `400`, `404`, `default` |\n| `GET /pet/<PET_ID>` | after the upload | `200`, `photoUrls` holds the same server path | `200`, `400`, `404`, `default` |\n\n## Expected\n\n`200` with an `ApiResponse` (`code`, `type`, `message`), and no server file-system path in any\nanswer or stored field. If the upload adds a photo, it is a URL the client can use.\n\n## Suggested fix\n\nReturn an `ApiResponse` from the upload handler, and store a public URL (or nothing) instead of the\ntemporary file's path.\n\n## Reproduce\n\n1. `POST /pet` with a pet `<PET_ID>`.\n2. `POST /pet/<PET_ID>/uploadImage` with `Content-Type: application/octet-stream` and any bytes.\n3. `GET /pet/<PET_ID>`: `photoUrls` includes `/tmp/inflector<DIGITS>.tmp`.\n\n## Environment\n\nLocal environment, Petstore v3 (`swaggerapi/petstore3:1.0.28`), 2026-10-19. Measured by the spec run\nof the Petstore pack on pets it created (TC-PET-47 asserts an `ApiResponse` and the other fields\nkept, TC-PET-52 that no server path is exposed); contract note PN-24. Class `exposure` (an internal\npath reaches every caller), with `contract` and `silent-write`. Severity `S3`: the path is stored\nand served to unauthenticated readers, but it reveals only a temporary-file name. Cause measured,\nnot read in code.\n",
+      "labels": [
+        "class:exposure",
+        "severity:S3"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Detail: every other field of the pet is kept, and the photo URLs present before the upload stay\n(TC-PET-47's state check passes apart from the answer's shape). Each upload appends one more path.\n`additionalMetadata` is visible nowhere. An upload without a body answers `400` `No file uploaded`,\na `text/plain` upload `415`, and an unknown pet `404`; those are covered by other cases and are not\npart of this issue.\n"
+      ]
     }
   }
 }

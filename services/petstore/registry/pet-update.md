@@ -64,32 +64,32 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-PET-28 | Updating a pet with PUT stores every changed field | REQ-PET-08 | equivalence-partition | high | approved | | |
-| TC-PET-29 | Updating a pet that does not exist answers not-found and creates nothing | REQ-PET-08 | equivalence-partition | high | approved | | |
-| TC-PET-30 | A PUT without a name is refused and the pet keeps its name | REQ-PET-01 | equivalence-partition | high | approved | | |
-| TC-PET-31 | A PUT without photo URLs is refused and the pet keeps its photo URLs | REQ-PET-01 | equivalence-partition | high | approved | | |
-| TC-PET-32 | A PUT with a status outside the value set is refused and the pet keeps its status | REQ-PET-02 | equivalence-partition | medium | approved | | |
-| TC-PET-33 | A PUT whose top-level fields have the wrong type or are null is refused and changes nothing | REQ-PET-01 | equivalence-partition | medium | approved | | |
-| TC-PET-34 | A PUT whose category or tags have the wrong type, are null or overflow is refused | REQ-PET-08 | equivalence-partition | low | approved | | |
-| TC-PET-35 | A PUT with an unknown property stores and returns only declared fields | REQ-PET-08 | equivalence-partition | medium | approved | | |
-| TC-PET-36 | A PUT with an id one above the int64 maximum is refused | REQ-PET-08 | boundary-value | medium | approved | | |
-| TC-PET-37 | Malformed, truncated, empty, null and array PUT bodies are refused and the pet is unchanged | REQ-PET-08 | error-guessing | medium | approved | | |
-| TC-PET-38 | A PUT body with an unsupported content type is refused and the pet is unchanged | REQ-PET-08 | error-guessing | low | approved | | |
-| TC-PET-39 | A PUT with an empty object is refused as an input error, not a server error | REQ-PET-01 | error-guessing | low | approved | | |
-| TC-PET-40 | Every status move is stored, and repeating an update changes nothing more | REQ-PET-14 | state-transition | medium | approved | | |
-| TC-PET-41 | A form update with name and status stores both and keeps the other fields | REQ-PET-10 | equivalence-partition | high | approved | | |
-| TC-PET-42 | A form update with only a status changes the status and keeps the name | REQ-PET-10 | equivalence-partition | high | approved | | |
-| TC-PET-43 | A form update with only a name keeps the status | REQ-PET-10 | equivalence-partition | high | approved | | |
-| TC-PET-44 | A form update with a status outside the value set is refused and the status kept | REQ-PET-02 | equivalence-partition | medium | approved | | |
-| TC-PET-45 | A form update of a pet that does not exist answers not-found and creates nothing | REQ-PET-10 | equivalence-partition | medium | approved | | |
-| TC-PET-46 | A malformed pet id on the form update is refused and changes nothing | REQ-PET-10 | equivalence-partition | medium | approved | | |
-| TC-PET-47 | Uploading an image answers an ApiResponse and keeps the pet's other fields | REQ-PET-12 | equivalence-partition | high | approved | | |
-| TC-PET-48 | An upload without a file is refused and the pet is unchanged | REQ-PET-12 | equivalence-partition | high | approved | | |
-| TC-PET-49 | An upload to a pet that does not exist answers not-found and creates nothing | REQ-PET-12 | equivalence-partition | medium | approved | | |
-| TC-PET-50 | A malformed pet id on upload is refused | REQ-PET-12 | equivalence-partition | medium | approved | | |
-| TC-PET-51 | An upload with an unsupported content type is refused and the pet is unchanged | REQ-PET-12 | error-guessing | low | approved | | |
-| TC-PET-52 | An upload exposes no server file path | | error-guessing | medium | approved | | |
-| TC-PET-53 | An anonymous caller updates, form-updates and uploads to its own pet like the default caller | REQ-PET-13 | equivalence-partition | medium | approved | | |
+| TC-PET-28 | Updating a pet with PUT stores every changed field | REQ-PET-08 | equivalence-partition | high | automated | specs/pet-update.spec.ts | |
+| TC-PET-29 | Updating a pet that does not exist answers not-found and creates nothing | REQ-PET-08 | equivalence-partition | high | automated | specs/pet-update.spec.ts | |
+| TC-PET-30 | A PUT without a name is refused and the pet keeps its name | REQ-PET-01 | equivalence-partition | high | automated | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-31 | A PUT without photo URLs is refused and the pet keeps its photo URLs | REQ-PET-01 | equivalence-partition | high | automated | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-32 | A PUT with a status outside the value set is refused and the pet keeps its status | REQ-PET-02 | equivalence-partition | medium | automated | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-33 | A PUT whose top-level fields have the wrong type or are null is refused and changes nothing | REQ-PET-01 | equivalence-partition | medium | automated | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-34 | A PUT whose category or tags have the wrong type, are null or overflow is refused | REQ-PET-08 | equivalence-partition | low | automated | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-35 | A PUT with an unknown property stores and returns only declared fields | REQ-PET-08 | equivalence-partition | medium | automated | specs/pet-update.spec.ts | |
+| TC-PET-36 | A PUT with an id one above the int64 maximum is refused | REQ-PET-08 | boundary-value | medium | automated | specs/pet-update.spec.ts | |
+| TC-PET-37 | Malformed, truncated, empty, null and array PUT bodies are refused and the pet is unchanged | REQ-PET-08 | error-guessing | medium | automated | specs/pet-update.spec.ts | |
+| TC-PET-38 | A PUT body with an unsupported content type is refused and the pet is unchanged | REQ-PET-08 | error-guessing | low | automated | specs/pet-update.spec.ts | |
+| TC-PET-39 | A PUT with an empty object is refused as an input error, not a server error | REQ-PET-01 | error-guessing | low | automated | specs/pet-update.spec.ts | LOCAL-9 |
+| TC-PET-40 | Every status move is stored, and repeating an update changes nothing more | REQ-PET-14 | state-transition | medium | automated | specs/pet-update.spec.ts | |
+| TC-PET-41 | A form update with name and status stores both and keeps the other fields | REQ-PET-10 | equivalence-partition | high | automated | specs/pet-form-update.spec.ts | |
+| TC-PET-42 | A form update with only a status changes the status and keeps the name | REQ-PET-10 | equivalence-partition | high | automated | specs/pet-form-update.spec.ts | LOCAL-10 |
+| TC-PET-43 | A form update with only a name keeps the status | REQ-PET-10 | equivalence-partition | high | automated | specs/pet-form-update.spec.ts | LOCAL-10 |
+| TC-PET-44 | A form update with a status outside the value set is refused and the status kept | REQ-PET-02 | equivalence-partition | medium | automated | specs/pet-form-update.spec.ts | LOCAL-8 |
+| TC-PET-45 | A form update of a pet that does not exist answers not-found and creates nothing | REQ-PET-10 | equivalence-partition | medium | automated | specs/pet-form-update.spec.ts | |
+| TC-PET-46 | A malformed pet id on the form update is refused and changes nothing | REQ-PET-10 | equivalence-partition | medium | automated | specs/pet-form-update.spec.ts | |
+| TC-PET-47 | Uploading an image answers an ApiResponse and keeps the pet's other fields | REQ-PET-12 | equivalence-partition | high | automated | specs/pet-image.spec.ts | LOCAL-11 |
+| TC-PET-48 | An upload without a file is refused and the pet is unchanged | REQ-PET-12 | equivalence-partition | high | automated | specs/pet-image.spec.ts | |
+| TC-PET-49 | An upload to a pet that does not exist answers not-found and creates nothing | REQ-PET-12 | equivalence-partition | medium | automated | specs/pet-image.spec.ts | |
+| TC-PET-50 | A malformed pet id on upload is refused | REQ-PET-12 | equivalence-partition | medium | automated | specs/pet-image.spec.ts | |
+| TC-PET-51 | An upload with an unsupported content type is refused and the pet is unchanged | REQ-PET-12 | error-guessing | low | automated | specs/pet-image.spec.ts | |
+| TC-PET-52 | An upload exposes no server file path | | error-guessing | medium | automated | specs/pet-image.spec.ts | LOCAL-11 |
+| TC-PET-53 | An anonymous caller updates, form-updates and uploads to its own pet like the default caller | REQ-PET-13 | equivalence-partition | medium | automated | specs/pet-image.spec.ts | |
 
 ## Case details
 
@@ -118,7 +118,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `PUT /pet` with the stored body and `name` removed.
 - **Expected**: `400` (or `422`) and the pet unchanged, name included.
 - **Verification**: state comparison of the read-back with the state before the write.
-- **Departure**: PN-06 (untracked): `200` and the pet is stored without `name` (W-17). Never run
+- **Departure**: PN-06 (`LOCAL-8`): `200` and the pet is stored without `name` (W-17). Never run
   against a seed pet: this probe once corrupted one (PN-06).
 - **Probes**: `p-323bb34345`.
 - **Cleanup**: delete, confirmed by a `404` read.
@@ -130,8 +130,8 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `PUT /pet` with the stored body and `photoUrls` removed.
 - **Expected**: `400` (or `422`) and the pet unchanged.
 - **Verification**: state comparison of the read-back with the state before the write.
-- **Departure**: not measured on `PUT`. Its create sibling stores `[]` (PN-21, W-20; L-37), so the
-  same departure is likely.
+- **Departure**: PN-21 (`LOCAL-8`): `200`, measured by the first spec run (its create sibling
+  stores `[]`, W-20; L-37).
 - **Probes**: `p-7d0a43508e`.
 - **Cleanup**: delete, confirmed by a `404` read.
 - **Tags**: `@regression @data-integrity`
@@ -142,7 +142,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `PUT /pet` with the stored body and `status: <OUT_OF_SET_STATUS>`.
 - **Expected**: `400` (or `422`); the stored status is still `<STATUS>`.
 - **Verification**: state comparison of the read-back with the state before the write.
-- **Departure**: PN-06 (untracked): `200`, stored as sent (W-16).
+- **Departure**: PN-06 (`LOCAL-8`): `200`, stored as sent (W-16).
 - **Probes**: `p-8a03833f58`.
 - **Cleanup**: delete, confirmed by a `404` read.
 - **Tags**: `@regression @contract-drift @data-integrity`
@@ -156,9 +156,10 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `PUT /pet` once per variant.
 - **Expected**: `400` `input-error` (or `422`) for each; the pet unchanged after each.
 - **Verification**: state comparison after each variant.
-- **Departure**: not measured on `PUT`. The create sibling stores a numeric `name` as text and drops
-  a `null` one (PN-21, W-18, W-26), and a missing `id` meets PN-01, so similar departures are
-  likely.
+- **Departure**: PN-21 (`LOCAL-8`): the first spec run measured `200` for every variant but two:
+  `id: null` answers `500` (PN-01, `LOCAL-9`), and a non-numeric `id` is refused with `400` as
+  designed (a numeric string is coerced and answers `200`); the create sibling behaves the same
+  (W-18, W-26).
 - **Probes**: `p-ae21138f84`, `p-720ff94cba`, `p-28bbfce11f`, `p-cb6afa2d11`, `p-19476b1e03`,
   `p-10175847e7`, `p-ad34189970`, `p-3b6b3472ea`, `p-b9a81a65ab`, `p-a0922cbf74`, `p-4b4c9950d2`.
 - **Cleanup**: delete, confirmed by a `404` read.
@@ -172,7 +173,9 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Expected**: `400` `input-error` and the pet unchanged for each wrong type, `null` and overflow;
   for an unknown nested property, `200` and the property in neither the response nor the read-back.
 - **Verification**: state comparison after each variant.
-- **Departure**: none measured.
+- **Departure**: PN-21 (`LOCAL-8`): the first spec run measured `200` for every `null`, fraction
+  and wrong-typed nested value; the two overflows answer `400` and the unknown nested properties
+  are ignored, as expected.
 - **Probes**: `p-28e22c31fe`, `p-c640aef54c`, `p-2f02a37986`, `p-c907a385c5`, `p-181dac9e94`,
   `p-f859cea034`, `p-8a6aa183e8`, `p-9bfd76abaa`, `p-dda2575aac`, `p-c797e626d2`, `p-55550a8dfe`,
   `p-000f410ac9`, `p-e86c3a529b`, `p-fbcb198226`, `p-3b31e62766`, `p-464553e03f`, `p-01da4a352e`,
@@ -232,7 +235,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Expected**: `400` `input-error` (no `id` names a pet, and `name` and `photoUrls` are missing);
   never a `5xx`.
 - **Verification**: response only.
-- **Departure**: PN-01 (untracked): `500` `server-error` (W-31).
+- **Departure**: PN-01 (`LOCAL-9`): `500` `server-error` (W-31).
 - **Tags**: `@regression @contract-drift`
 
 ### TC-PET-40
@@ -262,7 +265,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `POST /pet/<PET_ID>?status=<OTHER_STATUS>`.
 - **Expected**: `200` `Pet`; only `status` changes; the name is kept.
 - **Verification**: `expectOnlyChanged(before, after, PET_FIELDS, ['status'])`.
-- **Departure**: PN-23 (untracked): `400` plain text `No Name provided. Try again?` and nothing
+- **Departure**: PN-23 (`LOCAL-10`): `400` plain text `No Name provided. Try again?` and nothing
   changes (W-06, W-07). The same class answers a request with no parameter at all (W-09).
 - **Cleanup**: delete, confirmed by a `404` read.
 - **Tags**: `@regression @contract-drift @data-integrity`
@@ -273,7 +276,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `POST /pet/<PET_ID>?name=<NAME>`.
 - **Expected**: `200` `Pet`; only `name` changes; the status is kept.
 - **Verification**: `expectOnlyChanged(before, after, PET_FIELDS, ['name'])`.
-- **Departure**: PN-23 (untracked): the status is removed (W-08).
+- **Departure**: PN-23 (`LOCAL-10`): the status is removed (W-08).
 - **Cleanup**: delete, confirmed by a `404` read.
 - **Tags**: `@regression @contract-drift @data-integrity`
 
@@ -285,7 +288,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Expected**: `400` `input-error`; the pet unchanged (rule 2 limits a pet's status to the value
   set; this parameter declares none, G13).
 - **Verification**: state comparison.
-- **Departure**: PN-21 (untracked): `200`, stored as sent (W-12).
+- **Departure**: PN-21 (`LOCAL-8`): `200`, stored as sent (W-12).
 - **Cleanup**: delete, confirmed by a `404` read.
 - **Tags**: `@regression @contract-drift @data-integrity`
 
@@ -295,7 +298,9 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `POST /pet/<UNKNOWN_PET_ID>?name=<NAME>&status=<STATUS>`.
 - **Expected**: `404` `not-found`, as every pet operation answers an absent pet; no pet is created.
 - **Verification**: `GET /pet/<UNKNOWN_PET_ID>` answers `404`.
-- **Departure**: PN-23 (untracked): the `404` is not declared for this operation (W-13, G13).
+- **Departure**: PN-23: the `404` is not declared for this operation (W-13, G13); a contract drift
+  outside the scope of `LOCAL-10`, so the case expects the `404` and runs green.
+- **Cleanup**: if the read shows a pet, delete it and confirm with a `404` read.
 - **Tags**: `@regression @contract-drift @data-integrity`
 
 ### TC-PET-46
@@ -318,7 +323,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Expected**: `200` with a body matching `ApiResponse`; every field of the pet other than
   `photoUrls` unchanged, and the photo URLs present before the upload kept.
 - **Verification**: `expectOnlyChanged(before, after, PET_FIELDS, ['photoUrls'])`.
-- **Departure**: PN-24 (untracked): the answer is a `Pet`, not an `ApiResponse` (W-40). The path it
+- **Departure**: PN-24 (`LOCAL-11`): the answer is a `Pet`, not an `ApiResponse` (W-40). The path it
   appends is TC-PET-52.
 - **Cleanup**: delete, confirmed by a `404` read.
 - **Tags**: `@regression @contract-drift @data-integrity`
@@ -337,8 +342,11 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 
 - **Preconditions**: `default`; `<UNKNOWN_PET_ID>`; `<IMAGE_BYTES>`.
 - **Request**: `POST /pet/<UNKNOWN_PET_ID>/uploadImage` with the bytes.
-- **Expected**: `404` `not-found`; no pet is created (W-42).
+- **Expected**: `404` with the plain text `Pet not found`; no pet is created (W-42). The body is
+  labelled `application/json`, not the `application/xml` of the `not-found` envelope (PN-02), so
+  the case asserts the status and the text, as for the other plain-text refusals.
 - **Verification**: `GET /pet/<UNKNOWN_PET_ID>` answers `404`.
+- **Cleanup**: if the read shows a pet, delete it and confirm with a `404` read.
 - **Tags**: `@regression @data-integrity`
 
 ### TC-PET-50
@@ -370,7 +378,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `POST /pet/<PET_ID>/uploadImage` with the bytes, then `GET /pet/<PET_ID>`.
 - **Expected**: neither the response nor the read-back contains a server file-system path.
 - **Verification**: follow-up read.
-- **Departure**: PN-24 (untracked): `photoUrls` gains a server temporary-file path (W-40).
+- **Departure**: PN-24 (`LOCAL-11`): `photoUrls` gains a server temporary-file path (W-40).
 - **Cleanup**: delete, confirmed by a `404` read.
 - **Tags**: `@regression @security @data-integrity`
 

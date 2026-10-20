@@ -45,6 +45,12 @@ export class PetBuilder {
     return this;
   }
 
+  /** `count` generated photo URLs, so a case can tell kept URLs from a replaced list. */
+  withPhotoUrls(count: number): this {
+    this.pet.photoUrls = Array.from({ length: count }, () => this.faker.image.url());
+    return this;
+  }
+
   /** Any status from the contract's value set, chosen by the seeded faker. */
   withAnyStatus(): this {
     this.pet.status = this.faker.helpers.arrayElement(PET_STATUSES);
@@ -62,25 +68,85 @@ export class PetBuilder {
   }
 
   /**
-   * The pet as JSON text, with the named fields written as the given digits. A JSON number past
-   * 2^53 cannot round-trip through a JavaScript number, so an int64 edge is sent this way.
+   * The pet as a plain JSON object with `changes` applied, for bodies the contract refuses or does
+   * not declare: a field of the wrong type, `null`, a removed field (`undefined`), an unknown
+   * property. A key is a field or a path into it: `category.id`, `tags.0.name`, `photoUrls.0`.
    */
-  toJson(rawNumbers: Partial<Record<keyof Pet, string>> = {}): string {
-    const pet: Record<string, unknown> = { ...this.build() };
+  toBodyWith(changes: Record<string, unknown>): Record<string, unknown> {
+    const body = structuredClone(this.pet) as unknown as Record<string, unknown>;
+    for (const [path, value] of Object.entries(changes)) {
+      const keys = path.split('.');
+      const last = keys.pop() as string;
+      let target = body as Record<string, unknown>;
+      for (const key of keys) {
+        const next = target[key];
+        if (next === null || typeof next !== 'object')
+          throw new Error(`toBodyWith: "${path}" goes through ${JSON.stringify(next)}`);
+        target = next as Record<string, unknown>;
+      }
+      if (value === undefined) delete target[last];
+      else target[last] = value;
+    }
+    return body;
+  }
+
+  /**
+   * The pet as JSON text, with the named fields written as the given digits; a key is a field or a
+   * path into it, as in `toBodyWith` (`category.id`, `tags.0.id`). A JSON number past 2^53 cannot
+   * round-trip through a JavaScript number, so an int64 edge is sent this way.
+   */
+  toJson(rawNumbers: Record<string, string> = {}): string {
     const marks = new Map<string, string>();
-    for (const [field, digits] of Object.entries(rawNumbers)) {
+    const changes: Record<string, string> = {};
+    for (const [path, digits] of Object.entries(rawNumbers)) {
       if (!/^-?\d+$/.test(digits)) throw new Error(`toJson: "${digits}" is not an integer`);
-      const mark = `__raw_${field}__`;
-      pet[field] = mark;
+      const mark = `__raw_${path}__`;
+      changes[path] = mark;
       marks.set(`"${mark}"`, digits);
     }
-    let json = JSON.stringify(pet);
+    let json = JSON.stringify(this.toBodyWith(changes));
     for (const [mark, digits] of marks) json = json.split(mark).join(digits);
     return json;
   }
 }
 
 export const aPet = (faker: Faker): PetBuilder => new PetBuilder(faker);
+
+/** An id no case creates: one above the builder's range (`<UNKNOWN_PET_ID>`). */
+export const UNKNOWN_PET_ID = GENERATED_ID_MAX + 1;
+
+/** One above the largest int64, as digits: no JavaScript number holds it (`<INT64_OVERFLOW>`). */
+export const INT64_OVERFLOW = (2n ** 63n).toString();
+
+/**
+ * Path ids the contract's int64 `petId` refuses, each with a label for the step: non-numeric, one
+ * above the int64 maximum, a run of 300 digits and an encoded slash. The encoded slash starts with
+ * `ownId`, the case's own pet (or an id no pet has), never a seed pet's: a lenient parse that reads
+ * the leading digits (PN-16) then reaches only the case's own data, where its state check sees it.
+ */
+export const malformedPetIds = (
+  faker: Faker,
+  ownId: number = UNKNOWN_PET_ID,
+): [label: string, id: string][] => [
+  ['non-numeric', faker.string.alpha({ length: 8, casing: 'lower' })],
+  ['int64 overflow', INT64_OVERFLOW],
+  ['300 digits', '9'.repeat(300)],
+  ['encoded slash', `${ownId}/1`],
+];
+
+/** A small image body for uploads (`<IMAGE_BYTES>`): a PNG signature and seeded bytes. */
+export const imageBytes = (faker: Faker): Buffer =>
+  Buffer.from([
+    0x89,
+    0x50,
+    0x4e,
+    0x47,
+    0x0d,
+    0x0a,
+    0x1a,
+    0x0a,
+    ...Array.from({ length: 24 }, () => faker.number.int({ min: 0, max: 255 })),
+  ]);
 
 /** A tag name unique to the case: seed pets and other cases never carry it. */
 export const uniqueTag = (faker: Faker): string =>

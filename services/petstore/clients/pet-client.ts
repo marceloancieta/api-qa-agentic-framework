@@ -12,6 +12,15 @@ export class PetClient extends BaseClient {
     return this.put('pet', { data: pet });
   }
 
+  /**
+   * An update whose body is sent byte for byte with the given content type: malformed JSON, a body
+   * the contract refuses (`PetBuilder.toBodyWith`), an int64 edge, or a type the operation does not
+   * accept.
+   */
+  updateRaw(body: string, contentType = 'application/json'): Promise<APIResponse> {
+    return this.put('pet', { data: body, headers: { 'Content-Type': contentType } });
+  }
+
   getById(id: number | string): Promise<APIResponse> {
     return this.get(this.route('pet/{petId}', { petId: id }));
   }
@@ -41,12 +50,34 @@ export class PetClient extends BaseClient {
       : this.get('pet/findByTags', { params: { tags: tag } });
   }
 
-  /** `POST /pet/{petId}` with `name` and `status` as query parameters; a field left out is not sent. */
-  updateWithForm(id: number, fields: { name?: string; status?: string }): Promise<APIResponse> {
+  /**
+   * `POST /pet/{petId}` with `name` and `status` as query parameters; a field left out is not sent.
+   * A string id is sent as given, encoded, for malformed-id cases.
+   */
+  updateWithForm(
+    id: number | string,
+    fields: { name?: string; status?: string },
+  ): Promise<APIResponse> {
     const params: Record<string, string> = {};
     if (fields.name !== undefined) params['name'] = fields.name;
     if (fields.status !== undefined) params['status'] = fields.status;
     return this.post(this.route('pet/{petId}', { petId: id }), { params });
+  }
+
+  /**
+   * `POST /pet/{petId}/uploadImage` with `image` as the raw body under `contentType`
+   * (`application/octet-stream` as declared); `undefined` sends no body. A string id is sent as
+   * given, encoded, for malformed-id cases.
+   */
+  uploadImage(
+    id: number | string,
+    image: Buffer | undefined,
+    contentType = 'application/octet-stream',
+  ): Promise<APIResponse> {
+    return this.post(this.route('pet/{petId}/uploadImage', { petId: id }), {
+      data: image,
+      headers: { 'Content-Type': contentType },
+    });
   }
 
   remove(id: number | string): Promise<APIResponse> {
