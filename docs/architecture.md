@@ -426,7 +426,7 @@ flowchart LR
   entry has `allow_writes: true`, uses the pack's `workers` as ZAP's threads per host, and runs the
   entry's `recovery` afterwards, the same settings the specs and the destructive lane obey.
 - **CI runs them on a schedule.** `dast.yml` scans both VAmPI modes and the Petstore, `perf.yml`
-  runs both packs and `diff.yml` compares the Petstore with an earlier release every week, and on
+  runs the Petstore and VAmPI and `diff.yml` compares the Petstore with an earlier release every week, and on
   pull requests that touch them ([continuous integration](ci.md)).
 
 The differential lane compares a candidate deployment with a reference. Both are qa-config

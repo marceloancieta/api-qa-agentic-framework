@@ -25,7 +25,7 @@ below:
 
 | Comes with the copy | Does not |
 |---|---|
-| every tracked file: the core, both example packs, `.claude/`, the workflows, the docs | the commit history and the release tags |
+| every tracked file: the core, the three example packs, `.claude/`, the workflows, the docs | the commit history and the release tags |
 | `.github/rulesets/main.json`, the branch rules of `main` as a file | the rules themselves, and the other repository settings |
 | `.env.example`, `qa-config.example.json` | secrets, the local `.env`, a `qa-config.json` |
 
@@ -148,11 +148,13 @@ Set up the clone first, as in the [README](../../README.md#first-10-minutes): `n
 
 ## 4. What to keep
 
-- **Keep both example packs** while you build your own. `services/petstore/` is the worked example
+- **Keep the example packs** while you build your own. `services/petstore/` is the worked example
   the guides and the onboarding tour walk through, and its suite in a container is the required
   `e2e (petstore)` check, which shows on every pull request that the core still works.
-  `services/vampi/` shows login authentication, actors and an authorization matrix. Neither calls
-  anything outside the containers CI starts. To drop one later, see
+  `services/vampi/` shows login authentication, actors and an authorization matrix, and
+  `services/keycloak/` OAuth 2.0 client credentials against an identity provider; its
+  `e2e (keycloak)` job is not required. Their suites call nothing outside the containers CI
+  starts. To drop one later, see
   [remove an example pack](#remove-an-example-pack).
 - **Keep the framework's docs and rules**: `docs/lessons-learned.md`, the ADRs and `.claude/rules/`
   are what the checks and the skills cite. Number your own ADRs after the last one in
