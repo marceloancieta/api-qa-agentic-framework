@@ -61,7 +61,8 @@ the comments in step.
   licence; without it the upload step fails.
 - **Enable or remove.** It runs once the file is on the default branch. Do not also enable CodeQL
   "default setup" in the repository settings: GitHub accepts the results of only one of the two
-  configurations. To remove it, delete the workflow file.
+  configurations. To turn it off, disable the workflow under **Actions**; deleting the file
+  also means editing every doc that cites it ([adopt the template](guides/adopt-the-template.md#2-set-up-the-repository)).
 
 ## Secret scan
 
@@ -85,7 +86,8 @@ the comments in step.
 - **The denylist scan cannot run in CI.** `scripts/scan-denylist.mjs` reads `.git/info/denylist`,
   which exists only on the maintainer's machine and is never committed. CI runs only its self-test,
   inside `npm run gates`.
-- **Enable or remove.** Nothing to configure; delete the file to remove it. An ARM runner would need
+- **Enable or remove.** Nothing to configure; disable the workflow under **Actions** to stop it
+  (deleting the file breaks the doc links that cite it, as for CodeQL). An ARM runner would need
   the `linux_arm64` archive and its checksum.
 
 ## Publishing create-api-qa
@@ -150,7 +152,7 @@ the comments in step.
   `pull_request` uses the files of the pull request; a human reviewer checks such changes. The review
   is advisory and costs API usage on every push.
 - **Enable or remove.** Add the `ANTHROPIC_API_KEY` secret to enable it. Delete the secret to pause
-  it, or the workflow file to remove it. Adapt the review to another project by editing the rubric,
+  it, or disable the workflow under **Actions** to remove it. Adapt the review to another project by editing the rubric,
   not the prompt.
 
 ## What `act` can and cannot reproduce

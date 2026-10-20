@@ -31,8 +31,15 @@ below:
 
 Because the history is not copied, the framework's backlog cites commits your repository does not
 have. `npm run lint:docs` reports it as one `closing-commit` finding that names this guide, and
-`npm run gates` fails until the backlog is your own (step 3). If GitHub runs the workflows on the
-first commit, that run fails for the same reason.
+`npm run gates` fails until the backlog is your own (step 3).
+
+GitHub runs the workflows on the first commit (FUT-13 saw it on a new private repository):
+
+- `ci` fails in `gates` for that reason, until the adoption pull request is merged;
+- `CodeQL` fails on a private repository without GitHub's code security licence (step 2);
+- Dependabot opens its first update pull requests within minutes, and their `ci` fails the same
+  way. Once the adoption is merged, Dependabot updates them on its own and they pass; comment
+  `@dependabot rebase` on one that is left behind.
 
 ## 1. Create the repository
 
@@ -76,13 +83,28 @@ that jobs report in workflows running on every pull request ([required checks](.
 If you rename a required job, update the file, the expected list in that test, and then the
 ruleset on GitHub.
 
+**A private repository on a free account** gets neither of the last two. GitHub refuses the ruleset
+(`403`, "Upgrade to GitHub Pro or make this repository public") and has no private vulnerability
+reporting for it (`404`). Without the ruleset nothing on GitHub stops a direct push or a merge with
+failing checks: the local `git-policy` hook still checks commits (`npm run hooks:install`), and the
+rest is review discipline. Make the repository public, or move it to a paid plan, to have the
+rules enforced. Without private vulnerability reporting, point `SECURITY.md` and the security
+paragraph of `CONTRIBUTING.md` at a private channel of your own.
+
 Then decide on the parts that depend on the repository ([CI security](../ci-security.md)):
 
 - **CodeQL** runs free on a public repository. A private one needs GitHub's code security licence,
-  without which the upload step fails; delete `.github/workflows/codeql.yml` if you do not have it.
-- **The scheduled lanes** run against the example packs: `drift.yml` daily, and `dast.yml`,
-  `perf.yml` and `diff.yml` weekly ([CI](../ci.md)), which a private repository pays for in Actions
-  minutes. Disable the ones you do not want under **Actions**, or delete them.
+  without which the upload step fails ("Code scanning is not enabled for this repository").
+- **The lanes** run against the example packs: `drift.yml` daily, `perf.yml` and `diff.yml`
+  weekly, and `dast.yml` weekly and on every pull request ([CI](../ci.md)), which a private
+  repository pays for in Actions minutes.
+- **Disable a workflow, do not delete it.** Under **Actions**, pick the workflow and choose
+  **Disable workflow** (or `gh workflow disable <name>`): the file stays, and nothing else changes.
+  Deleting the file breaks `npm run gates`, because the docs cite each workflow by path and
+  `lint-docs` reports every dead path (FUT-13 measured 6 to 10 per file). Deleting `dast.yml` also
+  removes required checks, so `.github/rulesets/main.json`, the expected list in
+  `scripts/__tests__/ruleset.test.mjs` and the ruleset on GitHub change with it. If you delete one
+  anyway, edit what `lint-docs` and the tests report in the same pull request.
 - **The AI review** of pull requests runs only once you add the `ANTHROPIC_API_KEY` Actions secret.
 - **Secret scanning and push protection** are repository settings under **Settings** >
   **Code security**; the gitleaks workflow runs either way.
