@@ -64,32 +64,32 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-PET-28 | Updating a pet with PUT stores every changed field | REQ-PET-08 | equivalence-partition | high | automated | specs/pet-update.spec.ts | |
-| TC-PET-29 | Updating a pet that does not exist answers not-found and creates nothing | REQ-PET-08 | equivalence-partition | high | automated | specs/pet-update.spec.ts | |
-| TC-PET-30 | A PUT without a name is refused and the pet keeps its name | REQ-PET-01 | equivalence-partition | high | automated | specs/pet-update.spec.ts | LOCAL-8 |
-| TC-PET-31 | A PUT without photo URLs is refused and the pet keeps its photo URLs | REQ-PET-01 | equivalence-partition | high | automated | specs/pet-update.spec.ts | LOCAL-8 |
-| TC-PET-32 | A PUT with a status outside the value set is refused and the pet keeps its status | REQ-PET-02 | equivalence-partition | medium | automated | specs/pet-update.spec.ts | LOCAL-8 |
-| TC-PET-33 | A PUT whose top-level fields have the wrong type or are null is refused and changes nothing | REQ-PET-01 | equivalence-partition | medium | automated | specs/pet-update.spec.ts | LOCAL-8 |
-| TC-PET-34 | A PUT whose category or tags have the wrong type, are null or overflow is refused | REQ-PET-08 | equivalence-partition | low | automated | specs/pet-update.spec.ts | LOCAL-8 |
-| TC-PET-35 | A PUT with an unknown property stores and returns only declared fields | REQ-PET-08 | equivalence-partition | medium | automated | specs/pet-update.spec.ts | |
-| TC-PET-36 | A PUT with an id one above the int64 maximum is refused | REQ-PET-08 | boundary-value | medium | automated | specs/pet-update.spec.ts | |
-| TC-PET-37 | Malformed, truncated, empty, null and array PUT bodies are refused and the pet is unchanged | REQ-PET-08 | error-guessing | medium | automated | specs/pet-update.spec.ts | |
-| TC-PET-38 | A PUT body with an unsupported content type is refused and the pet is unchanged | REQ-PET-08 | error-guessing | low | automated | specs/pet-update.spec.ts | |
-| TC-PET-39 | A PUT with an empty object is refused as an input error, not a server error | REQ-PET-01 | error-guessing | low | automated | specs/pet-update.spec.ts | LOCAL-9 |
-| TC-PET-40 | Every status move is stored, and repeating an update changes nothing more | REQ-PET-14 | state-transition | medium | automated | specs/pet-update.spec.ts | |
-| TC-PET-41 | A form update with name and status stores both and keeps the other fields | REQ-PET-10 | equivalence-partition | high | automated | specs/pet-form-update.spec.ts | |
-| TC-PET-42 | A form update with only a status changes the status and keeps the name | REQ-PET-10 | equivalence-partition | high | automated | specs/pet-form-update.spec.ts | LOCAL-10 |
-| TC-PET-43 | A form update with only a name keeps the status | REQ-PET-10 | equivalence-partition | high | automated | specs/pet-form-update.spec.ts | LOCAL-10 |
-| TC-PET-44 | A form update with a status outside the value set is refused and the status kept | REQ-PET-02 | equivalence-partition | medium | automated | specs/pet-form-update.spec.ts | LOCAL-8 |
-| TC-PET-45 | A form update of a pet that does not exist answers not-found and creates nothing | REQ-PET-10 | equivalence-partition | medium | automated | specs/pet-form-update.spec.ts | |
-| TC-PET-46 | A malformed pet id on the form update is refused and changes nothing | REQ-PET-10 | equivalence-partition | medium | automated | specs/pet-form-update.spec.ts | |
-| TC-PET-47 | Uploading an image answers an ApiResponse and keeps the pet's other fields | REQ-PET-12 | equivalence-partition | high | automated | specs/pet-image.spec.ts | LOCAL-11 |
-| TC-PET-48 | An upload without a file is refused and the pet is unchanged | REQ-PET-12 | equivalence-partition | high | automated | specs/pet-image.spec.ts | |
-| TC-PET-49 | An upload to a pet that does not exist answers not-found and creates nothing | REQ-PET-12 | equivalence-partition | medium | automated | specs/pet-image.spec.ts | |
-| TC-PET-50 | A malformed pet id on upload is refused | REQ-PET-12 | equivalence-partition | medium | automated | specs/pet-image.spec.ts | |
-| TC-PET-51 | An upload with an unsupported content type is refused and the pet is unchanged | REQ-PET-12 | error-guessing | low | automated | specs/pet-image.spec.ts | |
-| TC-PET-52 | An upload exposes no server file path | | error-guessing | medium | automated | specs/pet-image.spec.ts | LOCAL-11 |
-| TC-PET-53 | An anonymous caller updates, form-updates and uploads to its own pet like the default caller | REQ-PET-13 | equivalence-partition | medium | automated | specs/pet-image.spec.ts | |
+| TC-PET-28 | Updating a pet with PUT stores every changed field | REQ-PET-08 | equivalence-partition | high | published | specs/pet-update.spec.ts | |
+| TC-PET-29 | Updating a pet that does not exist answers not-found and creates nothing | REQ-PET-08 | equivalence-partition | high | published | specs/pet-update.spec.ts | |
+| TC-PET-30 | A PUT without a name is refused and the pet keeps its name | REQ-PET-01 | equivalence-partition | high | published | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-31 | A PUT without photo URLs is refused and the pet keeps its photo URLs | REQ-PET-01 | equivalence-partition | high | published | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-32 | A PUT with a status outside the value set is refused and the pet keeps its status | REQ-PET-02 | equivalence-partition | medium | published | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-33 | A PUT whose top-level fields have the wrong type or are null is refused and changes nothing | REQ-PET-01 | equivalence-partition | medium | published | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-34 | A PUT whose category or tags have the wrong type, are null or overflow is refused | REQ-PET-08 | equivalence-partition | low | published | specs/pet-update.spec.ts | LOCAL-8 |
+| TC-PET-35 | A PUT with an unknown property stores and returns only declared fields | REQ-PET-08 | equivalence-partition | medium | published | specs/pet-update.spec.ts | |
+| TC-PET-36 | A PUT with an id one above the int64 maximum is refused | REQ-PET-08 | boundary-value | medium | published | specs/pet-update.spec.ts | |
+| TC-PET-37 | Malformed, truncated, empty, null and array PUT bodies are refused and the pet is unchanged | REQ-PET-08 | error-guessing | medium | published | specs/pet-update.spec.ts | |
+| TC-PET-38 | A PUT body with an unsupported content type is refused and the pet is unchanged | REQ-PET-08 | error-guessing | low | published | specs/pet-update.spec.ts | |
+| TC-PET-39 | A PUT with an empty object is refused as an input error, not a server error | REQ-PET-01 | error-guessing | low | published | specs/pet-update.spec.ts | LOCAL-9 |
+| TC-PET-40 | Every status move is stored, and repeating an update changes nothing more | REQ-PET-14 | state-transition | medium | published | specs/pet-update.spec.ts | |
+| TC-PET-41 | A form update with name and status stores both and keeps the other fields | REQ-PET-10 | equivalence-partition | high | published | specs/pet-form-update.spec.ts | |
+| TC-PET-42 | A form update with only a status changes the status and keeps the name | REQ-PET-10 | equivalence-partition | high | published | specs/pet-form-update.spec.ts | LOCAL-10 |
+| TC-PET-43 | A form update with only a name keeps the status | REQ-PET-10 | equivalence-partition | high | published | specs/pet-form-update.spec.ts | LOCAL-10 |
+| TC-PET-44 | A form update with a status outside the value set is refused and the status kept | REQ-PET-02 | equivalence-partition | medium | published | specs/pet-form-update.spec.ts | LOCAL-8 |
+| TC-PET-45 | A form update of a pet that does not exist answers not-found and creates nothing | REQ-PET-10 | equivalence-partition | medium | published | specs/pet-form-update.spec.ts | |
+| TC-PET-46 | A malformed pet id on the form update is refused and changes nothing | REQ-PET-10 | equivalence-partition | medium | published | specs/pet-form-update.spec.ts | |
+| TC-PET-47 | Uploading an image answers an ApiResponse and keeps the pet's other fields | REQ-PET-12 | equivalence-partition | high | published | specs/pet-image.spec.ts | LOCAL-11 |
+| TC-PET-48 | An upload without a file is refused and the pet is unchanged | REQ-PET-12 | equivalence-partition | high | published | specs/pet-image.spec.ts | |
+| TC-PET-49 | An upload to a pet that does not exist answers not-found and creates nothing | REQ-PET-12 | equivalence-partition | medium | published | specs/pet-image.spec.ts | |
+| TC-PET-50 | A malformed pet id on upload is refused | REQ-PET-12 | equivalence-partition | medium | published | specs/pet-image.spec.ts | |
+| TC-PET-51 | An upload with an unsupported content type is refused and the pet is unchanged | REQ-PET-12 | error-guessing | low | published | specs/pet-image.spec.ts | |
+| TC-PET-52 | An upload exposes no server file path | | error-guessing | medium | published | specs/pet-image.spec.ts | LOCAL-11 |
+| TC-PET-53 | An anonymous caller updates, form-updates and uploads to its own pet like the default caller | REQ-PET-13 | equivalence-partition | medium | published | specs/pet-image.spec.ts | |
 
 ## Case details
 
