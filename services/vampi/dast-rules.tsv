@@ -19,6 +19,8 @@
 # WARN: hygiene seen in both modes, and the answers an attack provoked.
 10021	WARN	(X-Content-Type-Options Header Missing)
 10036	WARN	(Server Leaks Version Information via "Server" HTTP Response Header Field)
+# 90004 and 10049 are beta passive rules, which the lane's ZAP does not load (GATE-26); kept for
+# an image that holds them.
 90004	WARN	(Cross-Origin-Resource-Policy Header Missing or Invalid)
 # Markup a caller registered comes back unescaped in JSON; harmless while nosniff is honoured.
 40014	WARN	(Cross Site Scripting (Persistent))
