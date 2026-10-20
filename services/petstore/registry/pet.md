@@ -59,10 +59,11 @@ Requirement ids are the contract's business rules: `REQ-PET-NN` is rule NN of th
   They never assert a `401`. Here they are TC-PET-26 and TC-PET-27.
 - **Defects are designed as defects.** A case asserts the contract's behaviour, or the security
   expectation where the contract is silent. Its details record the observed departure and its
-  contract note. No `PET` case maps to a tracked note (PN-26, tracked as `LOCAL-5`, is avoided by
-  running the pack on one worker, not designed as a case), so the Defect column is empty, and each
-  departure reads "Departure: PN-NN (untracked)". Automate decides whether to file it or tolerate
-  it.
+  contract note, with the note's issue when it has one ("Departure: PN-NN (`LOCAL-n`)") or
+  "(untracked)". Automate decides whether to file an untracked one or tolerate it. A case kept red
+  by an issue cites it in the Defect column and runs as a known gap; the automation of
+  `registry/pet-update.md` filed `LOCAL-8` to `LOCAL-11` for PN-01, PN-06, PN-21, PN-23 and PN-24.
+  PN-26, tracked as `LOCAL-5`, is avoided by running the pack on one worker, not designed as a case.
 - **Tolerated notes** (`by-design`): PN-03 (the field is named only inside the message, so cases
   assert the error kind), PN-05, PN-14 (an unsupported `Accept` answers JSON), PN-16 (lenient path
   ids). No case asserts against them.
@@ -154,7 +155,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `POST /pet`.
 - **Expected**: `400` (or the declared `422`) and no stored pet.
 - **Verification**: `GET /pet/<PET_ID>` answers `404`.
-- **Departure**: PN-21 (untracked): `200` and the pet is stored without `name` (W-19).
+- **Departure**: PN-21 (`LOCAL-8`): `200` and the pet is stored without `name` (W-19).
 - **Probes**: `p-d78805f16c`.
 - **Cleanup**: delete, confirmed by a `404` read (the departure stores the pet).
 - **Tags**: `@regression @contract-drift @data-integrity`
@@ -165,7 +166,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `POST /pet`.
 - **Expected**: `400` (or `422`) and no stored pet.
 - **Verification**: `GET /pet/<PET_ID>` answers `404`.
-- **Departure**: PN-21 (untracked): `200` and the pet is stored with `photoUrls: []` (W-20).
+- **Departure**: PN-21 (`LOCAL-8`): `200` and the pet is stored with `photoUrls: []` (W-20).
 - **Probes**: `p-ce16126d0d`.
 - **Cleanup**: delete, confirmed by a `404` read.
 - **Tags**: `@regression @contract-drift @data-integrity`
@@ -176,7 +177,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Request**: `POST /pet`.
 - **Expected**: `400` (or `422`) and no stored pet.
 - **Verification**: `GET /pet/<PET_ID>` answers `404`.
-- **Departure**: PN-21 (untracked): `200`, stored as sent (W-28).
+- **Departure**: PN-21 (`LOCAL-8`): `200`, stored as sent (W-28).
 - **Probes**: `p-c9de1c44cd`.
 - **Cleanup**: delete, confirmed by a `404` read.
 - **Tags**: `@regression @contract-drift @data-integrity`
@@ -191,7 +192,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Expected**: `400` `input-error` (or `422`) for every variant and nothing stored.
 - **Verification**: per variant, `GET /pet/<PET_ID>` answers `404`; for the `id` variants, a search
   for `<TAG>` lists no pet.
-- **Departure**: PN-21 (untracked): a numeric `name` is stored as text (W-18) and a `null` `name`
+- **Departure**: PN-21 (`LOCAL-8`): a numeric `name` is stored as text (W-18) and a `null` `name`
   is dropped (W-26). `photoUrls` as a string answers `400` as expected (W-29). The other variants
   were not measured; an `id: null` probably meets PN-01 (`500`).
 - **Probes**: `p-d50e9e1392`, `p-a5e555a320`, `p-7ace732a8d`, `p-68649b972d`, `p-95b4e0caf3`,
@@ -228,7 +229,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
   contract; a `5xx` never does.
 - **Verification**: follow-up read by the returned id; on a refusal, a search for `<TAG>` lists no
   pet.
-- **Departure**: PN-01 (untracked): `500` `server-error`, nothing stored (W-01).
+- **Departure**: PN-01 (`LOCAL-9`): `500` `server-error`, nothing stored (W-01).
 - **Cleanup**: when a pet was created, delete it by the returned id and confirm with a `404` read.
 - **Tags**: `@regression @contract-drift @data-integrity`
 
@@ -285,7 +286,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Expected**: `400` `input-error` (the required `name` and `photoUrls` are missing); never a
   `5xx`.
 - **Verification**: response only; nothing can be addressed afterwards.
-- **Departure**: PN-01 (untracked): `500` `server-error` (W-22).
+- **Departure**: PN-01 (`LOCAL-9`): `500` `server-error` (W-22).
 - **Tags**: `@regression @contract-drift`
 
 ### TC-PET-14
