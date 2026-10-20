@@ -54,6 +54,8 @@ Release automation, adoption on real repositories, and a wider worked example.
 | Id | Item | Origin | Status |
 |---|---|---|---|
 | FUT-13 | Adoption walked on real repositories: one created with **Use this template** and one with `npm create api-qa`, each pushed to GitHub and taken to green CI by following [adopt the template](guides/adopt-the-template.md). Whether GitHub runs the workflows on a copy's first commit, as the guide states, has not been checked. Fix what the walk finds. | plan | todo |
+| GATE-26 | The DAST lane starts ZAP so that a scan does not depend on ZAP's own online services: in the FUT-13 walk 2 of 6 `dast` jobs failed with "Failed to connect to ZAP after 600 seconds" while ZAP's call-home answered `500` and its add-on installer was loading rules at startup. Start ZAP without the update and call-home checks (its `-silent` option, through the packaged scan's ZAP options), then confirm a scan still finds what the lane requires. | exp | todo |
+| CI-12 | `npm audit` reports a critical advisory in `handlebars@4.7.9`, which `allure` brings in, in the framework and in every copy made from it (seen in the FUT-13 walk): take the patched `4.7.10` into the lockfile, and decide whether a CI step or the release check should fail on a critical advisory. | practice | todo |
 
 ---
 
