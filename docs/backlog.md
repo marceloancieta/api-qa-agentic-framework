@@ -49,11 +49,10 @@ for `npm create api-qa`, and DOC-10, the pre-release review. Released as `v0.5.0
 
 ## v0.6.0
 
-Release automation, adoption on real repositories, and a wider worked example.
-
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| DOC-12 | Pre-release review of v0.6.0: the docs, rules, skills and READMEs read against the code of the v0.6.0 items, and the new paths walked (`framework:update`, `release:check`, the publish workflow, the Keycloak pack, adoption on real repositories). | plan | in-progress |
+Release automation, adoption on real repositories, and a wider worked example. Every item is in
+**Done**: DOC-11, GATE-24, GATE-25, CI-10 and CI-12 for the release itself, CI-11 for the required
+checks, FUT-13 and FUT-14 for adoption, FUT-15, PET-05 and CORE-19 for the worked examples,
+GATE-26 for the DAST lane, and DOC-12, the pre-release review. Released as `v0.6.0`.
 
 ---
 
@@ -186,3 +185,4 @@ Release automation, adoption on real repositories, and a wider worked example.
 | FUT-13 | Adoption walked on two private repositories taken to green CI, one created with **Use this template** and one with `npm create api-qa@0.5.0` (both archived afterwards). The [adopt the template](guides/adopt-the-template.md) guide now states what the walk measured: GitHub runs the workflows on a copy's first commit, Dependabot opens pull requests at once and updates them after the adoption, a private repository on a free account gets neither the ruleset nor private vulnerability reporting, and a workflow is disabled rather than deleted, since deleting one breaks `npm run gates`. GATE-26 and CI-12 record the two framework problems it found. | `d53e6cb` |
 | CI-12 | The lockfile takes `handlebars@4.7.10`, the patch for the critical advisory in `4.7.9` that `allure` brought into the framework and every copy, so `npm audit` reports nothing. `npm run release:check` runs a dependency audit after the backlog check (`npm audit --audit-level=critical`, failing when the registry cannot be asked), because a release hands its lockfile to every copy; it does not run on pull requests, where a newly published advisory would fail unrelated changes. The Dependabot section of [CI security](ci-security.md) explains why version updates missed it. | `6fd928b` |
 | GATE-26 | The DAST lane starts ZAP with `-silent`, so a scan makes no request to ZAP's online services: without it the packaged scan updated add-ons from the Marketplace and installed the beta passive rules at every start, which the FUT-13 walk saw time out ("Failed to connect to ZAP after 600 seconds"). The rules are now those of the image the compose file pins, which holds no beta rules, so 90004 (VN-12) and 10049 no longer run. Scans with it still find what the lane requires: the vulnerable VAmPI mode exits 1 with SQL injection (40018), the Petstore scan exits 0, and the secure mode passes the quality gate (4 low alerts instead of 5). A test pins the option. | `226c3ac` |
+| DOC-12 | Pre-release review of v0.6.0, in two passes (`3eaa723`, then this one): the docs still spoke of two example packs after FUT-15 added Keycloak (README, onboarding, architecture, contract tooling, the adopt guide, whose "what to keep" now describes the Keycloak pack and its job that is not required); the `keycloak-api` skill keeps no fact pending that its intake settled; `docs/ci.md` covers the `e2e (keycloak)` job, its artifact and the publishing workflow; architecture states that a credential the caller set is never renewed (CORE-19). The release steps, the framework update step, the lane credentials and the rules matched the code. The 0.6.0 upgrade notes in `CHANGELOG.md`. | `538b005` |
