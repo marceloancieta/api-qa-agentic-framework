@@ -132,8 +132,9 @@ the latest `vX.Y.Z` tag and groups them by type:
    closed since the last release moved to **Done** with its closing commit, the item merged just
    before the release included. Nothing is committed after the release: merge the items first,
    then this pull request. After the squash merge, check out the resulting commit on `main` and
-   run `npm run release:check`: the versions, the backlog section and the history scans, which
-   need gitleaks, as `scripts/release-check.mjs` describes. It stops at the first failure and says
+   run `npm run release:check`: the versions, the backlog section, `npm audit` for critical
+   advisories, which needs the npm registry, and the history scans, which need gitleaks, as
+   `scripts/release-check.mjs` describes. It stops at the first failure and says
    what to fix. Then tag that commit as `v<x.y.z>` and push the tag, with the owner's approval
    ([AGENTS.md](AGENTS.md)).
 5. In the framework's repository only, the tag starts `.github/workflows/publish.yml`, which
