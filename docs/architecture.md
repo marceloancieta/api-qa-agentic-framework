@@ -108,7 +108,8 @@ Reading the diagram from the top:
 - **Service pack.** Each API under test lives in `services/<pack>/`, with its specs and the code
   they need ([ADR 0007](adr/0007-layered-test-architecture.md)). `services/petstore/` is the worked
   example; `services/vampi/` is a second pack, with login authentication and an authorization
-  matrix.
+  matrix, and `services/keycloak/` a third, with OAuth 2.0 client credentials from the identity
+  provider it tests.
 - **Execution core.** `helpers/` and `fixtures/` hold everything that is the same for every API:
   the base client, authentication, evidence and redaction, schema validation, seeded data. The core
   never imports from a pack (`lint-layers` checks it).
@@ -326,8 +327,8 @@ Notes on the steps:
 - **Authentication.** The strategy the pack's `auth` or the actor names decorates each request
   (`helpers/auth.ts`). The token strategies (`login`, `oauth2_client_credentials`) obtain a token on
   their first request, reuse it and renew it shortly before it expires; when a request they
-  decorated answers `401`, `BaseClient` asks for a new token and sends the request once more. The
-  token exchange is not recorded as evidence ([authentication strategies](guides/add-a-service-pack.md#4-authentication-strategies)).
+  decorated answers `401`, `BaseClient` asks for a new token and sends the request once more; a
+  credential the caller set is never renewed. The token exchange is not recorded as evidence ([authentication strategies](guides/add-a-service-pack.md#4-authentication-strategies)).
 - **Evidence.** `BaseClient.send` calls `attachExchange` in `helpers/evidence.ts` for every request.
   Secrets are masked and identity fields are pseudonymized with a per-run salt (`helpers/redact.ts`)
   before anything is attached. Global setup draws the salt and puts it in `QA_ANON_SALT` for the
