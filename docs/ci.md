@@ -3,9 +3,9 @@
 Five GitHub Actions workflows run the framework's checks against the example packs: `ci.yml` on
 every pull request and every push to `main`, `drift.yml` once a day, and `dast.yml`, `perf.yml` and
 `diff.yml` once a week. Each starts the APIs it needs in Docker on the runner, the same way a
-contributor does (`npm run petstore:up`, `npm run vampi:up`, `npm run petstore:reference:up`). The
-other three workflows (CodeQL, the secret scan, the AI review) are in
-[CI security and review](ci-security.md). The commands they call are described in
+contributor does (`npm run petstore:up`, `npm run vampi:up`, `npm run keycloak:up`,
+`npm run petstore:reference:up`). The other four workflows (CodeQL, the secret scan, the AI review,
+the publishing of `create-api-qa`) are in [CI security and review](ci-security.md). The commands they call are described in
 [quality gates](quality-gates.md), [contract tooling](contract-tooling.md) and
 [test management](test-management.md); this page covers the order and the reasons. The `ci.yml`
 and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
@@ -36,8 +36,10 @@ flowchart LR
     gatesJob["gates<br/>npm run gates"]
     e2e["e2e petstore<br/>suite, destructive lane,<br/>report, coverage, quality gate"]
     e2eVampi["e2e vampi<br/>BOLA detection on vulnerable,<br/>pack on secure, quality gate"]
+    e2eKeycloak["e2e keycloak<br/>pack with OAuth 2.0<br/>client credentials"]
     gatesJob --> e2e
     gatesJob --> e2eVampi
+    gatesJob --> e2eKeycloak
   end
 
   subgraph driftWf["drift.yml"]
@@ -146,7 +148,7 @@ endpoint of the Keycloak it tests. It is not a required check.
 |---|---|
 | Provide the Keycloak clients | `KEYCLOAK_*_CLIENT_ID` and `KEYCLOAK_*_CLIENT_SECRET` of the realm's three service-account clients, behind actors `admin`, `viewer` and `no-role`: throwaway secrets per run, masked. |
 | `npm run keycloak:up` | Starts Keycloak in development mode; it imports `services/keycloak/realm/qa-realm.json` with those secrets (`services/keycloak/up.mjs` refuses to start without them). |
-| `npx playwright test --project=api-keycloak` | The pack, after `preflight-keycloak`. |
+| `npx playwright test --project=api-keycloak` | The pack, after `preflight-keycloak`. No test-management report, coverage check or quality gate follows it. |
 
 ### Why docker compose and not a service container
 
@@ -335,6 +337,7 @@ Each job uploads one artifact, even when a step failed, and keeps it for 14 days
 |---|---|
 | `e2e-reports-<attempt>` | `reports/allure-report/index.html` (the Allure report of the run, one file that opens from disk), `allure-results/` (the run, with redacted evidence), `playwright-report/` (the HTML report of the last Playwright process, which is the last destructive case: every process rewrites it), `reports/` (the quality gate's JSON and Markdown, `reports/tm/`, and the Petstore log after a failure) |
 | `e2e-vampi-reports-<attempt>` | the same for the VAmPI job, plus `reports/vampi-vulnerable.json` (the vulnerable-mode run the detection reads) and the VAmPI log after a failure |
+| `e2e-keycloak-reports-<attempt>` | `allure-results/`, `playwright-report/` and `reports/` of the Keycloak job, with the Keycloak log after a failure |
 | `drift-reports-<attempt>` | `reports/drift/` (digest report and lane tables), `reports/allure-report/index.html`, the Allure and Playwright output of the last lane run, and the Petstore log after a failure |
 | `dast-<mode>-<attempt>`, `dast-petstore-<attempt>`, `perf-<pack>-<attempt>`, `diff-petstore-<attempt>` | each lane job's `reports/` (`reports/diff/` for the differential job), described in its section above |
 
@@ -394,7 +397,7 @@ What `act` does not reproduce:
 | Job or step | Why |
 |---|---|
 | Upload reports | `act`'s artifact server lacks the `upload-artifact` v7 protocol; the step is skipped when `ACT` is set. The reports stay in the job container. |
-| `ci.yml` `e2e-vampi` | not tried under `act`: both VAmPI modes publish their ports on `127.0.0.1` only, so `host.docker.internal` does not reach them, and `.actrc` sets no `QA_VAMPI_*` overrides |
+| `ci.yml` `e2e-vampi`, `e2e-keycloak` | not tried under `act`: both VAmPI modes and Keycloak publish their ports on `127.0.0.1` only, so `host.docker.internal` does not reach them, and `.actrc` sets no `QA_VAMPI_*` or `QA_KEYCLOAK_*` overrides |
 | `dast.yml`, `perf.yml`, `diff.yml` | not tried under `act`: each starts ZAP, k6 or the reference Petstore with `docker compose` from inside the job, and the reference also binds `127.0.0.1`. Run the lanes on the host instead (`npm run lanes:dast`, `lanes:perf`, `lanes:diff`) |
 | `codeql.yml` | needs GitHub code scanning to receive the results |
 | `pr-review.yml` `review` | needs `ANTHROPIC_API_KEY` and a pull request on GitHub to read and comment on |
@@ -409,7 +412,7 @@ under `act` as a defect, repeat the suite with `npm run lanes:flake`.
 
 `Jenkinsfile` and `Jenkinsfile.drift` at the repository root run the steps of `ci.yml` and
 `drift.yml` for the same reasons, as declarative pipelines; the VAmPI stage differs (below). The
-DAST, performance and differential lanes run only in GitHub Actions.
+Keycloak pack and the DAST, performance and differential lanes run only in GitHub Actions.
 
 | File | Trigger | Stages |
 |---|---|---|

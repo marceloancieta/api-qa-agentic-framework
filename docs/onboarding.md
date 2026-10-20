@@ -30,8 +30,10 @@ inside a pack (specs over flows over actors over clients) are explained in
 [the service-pack rule](../.claude/rules/service-packs.md) and in
 [the Petstore pack's README](../services/petstore/README.md). The second pack,
 [VAmPI](../services/vampi/README.md), shows what changes for an API with login, several actors and
-a known vulnerability, and it is the example for the DAST rule and exclusion files. The Petstore is
-the example for the differential lane's `diff.json`.
+a known vulnerability, and it is the example for the DAST rule and exclusion files. The third,
+[Keycloak](../services/keycloak/README.md), gets its tokens with OAuth 2.0 client credentials from
+the identity provider it tests and shows an authorization matrix of roles. The Petstore is the
+example for the differential lane's `diff.json`.
 
 ## The phases, on the Petstore pack
 
