@@ -14,7 +14,12 @@
  *   backlog        docs/backlog.md has a `## v<version>` section with no row left in it (every item
  *                  moved to Done, or to a later version) that says it was released, as
  *                  "Released as `v<version>`"
- *   secret scan    gitleaks over every commit (`npm run scan:secrets`); fails when gitleaks is
+ *   dependency audit
+ *                  `npm audit --audit-level=critical` over the lockfile (CI-12): a release hands its
+ *                  lockfile to every copy and every `npm create api-qa`, so it carries no package
+ *                  with a known critical advisory; fails when the registry cannot be asked, because
+ *                  an audit that did not run must not pass
+ *   secret scan   gitleaks over every commit (`npm run scan:secrets`); fails when gitleaks is
  *                  missing, because a scan that did not run must not pass
  *   denylist scan  the local denylist over every patch and message (`npm run scan:denylist:history`);
  *                  SKIPPED, and said so, when the repository has no denylist: it is private and
@@ -63,6 +68,18 @@ export const SCANS = [
     optional: true,
   },
 ];
+
+/**
+ * The dependency audit. It runs before a release only, not on each pull request: an advisory is
+ * published whenever its finder publishes it, and would fail pull requests that changed nothing.
+ */
+export const AUDIT = {
+  name: 'dependency audit',
+  args: ['audit', '--audit-level=critical'],
+  hint:
+    'take the patched release into the lockfile (npm update <package>, or the dependency that ' +
+    'brings it in), or a release of it at least two weeks old (docs/ci-security.md, Dependabot)',
+};
 
 /** Problems with `git status --porcelain` output: every changed tracked file, at most ten named. */
 export function treeProblems(porcelain) {
@@ -218,6 +235,20 @@ export function releaseCheck({
         ),
         detail: `## v${versions.version} has no row left and says it was released`,
       }),
+    },
+    {
+      name: AUDIT.name,
+      run: () => {
+        const command = `npm ${AUDIT.args.join(' ')}`;
+        // npm is npm.cmd on Windows, which only a shell runs; the arguments are fixed above.
+        const result = spawn('npm', AUDIT.args, {
+          cwd: root,
+          stdio: 'inherit',
+          shell: process.platform === 'win32',
+        });
+        if (exitCodeOf(result) === 0) return { problems: [], detail: command };
+        return { problems: [`${command} failed (${describeExit(result)}): ${AUDIT.hint}`] };
+      },
     },
     ...SCANS.map((scan) => ({
       name: scan.name,

@@ -39,6 +39,14 @@ the comments in step.
   Dependabot cannot write a different id for each update, and a fixed id would tie every bump to the
   same backlog item. Dependency updates therefore carry no backlog id. The `git-policy` hook applies
   only to commits made in a local Claude Code session, so it never sees these.
+- **Advisories.** Version updates wait out the cooldown and only move direct dependencies, so a
+  security fix in a package another one brings in can sit in the lockfile unnoticed (CI-12 found
+  a critical `handlebars` advisory through `allure` that way). `npm run release:check` therefore
+  runs `npm audit --audit-level=critical` before every release, because a release hands its
+  lockfile to every copy. It does not run on pull requests: an advisory appears whenever it is
+  published, and would fail changes that have nothing to do with it. Between releases, Dependabot
+  security alerts and security updates report and fix them as they appear; they are repository
+  settings under **Settings** > **Code security**, off until someone turns them on.
 - **Not covered.** The gitleaks version and checksum in `.github/workflows/secret-scan.yml` are
   plain values that Dependabot does not read; update them by hand (below).
 - **Enable or remove.** The file takes effect when it reaches the default branch. Delete it to stop

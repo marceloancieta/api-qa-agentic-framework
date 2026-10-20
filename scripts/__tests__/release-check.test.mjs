@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { latestRelease } from '../changelog.mjs';
 import { REPO_ROOT } from '../lib/cli.mjs';
 import {
+  AUDIT,
   backlogProblems,
   FRAMEWORK_NAME,
   PACKAGE_FILE,
@@ -256,13 +257,20 @@ function repository(version, files = {}) {
   return root;
 }
 
-/** A spawnSync stand-in: `git status` prints `status`, a scan ends as `scans[script]` says. */
-function fakeSpawn({ status = '', scans = {} } = {}) {
+/**
+ * A spawnSync stand-in: `git status` prints `status`, `npm audit` ends as `audit` says and a scan
+ * as `scans[script]` says.
+ */
+function fakeSpawn({ status = '', audit = {}, scans = {} } = {}) {
   const calls = [];
   const spawn = (command, args) => {
     if (command === 'git') {
       calls.push(`git ${args[0]}`);
       return { status: 0, stdout: status, stderr: '', signal: null };
+    }
+    if (command === 'npm') {
+      calls.push(`npm ${args.join(' ')}`);
+      return { status: 0, signal: null, ...audit };
     }
     const script = args[0];
     calls.push(script);
@@ -284,16 +292,18 @@ function check(root, { spawn, hasDenylist = () => true }) {
 
 const SECRET = SCANS[0].args[0];
 const DENYLIST = SCANS[1].args[0];
+const NPM_AUDIT = 'npm audit --audit-level=critical';
 
 test('a release whose checks all pass runs every check in order and exits 0', () => {
   const fake = fakeSpawn();
   const { code, printed } = check(repository('0.5.0'), fake);
   assert.equal(code, 0);
-  assert.deepEqual(fake.calls, ['git status', SECRET, DENYLIST]);
+  assert.deepEqual(fake.calls, ['git status', NPM_AUDIT, SECRET, DENYLIST]);
   assert.deepEqual(printed, [
     'release-check: tree passed: no uncommitted change',
     `release-check: versions passed: 0.5.0 in package.json, ${PACKAGE_FILE} and CHANGELOG.md`,
     'release-check: backlog passed: ## v0.5.0 has no row left and says it was released',
+    `release-check: dependency audit passed: ${NPM_AUDIT}`,
     'release-check: secret scan passed: node scripts/secret-scan.mjs --history',
     'release-check: denylist scan passed: node scripts/scan-denylist.mjs --history',
     'release-check: v0.5.0 is ready to tag',
@@ -304,7 +314,7 @@ test('without a denylist the denylist scan is reported as skipped, never as pass
   const fake = fakeSpawn();
   const { code, printed } = check(repository('0.5.0'), { ...fake, hasDenylist: () => false });
   assert.equal(code, 0);
-  assert.deepEqual(fake.calls, ['git status', SECRET], 'the denylist scan did not run');
+  assert.deepEqual(fake.calls, ['git status', NPM_AUDIT, SECRET], 'the denylist scan did not run');
   assert.match(
     printed.at(-2),
     /^release-check: denylist scan SKIPPED: no \.git\/info\/denylist, so the history was NOT scanned/,
@@ -339,7 +349,7 @@ test('the first failure stops the check and names what did not run', () => {
       failed: [
         /^release-check: tree FAILED: 1 tracked file\(s\) changed and not committed \(package\.json\)/,
       ],
-      rest: 'versions, backlog, secret scan, denylist scan',
+      rest: 'versions, backlog, dependency audit, secret scan, denylist scan',
     },
     {
       name: 'versions',
@@ -349,7 +359,7 @@ test('the first failure stops the check and names what did not run', () => {
       failed: [
         /^release-check: versions FAILED: packages\/create-api-qa\/package\.json is 0\.4\.0/,
       ],
-      rest: 'backlog, secret scan, denylist scan',
+      rest: 'backlog, dependency audit, secret scan, denylist scan',
     },
     {
       name: 'backlog',
@@ -366,7 +376,7 @@ test('the first failure stops the check and names what did not run', () => {
       failed: [
         /^release-check: backlog FAILED: the ## v0\.5\.0 section of docs\/backlog\.md still has 1 row\(s\): GATE-24;/,
       ],
-      rest: 'secret scan, denylist scan',
+      rest: 'dependency audit, secret scan, denylist scan',
     },
     {
       name: 'backlog file',
@@ -374,13 +384,23 @@ test('the first failure stops the check and names what did not run', () => {
       fake: fakeSpawn(),
       calls: ['git status'],
       failed: [/^release-check: backlog FAILED: docs\/backlog\.md is missing$/],
+      rest: 'dependency audit, secret scan, denylist scan',
+    },
+    {
+      name: 'dependency audit',
+      root: repository('0.5.0'),
+      fake: fakeSpawn({ audit: { status: 1 } }),
+      calls: ['git status', NPM_AUDIT],
+      failed: [
+        /^release-check: dependency audit FAILED: npm audit --audit-level=critical failed \(exit 1\): take the patched release/,
+      ],
       rest: 'secret scan, denylist scan',
     },
     {
       name: 'secret scan',
       root: repository('0.5.0'),
       fake: fakeSpawn({ scans: { [SECRET]: { status: 1 } } }),
-      calls: ['git status', SECRET],
+      calls: ['git status', NPM_AUDIT, SECRET],
       failed: [
         /^release-check: secret scan FAILED: node scripts\/secret-scan\.mjs --history failed \(exit 1\): revoke a real secret first/,
       ],
@@ -390,7 +410,7 @@ test('the first failure stops the check and names what did not run', () => {
       name: 'denylist scan',
       root: repository('0.5.0'),
       fake: fakeSpawn({ scans: { [DENYLIST]: { status: 1 } } }),
-      calls: ['git status', SECRET, DENYLIST],
+      calls: ['git status', NPM_AUDIT, SECRET, DENYLIST],
       failed: [
         /^release-check: denylist scan FAILED: node scripts\/scan-denylist\.mjs --history failed \(exit 1\): a denylisted term/,
       ],
@@ -428,8 +448,23 @@ test('a scan that is killed or cannot start fails like one that finds something 
       printed.some((line) => line.includes(`--history failed (${words})`)),
       words,
     );
-    assert.deepEqual(fake.calls, ['git status', SECRET]);
+    assert.deepEqual(fake.calls, ['git status', NPM_AUDIT, SECRET]);
   }
+  // An audit that cannot reach the registry, or cannot start, fails too: it did not run.
+  for (const [result, words] of outcomes) {
+    const fake = fakeSpawn({ audit: result });
+    const { code, printed } = check(repository('0.5.0'), fake);
+    assert.equal(code, 1, words);
+    assert.ok(
+      printed.some((line) => line.includes(`critical failed (${words})`)),
+      words,
+    );
+    assert.deepEqual(fake.calls, ['git status', NPM_AUDIT]);
+  }
+});
+
+test('the audit fails on a critical advisory only, with the arguments npm takes', () => {
+  assert.deepEqual(AUDIT.args, ['audit', '--audit-level=critical']);
 });
 
 test('a git status that fails is a failure of the tree check, not a clean tree', () => {
