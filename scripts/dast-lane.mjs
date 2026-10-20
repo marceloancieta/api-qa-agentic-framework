@@ -35,11 +35,14 @@
  * leaves them out, and an OUTOFSCOPE line in a copy of the rules file (reports/dast/<out>-rules.tsv),
  * because ZAP's scan script counts alerts for its exit before any filter applies. The lane lists them.
  *
- * Scan options. Injection points include the URL path (`scanner.injectable=19`: query, body and
- * path), because an API carries its ids in the path and ZAP's default leaves them out. A pack may
- * keep URLs out of the scan with `services/<pack>/dast-exclude.txt`, one regular expression per
- * line (`#` starts a comment), for an operation a scan must not call, such as one that resets the
- * service's data. The patterns become ZAP's global URL exclusions, which the spider and the active
+ * Scan options. ZAP starts with `-silent` (GATE-26): it makes no request of its own, so the scan
+ * script skips its add-on update and install, a scan does not wait on ZAP's online services, and
+ * the rules are those of the image the compose file pins. That image holds the release rules only,
+ * so the beta passive rules (such as 90004 and 10049) do not run. Injection points include the URL
+ * path (`scanner.injectable=19`: query, body and path), because an API carries its ids in the
+ * path and ZAP's default leaves them out. A pack may keep URLs out of the scan with
+ * `services/<pack>/dast-exclude.txt`, one regular expression per line (`#` starts a comment), for
+ * an operation a scan must not call, such as one that resets the service's data. The patterns become ZAP's global URL exclusions, which the spider and the active
  * scan honour, and the lane also removes every matching path from the definition it saves: ZAP's
  * import sends each operation of the definition once and ignores those exclusions.
  *
@@ -327,13 +330,14 @@ export function falsePositives(pack, root = REPO_ROOT) {
 }
 
 /**
- * ZAP `-z` options: path injection, `threads` scan threads per host when the pack sets them, one
- * global URL exclusion per pattern, and one global alert filter per known false positive, which
- * marks its alerts False Positive (`newrisk=-1`) so the JSON report the quality gate counts leaves
- * them out.
+ * ZAP `-z` options: `-silent`, path injection, `threads` scan threads per host when the pack sets
+ * them, one global URL exclusion per pattern, and one global alert filter per known false
+ * positive, which marks its alerts False Positive (`newrisk=-1`) so the JSON report the quality
+ * gate counts leaves them out.
  */
 export function zapConfig(excludes = [], positives = [], threads = null) {
   return [
+    '-silent',
     `-config scanner.injectable=${INJECTABLE}`,
     ...(threads ? [`-config scanner.threadPerHost=${threads}`] : []),
     ...excludes.flatMap((regex, i) => [

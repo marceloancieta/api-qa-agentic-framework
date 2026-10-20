@@ -303,7 +303,7 @@ test('the docker command, with the pack rules file and without one', () => {
     'demo.html',
     '-I',
     '-z',
-    '-config scanner.injectable=19',
+    '-silent -config scanner.injectable=19',
   ];
   const scan = {
     definition: 'demo-openapi.json',
@@ -359,11 +359,19 @@ test("with a credential ZAP's API port is published on loopback only and ZAP lis
   ]);
 });
 
+test('ZAP starts silent, so a scan neither updates add-ons nor calls ZAP online (GATE-26)', () => {
+  // zap-api-scan.py adds -addonupdate and -addoninstall unless its ZAP options contain -silent.
+  const positives = [{ ruleId: '40018', url: '.*/register$', reason: 'why' }];
+  for (const options of [zapConfig(), zapConfig(['.*/logout$'], positives, 1)]) {
+    assert.equal(options.split(' ')[0], '-silent');
+  }
+});
+
 test('ZAP injects into the URL path too, and a pack keeps URLs out of the scan', () => {
-  assert.equal(zapConfig(), '-config scanner.injectable=19');
+  assert.equal(zapConfig(), '-silent -config scanner.injectable=19');
   assert.equal(
     zapConfig(['^https?://[^/]+/reset.*$', '.*/logout$']),
-    '-config scanner.injectable=19' +
+    '-silent -config scanner.injectable=19' +
       ' -config globalexcludeurl.url_list.url(0).regex=^https?://[^/]+/reset.*$' +
       ' -config globalexcludeurl.url_list.url(0).enabled=true' +
       ' -config globalexcludeurl.url_list.url(1).regex=.*/logout$' +
@@ -1173,7 +1181,7 @@ test('a false positive becomes an alert filter for the report and an out-of-scop
   const positives = [{ ruleId: '40018', url: '.*/register$', reason: 'why' }];
   assert.equal(
     zapConfig([], positives),
-    '-config scanner.injectable=19' +
+    '-silent -config scanner.injectable=19' +
       ' -config globalalertfilter.filters.filter(0).ruleid=40018' +
       ' -config globalalertfilter.filters.filter(0).newrisk=-1' +
       ' -config globalalertfilter.filters.filter(0).url=.*/register$' +
@@ -1300,9 +1308,9 @@ test("a pack's workers cap ZAP's threads per host; without them ZAP keeps its de
   assert.equal(scanThreads('demo', FIXTURES), null);
   assert.equal(
     zapConfig([], [], 1),
-    '-config scanner.injectable=19 -config scanner.threadPerHost=1',
+    '-silent -config scanner.injectable=19 -config scanner.threadPerHost=1',
   );
-  assert.equal(zapConfig([], [], null), '-config scanner.injectable=19');
+  assert.equal(zapConfig([], [], null), '-silent -config scanner.injectable=19');
 
   const runner = fakeRunner({ report: readFixture('zap-site-object.json') });
   const { output } = await lane(t, PLAIN, runner);
