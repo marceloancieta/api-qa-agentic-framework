@@ -123,13 +123,21 @@ the comments in step.
   see [adopt the template](guides/adopt-the-template.md#4-what-to-keep).
 - **Setup, once, by the owner.** On npm, in the package's settings, add a trusted publisher of type
   GitHub Actions with the repository's owner and name, the workflow file `publish.yml` and the
-  environment `npm` (npm's documentation, "Trusted publishing for npm packages"). On GitHub, create
-  the environment `npm` under **Settings** > **Environments**, with the owner as required reviewer
-  and a deployment rule that allows only tags matching `v*`. Once a release has been published this
-  way, set the package's publishing access on npm to require two-factor authentication and
-  disallow tokens, so only the workflow and the owner, with two factors, can publish.
+  environment `npm` (npm's documentation, "Trusted publishing for npm packages"). Under
+  **Allowed actions**, tick **Allow npm publish**: left at its default, the publisher may only stage
+  a version, and the job's `npm publish` is refused. **Allow npm dist-tag** stays unticked; the
+  workflow manages no dist-tags. On GitHub, create the environment `npm` under **Settings** >
+  **Environments**, with the owner as required reviewer and a deployment rule that allows only tags
+  matching `v*`. Once a release has been published this way, set the package's publishing access
+  on npm to require two-factor authentication and disallow tokens, so only the workflow and the
+  owner, with two factors, can publish.
 - **A failed run.** A tag never moves. A run that failed before publishing is re-run once the cause
   outside the repository is fixed. A cause inside the repository becomes the next patch release.
+  A publish step that ends in
+  `npm error 403 403 Forbidden - PUT <registry>/create-api-qa - OIDC permission denied for this action`
+  published nothing, although the provenance statement it logged was already signed: the trusted
+  publisher may only stage. Tick **Allow npm publish** (setup, above) and re-run the failed job, as
+  the first run for `v0.6.0` needed.
 
 ## AI pull-request review
 
