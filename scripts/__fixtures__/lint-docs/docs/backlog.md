@@ -21,7 +21,8 @@ Complete: CORE-01 to CORE-02 are in **Done**.
 | E3 | Stage ids belong in Done. | exp | todo | <!-- expect-finding: backlog-row-shape -->
 | TOOL-01 | A repeated id. | exp | todo | <!-- expect-finding: backlog-row-shape -->
 | TOOL-05 |  | exp | blocked | <!-- expect-finding: backlog-row-shape -->
-| TOOL-06 | Accepts \| inside a cell. | exp | wont-do |
+| TOOL-06 | Accepts \| inside a cell. | exp | blocked |
+| TOOL-07 | Will not be done, but still open. | exp | wont-do | <!-- expect-finding: backlog-row-shape -->
 | SUB-X1-07 | A compound id. | exp | in-progress |
 | OLD-01 | Open here and closed below. | exp | todo |
 
@@ -53,3 +54,4 @@ first aaa916d and second ad35537 on main (HEAD), side f56536b on an unmerged bra
 | HIST-04 | A commit of no branch, as after a history rewrite. | `0123456` | <!-- expect-finding: closing-commit -->
 | HIST-05 | One commit in the history and one outside it. | `ad35537`, `f56536b` | <!-- expect-finding: closing-commit -->
 | HIST-06 | A malformed reference is a shape finding only. | `F56536B` | <!-- expect-finding: backlog-row-shape -->
+| DROP-01 | **Won't do.** Decided against; the commit that decided it closes the row. | `ad35537` |

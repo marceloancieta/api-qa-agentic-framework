@@ -12,7 +12,8 @@
  *                  created from the framework has its own version, while that package keeps the
  *                  framework's)
  *   backlog        docs/backlog.md has a `## v<version>` section with no row left in it (every item
- *                  moved to Done, or to a later version) that says it was released, as
+ *                  moved to Done, finished or as `**Won't do.**`, or to a later version) that says
+ *                  it was released, as
  *                  "Released as `v<version>`"
  *   dependency audit
  *                  `npm audit --audit-level=critical` over the lockfile (CI-12): a release hands its
@@ -162,7 +163,8 @@ export function backlogProblems(text, version) {
   if (open.length > 0) {
     problems.push(
       `${where} still has ${open.length} row(s): ${open.join(', ')}; move each finished item to ` +
-        `Done with its closing commit and any other to a later version (${STEP} 4)`,
+        `Done with its closing commit, each item that will not be done to Done as **Won't do.** ` +
+        `with the commit that decided it, and any other to a later version (${STEP} 4)`,
     );
   }
   const released = new RegExp(`Released as\\s+\`v${escapeRegExp(version)}\``);

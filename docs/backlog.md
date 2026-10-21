@@ -6,7 +6,9 @@ commits and docs stay valid.
 
 - Commits follow the ADR 0008 message convention (`type(scope): ID summary`); from the first push
   on, changes reach `main` through pull requests (DOC-05).
-- **Status** is one of `todo` · `in-progress` · `blocked` · `wont-do`.
+- **Status** is one of `todo` · `in-progress` · `blocked`. A row that will not be done is not
+  open: it moves to **Done** like a finished one, its item starting with `**Won't do.**` and the
+  reason, closed by the commit that recorded the decision.
 - **Origin**: `L-NN` = a lesson in [`lessons-learned.md`](lessons-learned.md); `exp` = an established
   practice from field experience; `practice` = an established industry practice (ISTQB, OWASP,
   testing literature); `plan` = the framework's own roadmap; `ADR NNNN` = a recorded decision.

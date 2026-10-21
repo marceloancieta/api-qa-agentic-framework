@@ -52,7 +52,9 @@ A disagreement between two files about a fact missing from this table means the 
    ("until `<KEY>` ships", "waiting on `<KEY>`"). Statements about the past use the past tense, which the check ignores.
 6. **Backlog rows** keep one status from the enum in the backlog header. A finished row moves to
    **Done** with its closing commit (`lint-docs` backlog-row-shape, L-12), a commit in the history
-   of the branch (`lint-docs` closing-commit).
+   of the branch (`lint-docs` closing-commit). A row that will not be done moves to **Done** too,
+   its item starting with `**Won't do.**` and the reason, closed by the commit that recorded the
+   decision; it is never left open with a status of its own (GATE-28).
 
 ## Propagation
 

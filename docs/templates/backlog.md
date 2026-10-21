@@ -6,7 +6,9 @@ commits and docs stay valid.
 
 - Commits follow the ADR 0008 message convention (`type(scope): ID summary`); changes reach `main`
   through pull requests.
-- **Status** is one of `todo` · `in-progress` · `blocked` · `wont-do`.
+- **Status** is one of `todo` · `in-progress` · `blocked`. A row that will not be done is not
+  open: it moves to **Done** like a finished one, its item starting with `**Won't do.**` and the
+  reason, closed by the commit that recorded the decision.
 - **Origin**: `L-NN` = a lesson in `docs/lessons-learned.md`; `exp` = field
   experience; `practice` = an established industry practice; `plan` = this project's roadmap;
   `ADR NNNN` = a recorded decision.

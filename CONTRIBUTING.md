@@ -130,8 +130,10 @@ the latest `vX.Y.Z` tag and groups them by type:
 4. Open a pull request titled `docs(changelog): <BACKLOG-ID> release <x.y.z>` with those changes,
    the version's section of the [backlog](docs/backlog.md) saying it was released, and every item
    closed since the last release moved to **Done** with its closing commit, the item merged just
-   before the release included. Nothing is committed after the release: merge the items first,
-   then this pull request. After the squash merge, check out the resulting commit on `main` and
+   before the release included. An item that will not be done moves to **Done** as well, as the
+   backlog header says (`**Won't do.**`); any other goes to a later version. Nothing is committed
+   after the release: merge the items first, then this pull request. After the squash merge, check
+   out the resulting commit on `main` and
    run `npm run release:check`: the versions, the backlog section, `npm audit` for critical
    advisories, which needs the npm registry, and the history scans, which need gitleaks, as
    `scripts/release-check.mjs` describes. It stops at the first failure and says

@@ -75,6 +75,7 @@ const backlog = (...section) =>
     '| Id | Item | Closed by |',
     '|---|---|---|',
     '| GATE-21 | Closed in v0.5.0. Released as `v0.5.0`. | `abc1234` |',
+    "| TM-09 | **Won't do.** Dropped from v0.5.0 by the commit that decided it. | `def5678` |",
   );
 
 // The statement wraps across a line, as prose wrapped at 100 columns does.
@@ -180,7 +181,11 @@ test('backlog: each failure is exactly its findings', () => {
     [
       'rows left in the section',
       backlog(...RELEASED, ...rows),
-      [`${where} still has 2 row(s): GATE-24, DOC-11; move each finished item to Done`],
+      [
+        `${where} still has 2 row(s): GATE-24, DOC-11; move each finished item to Done with its ` +
+          "closing commit, each item that will not be done to Done as **Won't do.** with the " +
+          'commit that decided it, and any other to a later version',
+      ],
     ],
     [
       'the statement names another version',

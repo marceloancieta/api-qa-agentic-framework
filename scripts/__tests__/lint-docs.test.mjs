@@ -38,6 +38,19 @@ test('closing-commit names every absent hash of a row', () => {
   ]);
 });
 
+test('backlog-row-shape sends an open wont-do row to Done and accepts it there (GATE-28)', () => {
+  const messages = lintDocs(FIXTURE_DIR)
+    .filter((f) => f.rule === 'backlog-row-shape')
+    .map((f) => f.message);
+  assert.ok(
+    messages.includes(
+      "TOOL-07: a row that will not be done is not open; move it to Done, its item starting with **Won't do.** and the reason, closed by the commit that decided it",
+    ),
+  );
+  assert.ok(messages.includes('TOOL-02: status "done" is not one of todo, in-progress, blocked'));
+  assert.equal(messages.filter((message) => message.startsWith('DROP-01')).length, 0);
+});
+
 test('note-citation names the missing ids and the file that should define them', () => {
   const messages = lintDocs(FIXTURE_DIR)
     .filter((f) => f.rule === 'note-citation')

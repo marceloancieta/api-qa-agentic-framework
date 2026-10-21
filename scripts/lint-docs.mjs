@@ -29,7 +29,10 @@
 //                      a short row is not read further); ids are `PREFIX-NN` items (`GATE-03`,
 //                      `A-B-01`) or, in Done only, stage ids (`E0`, `E0.5-a`); ids are unique in the
 //                      file, so none is both open and done; open rows carry a status from the enum;
-//                      Done rows are closed by one or more commit hashes in code spans.
+//                      Done rows are closed by one or more commit hashes in code spans. A row that
+//                      will not be done is not open (GATE-28): it moves to Done, its item starting
+//                      with `**Won't do.**` and the reason, closed by the commit that decided it, so
+//                      an open `wont-do` row is a finding that says so.
 //   closing-commit     each hash cited in a well-formed Done row names a commit in the history of
 //                      HEAD, so a hash from a rewritten history or an unmerged branch is caught. A
 //                      shallow clone cannot tell, and is one finding on the Done table until the full
@@ -97,7 +100,7 @@ import { parseCli, REPO_ROOT } from './lib/cli.mjs';
 import { gitEnv } from './lib/git.mjs';
 
 export const FIXTURE_DIR = join(import.meta.dirname, '__fixtures__', 'lint-docs');
-export const STATUSES = ['todo', 'in-progress', 'blocked', 'wont-do'];
+export const STATUSES = ['todo', 'in-progress', 'blocked'];
 export const ADR_STATUSES = ['Proposed', 'Accepted', 'Rejected', 'Deprecated', 'Superseded'];
 
 const BACKLOG = 'docs/backlog.md';
@@ -502,6 +505,11 @@ function checkBacklog(backlog, out) {
       if (isDone) {
         const closing = row.cells[row.cells.length - 1];
         if (!CLOSING.test(closing)) add(`${id}: "${closing}" is not a closing commit reference`);
+      } else if (row.cells[status] === 'wont-do') {
+        add(
+          `${id}: a row that will not be done is not open; move it to Done, its item starting ` +
+            `with **Won't do.** and the reason, closed by the commit that decided it`,
+        );
       } else if (status !== -1 && !STATUSES.includes(row.cells[status])) {
         add(`${id}: status "${row.cells[status]}" is not one of ${STATUSES.join(', ')}`);
       }
