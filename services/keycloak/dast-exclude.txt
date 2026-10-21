@@ -1,0 +1,14 @@
+# URLs the DAST lane keeps out of the scan (scripts/dast-lane.mjs): one regular expression per line.
+# The contract has every operation of the Admin REST API; the scan covers the operations the pack's
+# cases cover (registry/users.md): a realm's users, their count and one user. A scan of the whole
+# contract does not end within the job's time.
+# The realm list and realm creation:
+^https?://[^/]+/admin/realms/?$
+# The realm itself, read, updated and deleted:
+^https?://[^/]+/admin/realms/[^/]+/?$
+# Every other resource of a realm:
+^https?://[^/]+/admin/realms/[^/]+/(?!users([/?]|$)).*$
+# The user profile configuration, and what lies below one user (credentials, groups, role
+# mappings, sessions, impersonation, e-mail actions):
+^https?://[^/]+/admin/realms/[^/]+/users/profile([/?].*)?$
+^https?://[^/]+/admin/realms/[^/]+/users/[^/?]+/.*$

@@ -44,7 +44,7 @@ Each API under test is a pack in `services/<name>/` (ADR 0007). The core (`helpe
 | `services/<name>/docs/features/` | feature contracts written at intake |
 | `services/<name>/docs/contract-notes.md` | where the API departs from its contract, with status; each entry's id (`PN-05`) uses a prefix no other pack uses and keeps it for good, and `lint-docs` note-citation checks every cited id |
 | `specs/` | Playwright specs |
-| `dast-rules.tsv`, `dast-exclude.txt`, `dast-false-positives.tsv` | optional: the DAST lane's rule policy, the URLs a scan must not call, and alerts shown to be false, each with its evidence |
+| `dast-rules.tsv`, `dast-exclude.txt`, `dast-false-positives.tsv`, `dast-params.json` | optional: the DAST lane's rule policy, the URLs a scan must not call, alerts shown to be false, each with its evidence, and the values ZAP sends for parameters the contract gives no example for |
 | `diff.json` | optional: the differential lane's field models per operation and the differences the pack has reviewed, each with its contract note |
 | `perf.json` | optional: what the performance lane needs beyond the contract (parameter values, operations answered without credentials, operations it must not send) |
 

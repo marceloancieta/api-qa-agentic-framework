@@ -31,6 +31,8 @@ import {
   summarize,
   summaryLines,
   zapArgs,
+  paramValues,
+  withParamValues,
   withoutExcluded,
   zapConfig,
 } from '../dast-lane.mjs';
@@ -432,6 +434,101 @@ test("excluded paths leave the definition, because ZAP's import ignores the glob
     'nothing matches: the text is kept as received',
   );
   assert.throws(() => withoutExcluded(json, 'http://shop:80/api', ['(unclosed']));
+});
+
+test("the pack's values become the examples of every path and query parameter of that name", () => {
+  const document = {
+    openapi: '3.0.1',
+    paths: {
+      '/realms/{realm}/users': {
+        parameters: [{ name: 'realm', in: 'path', required: true, schema: { type: 'string' } }],
+        get: {
+          parameters: [
+            { name: 'max', in: 'query', example: 100, examples: { big: { value: 1000 } } },
+            { name: 'realm', in: 'header' },
+            { $ref: '#/components/parameters/First' },
+          ],
+        },
+      },
+      '/realms/{realm}': { get: { parameters: [{ name: 'realm', in: 'path' }] } },
+    },
+    components: { parameters: { First: { name: 'first', in: 'query' } } },
+  };
+  const json = { text: JSON.stringify(document), ext: 'json' };
+  const filled = withParamValues(json, { realm: 'qa', max: 5, first: 0 });
+  assert.deepEqual(filled.filled.sort(), ['first', 'max', 'realm']);
+  const saved = JSON.parse(filled.text);
+  const users = saved.paths['/realms/{realm}/users'];
+  assert.equal(users.parameters[0].example, 'qa');
+  assert.equal(users.get.parameters[0].example, 5, "the pack's value replaces the contract's");
+  assert.equal(users.get.parameters[0].examples, undefined, 'examples would conflict with example');
+  assert.equal(users.get.parameters[1].example, undefined, 'a header of the same name is left');
+  assert.equal(saved.paths['/realms/{realm}'].get.parameters[0].example, 'qa');
+  assert.equal(saved.components.parameters.First.example, 0);
+
+  const yaml = {
+    text: 'openapi: 3.0.1\npaths:\n  /a/{id}:\n    get:\n      parameters:\n        - name: id\n          in: path\n',
+    ext: 'yaml',
+  };
+  assert.match(withParamValues(yaml, { id: 7 }).text, /example: 7/, 'written back as YAML');
+  assert.deepEqual(withParamValues(json, {}), { text: json.text, filled: [] });
+  assert.throws(
+    () => withParamValues(json, { realm: 'qa', tenant: 'x' }),
+    /names parameters the definition does not have: tenant/,
+  );
+});
+
+test('dast-params.json is read and checked', (t) => {
+  const root = scratchRoot(t);
+  const file = join(root, 'services', 'demo', 'dast-params.json');
+  assert.deepEqual(paramValues('demo', root), {}, 'no file, no values');
+  writeFileSync(file, JSON.stringify({ $comment: 'why', params: { realm: 'qa', max: 5 } }));
+  assert.deepEqual(paramValues('demo', root), { realm: 'qa', max: 5 });
+  writeFileSync(file, '{ not json');
+  assert.throws(() => paramValues('demo', root), /is not JSON/);
+  writeFileSync(file, JSON.stringify({ values: {} }));
+  assert.throws(() => paramValues('demo', root), /needs a "params" object/);
+  writeFileSync(file, JSON.stringify({ params: {}, extra: 1 }));
+  assert.throws(() => paramValues('demo', root), /unknown keys: extra/);
+  writeFileSync(file, JSON.stringify({ params: { realm: ['qa'] } }));
+  assert.throws(() => paramValues('demo', root), /must be strings, numbers or booleans: realm/);
+});
+
+test('the lane saves the definition with the pack values, and a stale name stops it with 2', async (t) => {
+  const paths = { '/users/{id}': { get: { parameters: [{ name: 'id', in: 'path' }] } } };
+  const spec = JSON.stringify({ openapi: '3.0.1', info: {}, paths });
+  const root = scratchRoot(t);
+  const file = join(root, 'services', 'demo', 'dast-params.json');
+  writeFileSync(file, JSON.stringify({ params: { id: 42 } }));
+  const runner = fakeRunner({ report: readFixture('zap-site-object.json') });
+  const lines = [];
+  const code = await dastLane(DEMO, {
+    root,
+    env: {},
+    run: runner.run,
+    fetchImpl: fakeFetch(spec).impl,
+    log: (line) => lines.push(line),
+  });
+  assert.equal(code, 0);
+  assert.match(lines.join('\n'), /parameter values from dast-params\.json: id/);
+  const saved = JSON.parse(
+    readFileSync(join(root, 'reports', 'dast', 'demo-openapi.json'), 'utf8'),
+  );
+  assert.equal(saved.paths['/users/{id}'].get.parameters[0].example, 42);
+
+  writeFileSync(file, JSON.stringify({ params: { tenant: 'x' } }));
+  const stopped = fakeRunner({});
+  const more = [];
+  const stale = await dastLane(DEMO, {
+    root,
+    env: {},
+    run: stopped.run,
+    fetchImpl: fakeFetch(spec).impl,
+    log: (line) => more.push(line),
+  });
+  assert.equal(stale, 2);
+  assert.match(more.join('\n'), /does not have: tenant; the scan did not run/);
+  assert.equal(stopped.scan(), undefined, 'ZAP never started');
 });
 
 test('the lane saves the definition without the excluded paths and says which went', async (t) => {

@@ -46,6 +46,13 @@
  * scan honour, and the lane also removes every matching path from the definition it saves: ZAP's
  * import sends each operation of the definition once and ignores those exclusions.
  *
+ * Parameter values. ZAP fills a parameter the definition gives no example for with its own name
+ * (`/realms/realm/users`), so an API whose paths name a resource the caller must know answers 404
+ * to most of a scan. `services/<pack>/dast-params.json` holds `{ "params": { <name>: <value> } }`;
+ * the lane sets each value as the `example` of every path and query parameter of that name in the
+ * definition it saves, replacing the contract's own, and stops before the scan when a name matches
+ * no parameter, so a renamed parameter never leaves a stale entry behind.
+ *
  * Writes. An active scan sends POST, PUT and DELETE requests with attack payloads, so the lane
  * scans only where the pack's entry has `allow_writes: true`; with both `--target` and `--base`,
  * which skip qa-config, only a loopback base. A pack whose service cannot take concurrent callers
@@ -122,6 +129,7 @@ export const REPORTS_DIR = join('reports', 'dast');
 export const RULES_FILE = 'dast-rules.tsv';
 export const EXCLUDE_FILE = 'dast-exclude.txt';
 export const FALSE_POSITIVES_FILE = 'dast-false-positives.tsv';
+export const PARAMS_FILE = 'dast-params.json';
 /** Query (1), body (2) and URL path (16), as ZAP's scanner.injectable bit set. */
 export const INJECTABLE = 19;
 const ZAP = { name: 'ZAP', service: ZAP_SERVICE };
@@ -461,6 +469,73 @@ export function withoutExcluded(spec, base, excludes = []) {
   return { text, removed };
 }
 
+/**
+ * The pack's parameter values: `{ name: value }` from `services/<pack>/dast-params.json` `params`,
+ * `{}` without the file. Throws for a file that is not JSON, keys other than `$comment` and
+ * `params`, or a value that is not a string, number or boolean.
+ */
+export function paramValues(pack, root = REPO_ROOT) {
+  const text = readTextIfExists(join(root, 'services', pack, PARAMS_FILE));
+  if (text === null) return {};
+  let config;
+  try {
+    config = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${PARAMS_FILE} is not JSON (${error.message})`, { cause: error });
+  }
+  const params = config?.params;
+  if (params === null || typeof params !== 'object' || Array.isArray(params)) {
+    throw new Error(`${PARAMS_FILE} needs a "params" object`);
+  }
+  const unknown = Object.keys(config).filter((key) => key !== '$comment' && key !== 'params');
+  if (unknown.length > 0) throw new Error(`${PARAMS_FILE} has unknown keys: ${unknown.join(', ')}`);
+  const bad = Object.entries(params)
+    .filter(([, value]) => !['string', 'number', 'boolean'].includes(typeof value))
+    .map(([name]) => name);
+  if (bad.length > 0) {
+    throw new Error(
+      `${PARAMS_FILE} params must be strings, numbers or booleans: ${bad.join(', ')}`,
+    );
+  }
+  return params;
+}
+
+/**
+ * The definition with the pack's values as the `example` of every path and query parameter of
+ * that name, in path items, operations and `components.parameters`: `{ text, filled }`, `filled`
+ * the names set. Throws when a name matches no parameter. Unchanged text without values.
+ */
+export function withParamValues(spec, params = {}) {
+  const names = Object.keys(params);
+  if (names.length === 0) return { text: spec.text, filled: [] };
+  const document = spec.ext === 'json' ? JSON.parse(spec.text) : parseYaml(spec.text);
+  const methods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
+  const lists = Object.values(document.paths ?? {}).flatMap((item) => [
+    item?.parameters ?? [],
+    ...methods.map((method) => item?.[method]?.parameters ?? []),
+  ]);
+  const parameters = [
+    ...lists.flat(),
+    ...Object.values(document.components?.parameters ?? {}),
+  ].filter((parameter) => ['path', 'query'].includes(parameter?.in));
+  const filled = new Set();
+  for (const parameter of parameters) {
+    if (!Object.hasOwn(params, parameter.name)) continue;
+    parameter.example = params[parameter.name];
+    delete parameter.examples;
+    filled.add(parameter.name);
+  }
+  const stale = names.filter((name) => !filled.has(name));
+  if (stale.length > 0) {
+    throw new Error(
+      `${PARAMS_FILE} names parameters the definition does not have: ${stale.join(', ')}`,
+    );
+  }
+  const text =
+    spec.ext === 'json' ? `${JSON.stringify(document, null, 2)}\n` : stringifyYaml(document);
+  return { text, filled: [...filled] };
+}
+
 // ---------------------------------------------------------------------------------------------
 // The scan
 
@@ -720,10 +795,20 @@ export async function dastLane(
     );
     return 2;
   }
+  let values;
+  try {
+    values = withParamValues(
+      { text: definition.text, ext: spec.ext },
+      paramValues(options.service, root),
+    );
+  } catch (error) {
+    log(`dast-lane: ${error.message}; the scan did not run`);
+    return 2;
+  }
   const specFile = join(dir, `${options.out}-openapi.${spec.ext}`);
   // Saving the fetched definition for ZAP is this lane's job; fetchSpec says what guards it.
   // codeql[js/http-to-file-access]
-  writeFileSync(specFile, definition.text);
+  writeFileSync(specFile, values.text);
   log(`dast-lane: definition ${urls.specUrl} (${urls.specFrom}), saved as ${shown(specFile)}`);
   log(`dast-lane: API base ${urls.baseUrl} (${urls.baseFrom})`);
   if (base.note) log(`dast-lane: rewritten to ${base.url}: ${base.note}`);
@@ -739,6 +824,9 @@ export async function dastLane(
         ? `dast-lane: removed from the definition, so ZAP's import never calls them: ${definition.removed.join(', ')}`
         : 'dast-lane: no path of the definition matches them; the scan and the spider still skip matching URLs',
     );
+  }
+  if (values.filled.length > 0) {
+    log(`dast-lane: parameter values from ${PARAMS_FILE}: ${values.filled.join(', ')}`);
   }
   let rulesFile;
   if (positives.length > 0) {

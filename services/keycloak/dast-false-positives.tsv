@@ -1,0 +1,5 @@
+# Known false positives of the DAST lane (scripts/dast-lane.mjs): <ZAP rule id>, tab, <URL regex>,
+# tab, the evidence that the alert is false. The lane marks their alerts False Positive in the
+# report and out of scope for ZAP's exit; every entry needs a contract note. ZAP repeats every
+# query parameter in each URL, so the regex requires the probe in createdAfter's own value.
+40018	^https?://[^/]+/admin/realms/[^/]+/users(/count)?\?(.*&)?createdAfter=createdAfter[^&]+.*$	KN-10: createdAfter is parsed as a date before any query, and every value that is not one answers the same 400

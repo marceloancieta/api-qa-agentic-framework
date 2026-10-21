@@ -14,7 +14,7 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 |---|---|---|
 | `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e (petstore)`, `e2e (vampi)` and `e2e (keycloak)` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift (petstore)`, `drift (vampi)`, `drift (keycloak)` |
-| `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, `pull_request` | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
+| `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, `pull_request` | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)`, `dast (keycloak)` |
 | `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `perf (petstore)`, `perf (vampi)`, `perf (keycloak)` |
 | `.github/workflows/diff.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `diff (petstore)` |
 
@@ -52,6 +52,7 @@ flowchart LR
     dastSecure["vampi secure<br/>ZAP scan, quality gate"]
     dastVuln["vampi vulnerable<br/>must fail on SQL injection"]
     dastPet["petstore<br/>ZAP scan, restart after it"]
+    dastKeycloak["keycloak<br/>ZAP scan, token renewed"]
   end
 
   subgraph perfWf["perf.yml"]
@@ -73,6 +74,7 @@ flowchart LR
   weekly --> dastSecure
   weekly --> dastVuln
   weekly --> dastPet
+  weekly --> dastKeycloak
   weekly --> perfPet
   weekly --> perfVampi
   weekly --> perfKeycloak
@@ -240,9 +242,9 @@ environment, and then runs the full published lane as the daily re-run.
 ## `dast.yml`
 
 An OWASP ZAP API scan of the VAmPI pack (`npm run lanes:dast`, [quality gates](quality-gates.md#lanes)),
-one job per mode, and of the Petstore pack. The workflow runs weekly, on demand and on every pull
-request, because its three jobs are required checks (CI-11); they run side by side and each takes a
-few minutes on the runner. An active scan writes to the API, so it only ever targets the job's own
+one job per mode, and of the Petstore and Keycloak packs. The workflow runs weekly, on demand and on
+every pull request, because three of its jobs are required checks (CI-11); they run side by side
+and each takes a few minutes on the runner. An active scan writes to the API, so it only ever targets the job's own
 disposable containers. The secure job scans as the pack's default actor (FUT-10): it
 generates throwaway users, as `e2e-vampi` does, and registers them with `npm run vampi:users`. The
 vulnerable job scans with `--actor anonymous`: with a token, ZAP reaches a Regex DoS that hangs
@@ -253,8 +255,10 @@ that mode (VN-15).
 | `dast (vampi secure)` | the scan completes without an alert of a FAIL rule, and `npm run quality:gate` then passes on `reports/dast/vampi.json` (`quality_gate.dast` in `qa-config.example.json`) |
 | `dast (vampi vulnerable)` | the lane exits 1 on a FAIL rule and the report holds the SQL injection alert (rule 40018, VN-11): the scan still detects the flaw it exists to detect |
 | `dast (petstore)` | the scan completes and the Petstore answers again after the lane's recovery restarts it. The pack has no rule policy, so every alert is a warning; the job proves the lane on a base URL with a path (`/api/v3`), an API key in a header, one scan thread (`workers`, PN-26) and a known false positive (PN-27) |
+| `dast (keycloak)` | the scan completes without an alert of a FAIL rule and Keycloak answers again after the lane's recovery restarts it. It proves the lane on an `oauth2_client_credentials` token that lasts 60 seconds and is renewed during the scan, and on parameter values from the pack (`dast-params.json`, the realm). The scan covers the operations the pack's cases cover (`dast-exclude.txt`); a scan of the whole Admin REST API does not end within the job's time. Not a required check until it has run green on `main` |
 
-Each job uploads `reports/` as `dast-<mode>-<attempt>` or `dast-petstore-<attempt>` (the ZAP JSON
+Each job uploads `reports/` as `dast-<mode>-<attempt>`, `dast-petstore-<attempt>` or
+`dast-keycloak-<attempt>` (the ZAP JSON
 and HTML reports, the fetched definition, the quality gate's output, and the API's log after a
 failure).
 
@@ -297,8 +301,9 @@ The job uploads `reports/diff/` as `diff-petstore-<attempt>`.
 ## Required checks
 
 The branch ruleset, `.github/rulesets/main.json`, lists the checks a pull request needs before it
-merges: `title`, `gates`, `e2e (petstore)`, `e2e (vampi)` and the jobs of `dast.yml` (CI-11). The
-`e2e (keycloak)`, `perf.yml` and `diff.yml` jobs are not required; the last two run on the pull
+merges: `title`, `gates`, `e2e (petstore)`, `e2e (vampi)` and the jobs of `dast.yml` but
+`dast (keycloak)` (CI-11). The `e2e (keycloak)`, `dast (keycloak)`, `perf.yml` and `diff.yml` jobs
+are not required; the last two run on the pull
 requests that touch their `paths` and every week.
 
 A required check that never reports leaves the pull request waiting, so:
@@ -371,7 +376,7 @@ Each job uploads one artifact, even when a step failed, and keeps it for 14 days
 | `drift-reports-<attempt>` | `reports/drift/` (digest report and lane tables), `reports/allure-report/index.html`, the Allure and Playwright output of the last lane run, and the Petstore log after a failure |
 | `drift-vampi-reports-<attempt>` | the same for the VAmPI job, with the VAmPI log after a failure |
 | `drift-keycloak-reports-<attempt>` | `reports/drift/digest.txt`, the Keycloak job's digest report |
-| `dast-<mode>-<attempt>`, `dast-petstore-<attempt>`, `perf-<pack>-<attempt>`, `diff-petstore-<attempt>` | each lane job's `reports/` (`reports/diff/` for the differential job), described in its section above |
+| `dast-<mode>-<attempt>`, `dast-petstore-<attempt>`, `dast-keycloak-<attempt>`, `perf-<pack>-<attempt>`, `diff-petstore-<attempt>` | each lane job's `reports/` (`reports/diff/` for the differential job), described in its section above |
 
 ## Adapting to a new pack or environment
 
@@ -384,10 +389,11 @@ Each job uploads one artifact, even when a step failed, and keeps it for 14 days
   `--project=api-<pack>` and a lane's `--service <pack>` narrow a step to one pack. For the
   performance smoke, add the pack to the `perf.yml` matrix and give it a branch in the
   `Provide the credentials` step, which knows only `petstore` and `vampi` (Keycloak has its own step
-before the start, since it imports its clients when it starts); its `<pack>:up` and
+  before the start, since it imports its clients when it starts); its `<pack>:up` and
   `<pack>:down` npm scripts start and stop it. For the DAST scan, copy the `dast (petstore)` job:
   the lane needs `allow_writes: true` and restarts the service afterwards when the entry has a
-  `recovery`. For the differential lane, add a reference deployment (a pinned compose service in the
+  `recovery`; `dast (keycloak)` is the example of a pack whose credentials exist before it starts
+  and whose paths need values (`dast-params.json`). For the differential lane, add a reference deployment (a pinned compose service in the
   `diff` profile, or a deployed environment), a qa-config environment with an entry for the pack at
   its URL, and the pack's `diff.json`; then copy the `diff (petstore)` job. For the daily drift
   check, copy `drift (vampi)` when the container serves the pack's contract, or

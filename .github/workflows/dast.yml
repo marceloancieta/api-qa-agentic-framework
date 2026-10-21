@@ -5,7 +5,9 @@
 # pack's credential (FUT-10) and feeds the quality gate's `dast` check; the vulnerable mode, scanned
 # without one (VN-15), must be caught by a FAIL rule (SQL injection, VN-11). The Petstore scan
 # covers a base URL with a path, an API key in a header, one scan thread (PN-26) and the restart
-# after the scan's writes. What each step runs: docs/ci.md.
+# after the scan's writes. The Keycloak scan covers an `oauth2_client_credentials` token renewed
+# during the scan and parameter values from the pack (GATE-30); it is not a required check until it
+# has run green on main. What each step runs: docs/ci.md.
 name: dast
 
 on:
@@ -187,3 +189,68 @@ jobs:
       - name: Stop the Petstore
         if: ${{ always() }}
         run: npm run petstore:down
+
+  scan-keycloak:
+    name: dast (keycloak)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      # Own compose project, so the lane's recovery (`docker compose restart keycloak`) restarts
+      # only this run's container.
+      COMPOSE_PROJECT_NAME: qa-dast-keycloak
+      QA_ENV: local
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The service-account clients of the realm, which `keycloak:up` imports with these secrets;
+      # throwaway values per run are enough, masked in the log. The scan sends the admin client's
+      # token and renews it, since the realm's tokens last 60 seconds.
+      - name: Provide the Keycloak clients
+        run: |
+          for client in ADMIN VIEWER NO_ROLE; do
+            secret="$(openssl rand -hex 16)"
+            echo "::add-mask::$secret"
+            echo "KEYCLOAK_${client}_CLIENT_ID=qa-$(echo "$client" | tr 'A-Z_' 'a-z-')" >> "$GITHUB_ENV"
+            echo "KEYCLOAK_${client}_CLIENT_SECRET=$secret" >> "$GITHUB_ENV"
+          done
+
+      - name: Start Keycloak
+        timeout-minutes: 5
+        run: npm run keycloak:up
+
+      # The scan covers the users operations (dast-exclude.txt) of the realm `qa` (dast-params.json)
+      # and writes, so the lane restarts Keycloak afterwards, the pack's recovery, which discards
+      # every write of the in-memory realm.
+      - name: Scan Keycloak
+        run: npm run lanes:dast -- --service keycloak
+
+      - name: Keycloak logs
+        if: ${{ failure() }}
+        run: |
+          mkdir -p reports
+          docker compose logs --no-color keycloak > reports/keycloak.log 2>&1 || echo "no Keycloak logs"
+
+      - name: Upload reports
+        if: ${{ always() && !env.ACT }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dast-keycloak-${{ github.run_attempt }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop Keycloak
+        if: ${{ always() }}
+        run: npm run keycloak:down

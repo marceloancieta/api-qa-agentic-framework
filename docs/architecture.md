@@ -353,7 +353,7 @@ in containers and why the gate, not the lane, judges thresholds.
 flowchart LR
   subgraph packFiles["services/pack-name/"]
     contract["Tracked contract<br/>the spec file in service.json"]
-    dastPolicy["dast-rules.tsv<br/>dast-exclude.txt<br/>dast-false-positives.tsv"]
+    dastPolicy["dast-rules.tsv<br/>dast-exclude.txt<br/>dast-false-positives.tsv<br/>dast-params.json"]
     perfPolicy["perf.json"]
   end
 
@@ -398,16 +398,16 @@ flowchart LR
   rewrites a loopback base URL to the compose service that publishes its port, or to
   `host.docker.internal`, and the lane prints the rewrite.
 - **The contract drives both.** The DAST lane fetches the pack's OpenAPI document from its
-  `spec_url` on the host, removes the paths `dast-exclude.txt` matches and hands ZAP the saved
-  file, which attacks every operation at the pack's base URL. The performance lane builds its plan from the
+  `spec_url` on the host, removes the paths `dast-exclude.txt` matches, sets the values of
+  `dast-params.json` as parameter examples and hands ZAP the saved file, which attacks every operation at the pack's base URL. The performance lane builds its plan from the
   tracked contract through the normalizer: every `GET` with values from `perf.json`, the schema's
   examples, defaults or enums, and every operation it leaves out printed with its reason.
 - **Each pack sets its own policy.** `dast-rules.tsv` sets each ZAP rule to IGNORE, WARN or FAIL,
   `dast-exclude.txt` keeps URLs out of a scan, `dast-false-positives.tsv` filters alerts shown to
-  be false, and `perf.json` gives parameter values and keeps out operations that reset data or
+  be false, `dast-params.json` gives the values ZAP sends for parameters, and `perf.json` gives parameter values and keeps out operations that reset data or
   expose secrets. Every file is optional: the VAmPI pack has the DAST files and `perf.json`; the
   Petstore has `dast-false-positives.tsv`, `perf.json` and the differential lane's `diff.json`; the
-  Keycloak pack has `perf.json`.
+  Keycloak pack has the DAST files, `dast-params.json` and `perf.json`.
 - **The pack's credential goes along.** Both lanes send the credential of one of the pack's actors,
   obtained on the host by `scripts/lib/auth-tokens.mjs`, the code the test runner's strategies use.
   For ZAP the lane sets it as a replacer rule through ZAP's API and renews it during the scan; for
