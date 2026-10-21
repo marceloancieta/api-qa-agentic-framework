@@ -38,11 +38,11 @@ fails TC-BOOK-02, which is the flaw the matrix exists to detect.
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-BOOK-01 | The owner reads their own book with its secret | REQ-BOOK-01 | use-case | high | automated | specs/books-authorization.spec.ts | |
-| TC-BOOK-02 | Another user cannot read the owner's book or its secret | REQ-BOOK-01 | decision-table | high | automated | specs/books-authorization.spec.ts | |
-| TC-BOOK-03 | A request without a token is refused | REQ-BOOK-02 | equivalence-partition | high | automated | specs/books-authorization.spec.ts | |
-| TC-BOOK-04 | A request with a token that cannot be decoded is refused | REQ-BOOK-02 | equivalence-partition | medium | automated | specs/books-authorization.spec.ts | |
-| TC-BOOK-05 | A title no book has answers not found to its owner too | REQ-BOOK-03 | equivalence-partition | medium | automated | specs/books-authorization.spec.ts | |
+| TC-BOOK-01 | The owner reads their own book with its secret | REQ-BOOK-01 | use-case | high | published | specs/books-authorization.spec.ts | |
+| TC-BOOK-02 | Another user cannot read the owner's book or its secret | REQ-BOOK-01 | decision-table | high | published | specs/books-authorization.spec.ts | |
+| TC-BOOK-03 | A request without a token is refused | REQ-BOOK-02 | equivalence-partition | high | published | specs/books-authorization.spec.ts | |
+| TC-BOOK-04 | A request with a token that cannot be decoded is refused | REQ-BOOK-02 | equivalence-partition | medium | published | specs/books-authorization.spec.ts | |
+| TC-BOOK-05 | A title no book has answers not found to its owner too | REQ-BOOK-03 | equivalence-partition | medium | published | specs/books-authorization.spec.ts | |
 
 ## Case details
 

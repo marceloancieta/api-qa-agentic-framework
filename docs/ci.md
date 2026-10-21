@@ -141,7 +141,7 @@ runner.
 | `npm run vampi:up` | Starts both modes and creates their databases (VN-01). |
 | BOLA detection on the vulnerable mode | Runs `specs/books-authorization.spec.ts` with `QA_ENV=local-vulnerable` and passes only when TC-BOOK-02 is the one case that failed (`services/vampi/check-bola-detection.mjs`, VN-09): a matrix that stops failing there has stopped detecting the flaw. First, because every run clears `allure-results/`. |
 | `npx playwright test --project=api-vampi` | The pack on the secure mode, after `preflight-vampi`. |
-| `npm run coverage:status`, `npm run quality:gate`, the Allure report | As in `e2e`, on the secure-mode run. The run is not reported to the test-management tool: the pack has no published cases yet. |
+| `npm run coverage:status`, `npm run quality:gate`, the Allure report | As in `e2e`, on the secure-mode run. The run is not reported to the test-management tool; only the Petstore's is. |
 
 ### `e2e-keycloak`
 
@@ -195,8 +195,8 @@ result.
 | Fail on contract drift | When the digest moved, prints what moved and fails the job. |
 
 The lanes run whatever the digest step found, because they need only the pack's container. A lane
-with nothing to select passes: VAmPI has no armed known gap and no published case yet, so its lanes
-start doing work when its cases are published, with no change to the workflow. The job summary shows
+with nothing to select passes: VAmPI has no armed known gap, so its known-gap lane selects nothing,
+and its published lane runs its published cases. The job summary shows
 the digest report and the lane tables. A drift is never only a warning: the run turns red, and an
 annotation points to the summary. Text-only drift (operation descriptions) is printed but does not
 fail, as in `contract:digest:live` itself.
@@ -204,10 +204,10 @@ fail, as in `contract:digest:live` itself.
 `drift (keycloak)` starts no container and needs no credentials. Its contract URL is external and
 pinned to a release, so the document moves only if keycloak.org republishes that release's
 document, and the job exists to notice that. The API's behaviour is the pinned image's, which
-changes only in a pull request, where `e2e (keycloak)` runs the whole pack; the pack has no armed
-known gap and no published case, so the lanes would start a container and the realm's credentials
-to select nothing. When it has some, add the lanes as in `drift (vampi)`, with the credentials
-step of `e2e (keycloak)`. If keycloak.org cannot be reached, the step exits 2 and the job fails
+changes only in a pull request, where `e2e (keycloak)` runs the whole pack, so the lanes would
+start a container and the realm's credentials to repeat that run against the same image. If the
+pack ever runs against an API that changes on its own, add the lanes as in `drift (vampi)`, with
+the credentials step of `e2e (keycloak)`. If keycloak.org cannot be reached, the step exits 2 and the job fails
 with that reason.
 
 To clear a drift, review the change, update the pack's contract and refresh the digest
