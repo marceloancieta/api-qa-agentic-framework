@@ -63,8 +63,9 @@ the pack has `allow_writes` true.
    (resume the author with the report, or fix here), run again and re-review until the verdict is
    `approve`. A `minor` may be accepted with a reason that goes into the gate summary.
 7. **Record**: covered probes with `npm run contract:probes:write -- --service <pack>`, then each
-   automated row moves to `automated` with its Spec column filled. `npm run coverage:status` must
-   not report the feature.
+   automated row moves to `automated` with its Spec column filled, and the pack skill's facts marked
+   pending until automate are filled. `npm run coverage:status` must not report the feature, nor
+   `npm run lint:docs` a pending fact.
 8. **Review gate.** Show the spec files with their reviewer verdicts and accepted minors, the run
    summary (passed, failed as armed, skipped with reasons), data left behind and the registry diff.
    Wait for approval. Agents never hold this gate (`CLAUDE.md`, Skill or agent).

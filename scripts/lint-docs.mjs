@@ -72,6 +72,17 @@
 //                      saying how the service gets back to a usable state (L-59). The destructive
 //                      lane runs its pack's recovery after it; the bullet says what that
 //                      recovery must restore and how the case confirms it.
+//   pending-skill-fact a pack's skill (`.claude/skills/<pack>-api/SKILL.md`, for a pack in
+//                      services/<pack>/; `skills/<pack>-api/` in the fixture tree) still marks a fact
+//                      `_pending until <phase>_` once the pack is past that phase (GATE-27). The
+//                      service skill template (docs/templates/service-skill.md) names the phase
+//                      that fills each fact. A bare `_pending_`, from skills scaffolded before the
+//                      phases were named, is read as intake, the phase that template gave. A pack
+//                      is past intake when services/<pack>/docs/features/ holds a contract doc,
+//                      past design when services/<pack>/registry/ holds a registry, and past
+//                      automate when a registry row is `automated` or `published`; evidence of a
+//                      later phase counts for the earlier ones. A phase the list does not name is a
+//                      finding too. Code spans and fenced blocks are not read.
 //
 // "Planned" (dead-path and lesson-guard): a name that an open backlog row mentions in a code span (or,
 // for a bare file name, whose stem an open row uses as a word: `CHANGELOG.md`), or, for dead-path,
@@ -991,8 +1002,8 @@ function checkGuards(corpus, backlog, out) {
   }
 }
 
-function checkRegistries(corpus, out) {
-  for (const registry of loadRegistries(corpus.root)) {
+function checkRegistries(registries, out) {
+  for (const registry of registries) {
     for (const problem of registry.problems) {
       out.push(finding('registry-shape', problem.file, problem.line, problem.message));
     }
@@ -1005,6 +1016,83 @@ function checkRegistries(corpus, out) {
           registry.file,
           detail.line,
           `${detail.id} is ${DESTRUCTIVE_TAG} but its details have no **Recovery** bullet`,
+        ),
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// pending-skill-fact: a pack's skill loses its pending facts as the phases run.
+
+/** The phases that fill a pack skill's pending facts, in the order they run. */
+export const SKILL_PHASES = ['intake', 'design', 'automate'];
+const PACK_SKILL = /^(?:\.claude\/)?skills\/([a-z0-9][a-z0-9-]*)-api\/SKILL\.md$/;
+const PENDING = /_pending(?: until ([a-z-]+))?_/gi;
+
+/**
+ * The pending facts of a Markdown text, outside code spans and fenced blocks: one entry per marker,
+ * with its line and phase (`intake` for a bare `_pending_`).
+ */
+export function pendingFacts(text) {
+  return factsIn(analyse(text));
+}
+
+function factsIn(lines) {
+  const facts = [];
+  lines.forEach((line, index) => {
+    if (line.code) return;
+    for (const match of line.prose.matchAll(PENDING)) {
+      facts.push({ line: index + 1, phase: (match[1] ?? 'intake').toLowerCase() });
+    }
+  });
+  return facts;
+}
+
+/** For each phase, the evidence that the pack is past it, or null. */
+function phaseEvidence(corpus, registries, pack) {
+  const features = corpus.files.filter((file) =>
+    new RegExp(`^services/${pack}/docs/features/[^/]+\\.md$`).test(file),
+  );
+  const own = registries.filter((registry) => registry.pack === pack);
+  const done = own
+    .flatMap((registry) => registry.cases.map((row) => ({ ...row, file: registry.file })))
+    .find((row) => row.status === 'automated' || row.status === 'published');
+  return {
+    intake: features.length ? `${features[0]} is its contract doc` : null,
+    design: own.length ? `${own[0].file} is its registry` : null,
+    automate: done ? `${done.id} is ${done.status} in ${done.file}` : null,
+  };
+}
+
+function checkPendingSkillFacts(corpus, registries, out) {
+  for (const [file, lines] of corpus.docs) {
+    const pack = PACK_SKILL.exec(file)?.[1];
+    if (!pack || !corpus.dirs.has(`services/${pack}`)) continue;
+    const evidence = phaseEvidence(corpus, registries, pack);
+    for (const { line, phase } of factsIn(lines)) {
+      const at = SKILL_PHASES.indexOf(phase);
+      if (at === -1) {
+        out.push(
+          finding(
+            'pending-skill-fact',
+            file,
+            line,
+            `fact pending until "${phase}", which is not a phase: ${SKILL_PHASES.join(', ')}`,
+          ),
+        );
+        continue;
+      }
+      const past = SKILL_PHASES.slice(at)
+        .map((later) => evidence[later])
+        .find(Boolean);
+      if (!past) continue;
+      out.push(
+        finding(
+          'pending-skill-fact',
+          file,
+          line,
+          `fact pending until ${phase}, but the pack is past it (${past})`,
         ),
       );
     }
@@ -1028,7 +1116,9 @@ export function lintDocs(root = REPO_ROOT, { git = root } = {}) {
   checkNoteCitations(corpus, out);
   checkAdrs(corpus, out);
   checkGuards(corpus, backlog, out);
-  checkRegistries(corpus, out);
+  const registries = loadRegistries(corpus.root);
+  checkRegistries(registries, out);
+  checkPendingSkillFacts(corpus, registries, out);
   return out;
 }
 

@@ -46,8 +46,9 @@ description: >-
    (`.claude/rules/registry.md`), one row per case with status `draft`, the case details, and
    `beyond_floor` for cases that do not come from the contract. When an open defect already explains
    a case, put its key in the Defect column; the case still runs (L-57).
-5. **Check**: `npm run lint:docs` and `npm run coverage:status`. A gap below the floor is either closed
-   or explained in the registry text, never hidden.
+5. **Check**: fill the pack skill's facts marked pending until design (`lint:docs` reports any left
+   once the registry exists), then `npm run lint:docs` and `npm run coverage:status`. A gap below
+   the floor is either closed or explained in the registry text, never hidden.
 6. **Review gate.** Show the cases grouped by category, the floor and gap, and which rules have no
    case. Apply the changes the reviewer asks for, then set the approved cases to `approved`.
 7. **Hand off** to `qa-automate` with counts by category and status.

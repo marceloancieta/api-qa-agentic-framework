@@ -61,7 +61,8 @@ Write requests are not; the credential exchange of the pack's auth strategy is t
 7. **Write** `services/<pack>/docs/features/<feature>.md` from
    [the feature contract template](../../../docs/templates/feature-contract.md). Agree the feature
    code with the user the first time (`.claude/rules/registry.md`). Link the new doc from the pack
-   README so it is not an orphan.
+   README so it is not an orphan. Fill the pack skill's facts marked pending until intake; once the
+   doc exists, `npm run lint:docs` reports any left (pending-skill-fact).
 8. **Review gate.** Show the doc, the gap list and the open questions, and wait for approval.
    Unanswered questions stay in "Assumptions to confirm"; they are never resolved by guessing.
 9. **Hand off** to `qa-design` with the endpoint count, rule count, gaps and the file path.
