@@ -37,7 +37,10 @@ without a bearer token and `403` to a client without the role it needs (KN-01).
 The pack's qa-config entry uses `oauth2_client_credentials` against the realm's own token endpoint,
 with the actors `admin` (the default), `viewer` and `no-role`, one service-account client each;
 [the pack README](../../../services/keycloak/README.md#running-it) says what each client may do
-and where the secrets come from.
+and where the secrets come from. Tokens last 60 seconds; the performance lane cannot renew one, so
+its `--duration` stays under about 40 seconds
+([the pack README](../../../services/keycloak/README.md#performance) says what `perf.json` keeps
+out).
 
 ## Resources
 

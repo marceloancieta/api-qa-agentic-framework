@@ -1,7 +1,7 @@
 # Performance smoke (FUT-02): the k6 lane against each pack's local container, weekly, on demand and
 # on pull requests that change the lane, its k6 script, a pack's performance file or the quality
-# gate. The Petstore run feeds the quality gate's `p95_latency` check; the VAmPI run proves the lane
-# on a second contract. What each step runs: docs/ci.md.
+# gate. The Petstore run feeds the quality gate's `p95_latency` check; the VAmPI and Keycloak runs
+# prove the lane on two more contracts and auth strategies. What each step runs: docs/ci.md.
 name: perf
 
 on:
@@ -17,6 +17,8 @@ on:
       - 'scripts/lib/**'
       - 'services/*/perf.json'
       - 'services/vampi/register-users.mjs'
+      - 'services/keycloak/up.mjs'
+      - 'services/keycloak/realm/**'
       - 'services/*/openapi.*'
       - 'services/*/service.json'
       - 'qa-config.example.json'
@@ -42,7 +44,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pack: [petstore, vampi]
+        pack: [petstore, vampi, keycloak]
     env:
       COMPOSE_PROJECT_NAME: qa-perf-${{ matrix.pack }}
     steps:
@@ -60,13 +62,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Keycloak imports its service-account clients at start (`keycloak:up`), with these secrets;
+      # throwaway values per run are enough, masked in the log. The lane sends the admin client's.
+      - name: Provide the Keycloak clients
+        if: ${{ matrix.pack == 'keycloak' }}
+        run: |
+          for client in ADMIN VIEWER NO_ROLE; do
+            secret="$(openssl rand -hex 16)"
+            echo "::add-mask::$secret"
+            echo "KEYCLOAK_${client}_CLIENT_ID=qa-$(echo "$client" | tr 'A-Z_' 'a-z-')" >> "$GITHUB_ENV"
+            echo "KEYCLOAK_${client}_CLIENT_SECRET=$secret" >> "$GITHUB_ENV"
+          done
+
       - name: Start the API
         timeout-minutes: 5
         run: npm run ${{ matrix.pack }}:up
 
       # The lane sends the pack's credential (FUT-10), so it measures the GETs the contract secures:
-      # any API key for the Petstore, throwaway users registered by the VAmPI pack.
+      # any API key for the Petstore, throwaway users registered by the VAmPI pack. Keycloak's
+      # clients were provided before it started.
       - name: Provide the credentials
+        if: ${{ matrix.pack != 'keycloak' }}
         run: |
           if [ "${{ matrix.pack }}" = "petstore" ]; then
             key="$(openssl rand -hex 12)"

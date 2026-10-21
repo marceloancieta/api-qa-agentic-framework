@@ -101,6 +101,9 @@ services:
     image: quay.io/keycloak/keycloak:26.7.5@sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85
     command: ['start-dev', '--import-realm']
     environment:
+      # The tokens' issuer is the published URL whatever host a request names, so a token issued
+      # on localhost is honoured when a lane's container calls `keycloak:8080` (GATE-29).
+      KC_HOSTNAME: 'http://localhost:${KEYCLOAK_PORT:-8180}'
       KC_HEALTH_ENABLED: 'true'
       KC_DB: dev-mem
       KEYCLOAK_ADMIN_CLIENT_ID:

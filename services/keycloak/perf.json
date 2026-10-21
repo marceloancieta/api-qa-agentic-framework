@@ -1,0 +1,23 @@
+{
+  "$comment": "Performance lane (scripts/perf-lane.mjs): the realm the pack tests, and operations the lane must not send. The lane sends the admin client's token (qa-config auth), whose realm-management roles are view-realm, view-users, query-users, manage-users and query-groups (realm/qa-realm.json); every other operation it leaves out has an id the realm generates or a path parameter it has no value for. Measured on the pinned image, 2026-10-21.",
+  "params": {
+    "realm": "qa"
+  },
+  "exclude": {
+    "GET /admin/realms/{realm}/admin-events": "403: needs view-events, which the admin client does not hold",
+    "GET /admin/realms/{realm}/events": "403: needs view-events, which the admin client does not hold",
+    "GET /admin/realms/{realm}/events/config": "403: needs view-events, which the admin client does not hold",
+    "GET /admin/realms/{realm}/clients": "403: needs view-clients, which the admin client does not hold",
+    "GET /admin/realms/{realm}/clients-initial-access": "403: needs view-clients, which the admin client does not hold",
+    "GET /admin/realms/{realm}/client-scopes": "403: needs view-clients, which the admin client does not hold",
+    "GET /admin/realms/{realm}/client-templates": "403: needs view-clients, which the admin client does not hold",
+    "GET /admin/realms/{realm}/default-default-client-scopes": "403: needs view-clients, which the admin client does not hold",
+    "GET /admin/realms/{realm}/default-optional-client-scopes": "403: needs view-clients, which the admin client does not hold",
+    "GET /admin/realms/{realm}/identity-provider/instances": "403: needs view-identity-providers, which the admin client does not hold",
+    "GET /admin/realms/{realm}/organizations": "403: a role the admin client does not hold",
+    "GET /admin/realms/{realm}/organizations/count": "403: a role the admin client does not hold",
+    "GET /admin/realms/{realm}/workflows": "403: a role the admin client does not hold",
+    "GET /admin/realms/{realm}/client-types": "501: a feature the image does not enable",
+    "GET /admin/realms/{realm}/users-management-permissions": "501: a feature the image does not enable"
+  }
+}
