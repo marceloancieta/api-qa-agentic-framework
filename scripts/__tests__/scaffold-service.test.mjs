@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { normalize } from '../lib/openapi.mjs';
 import {
+  apiName,
   authVariables,
   camelCase,
   describePlan,
@@ -124,6 +125,22 @@ test('names, versions and codes are derived safely', () => {
     ['orders', 'Orders', 'x', '3d models'].map((name) => suggestCode(name, taken)),
     ['ORDERS', 'ORDER2', 'XX', 'R3DMOD'],
   );
+});
+
+test('the skill names the API once, whether or not its title ends in "API"', async () => {
+  assert.equal(apiName('Shop'), 'Shop API');
+  assert.equal(apiName('Swagger Petstore (OpenAPI 3.0)'), 'Swagger Petstore (OpenAPI 3.0) API');
+  assert.equal(apiName('Keycloak Admin REST API'), 'Keycloak Admin REST API');
+  assert.equal(apiName('Shop api '), 'Shop api', 'case and trailing space do not matter');
+  assert.equal(apiName('Shop RAPI'), 'Shop RAPI API', 'only the whole word counts');
+  const description = async (title) => {
+    const plan = await planPack({ name: 'shop', spec: SPEC, title, now: NOW });
+    return plan.files.get('.claude/skills/shop-api/SKILL.md');
+  };
+  const ending = await description('Shop Admin REST API');
+  assert.match(ending, /about the Shop Admin REST API, tested by/);
+  assert.doesNotMatch(ending, /API API/);
+  assert.match(await description('Shop'), /about the Shop API, tested by/);
 });
 
 test('a bad name or a missing spec is refused before anything is read', async () => {
