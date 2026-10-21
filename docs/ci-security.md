@@ -133,6 +133,9 @@ the comments in step.
   owner, with two factors, can publish.
 - **A failed run.** A tag never moves. A run that failed before publishing is re-run once the cause
   outside the repository is fixed. A cause inside the repository becomes the next patch release.
+  A run that failed in its last step, the read-back, failed after a good publish: a re-run cannot
+  publish the same version again, so the version is read back by hand instead
+  ([CONTRIBUTING](../CONTRIBUTING.md#releases), step 5), as its error message says.
   A publish step that ends in
   `npm error 403 403 Forbidden - PUT <registry>/create-api-qa - OIDC permission denied for this action`
   published nothing, although the provenance statement it logged was already signed: the trusted

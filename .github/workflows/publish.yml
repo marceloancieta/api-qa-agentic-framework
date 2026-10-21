@@ -28,6 +28,7 @@ jobs:
     # The repository packages/create-api-qa/package.json names (a test keeps them equal).
     if: ${{ github.repository == 'marceloancieta/api-qa-agentic-framework' }}
     runs-on: ubuntu-24.04
+    # Leaves room for the read-back's wait (READBACK_MINUTES, below) after the steps before it.
     timeout-minutes: 30
     environment: npm
     permissions:
@@ -79,20 +80,26 @@ jobs:
         working-directory: packages/create-api-qa
         run: npm publish --access public --provenance
 
-      # Outside the repository: inside it, npm takes the local package for the published one.
+      # Outside the repository: inside it, npm takes the local package for the published one. The
+      # registry can take minutes to show a new version (about five for v0.6.0), so this waits up to
+      # READBACK_MINUTES, three times that. A failure here comes after a good publish, and a re-run
+      # cannot publish the same version again, so the message says to read it back by hand.
       - name: Read the published version back
         working-directory: ${{ runner.temp }}
+        env:
+          READBACK_MINUTES: 15
         run: |
           version="${TAG#v}"
-          for attempt in 1 2 3 4 5 6; do
-            if [ "$(npm view "create-api-qa@${version}" version 2>/dev/null)" = "$version" ]; then
-              break
-            fi
-            if [ "$attempt" = 6 ]; then
-              echo "::error::create-api-qa@${version} is not visible on the registry after publishing."
+          by_hand="create-api-qa@${version} was published (the publish step succeeded), and a re-run cannot publish it again: do not re-run. Once npm view create-api-qa@${version} version prints ${version}, read it back by hand outside the repository with npm create api-qa@${version} readback -- --skip-install --skip-git (CONTRIBUTING, releases, step 5)."
+          deadline=$((SECONDS + READBACK_MINUTES * 60))
+          until [ "$(npm view "create-api-qa@${version}" version 2>/dev/null)" = "$version" ]; do
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::The registry did not show create-api-qa@${version} within ${READBACK_MINUTES} minutes. ${by_hand}"
               exit 1
             fi
-            sleep 20
+            sleep 30
           done
-          npm create "api-qa@${version}" readback -- --skip-install --skip-git
-          test -f readback/package.json
+          if ! npm create "api-qa@${version}" readback -- --skip-install --skip-git || ! test -f readback/package.json; then
+            echo "::error::npm create api-qa@${version} did not create a project. ${by_hand}"
+            exit 1
+          fi
