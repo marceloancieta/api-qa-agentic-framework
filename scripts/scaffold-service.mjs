@@ -71,6 +71,11 @@ export const camelCase = (text) => {
   const camel = pascal.charAt(0).toLowerCase() + pascal.slice(1);
   return /^[0-9]/.test(camel) ? `_${camel}` : camel;
 };
+/** How prose names the API: the title plus " API", unless the title already ends in that word. */
+export const apiName = (title) => {
+  const trimmed = String(title).trim();
+  return /\bAPI$/i.test(trimmed) ? trimmed : `${trimmed} API`;
+};
 const kebabCase = (text) =>
   words(text)
     .map((w) => w.toLowerCase())
@@ -535,6 +540,7 @@ function skillSource(plan, template) {
   const values = {
     NAME: plan.name,
     TITLE: plan.title,
+    APINAME: apiName(plan.title),
     VERSION: plan.version,
     DATE: plan.date,
     SPEC: plan.specFile,

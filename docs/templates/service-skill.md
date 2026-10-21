@@ -1,7 +1,7 @@
 ---
 name: {{NAME}}-api
 description: >-
-  What an agent must know about the {{TITLE}} API, tested by the service pack services/{{NAME}}/:
+  What an agent must know about the {{APINAME}}, tested by the service pack services/{{NAME}}/:
   where its contract lives, how it authenticates, its resources and feature codes, its error formats
   and where it departs from its contract. Use when designing, automating or running tests for this
   API, or when a phase skill needs facts about it that the OpenAPI document does not state.
