@@ -1,0 +1,6 @@
+{
+  "$comment": "DAST lane (scripts/dast-lane.mjs): values ZAP sends for parameters the contract gives no example for. Without the realm, ZAP sends the parameter's name and every request answers 404 for a realm that does not exist. User ids are generated at import, so {user-id} keeps ZAP's value and those operations answer 404.",
+  "params": {
+    "realm": "qa"
+  }
+}

@@ -1,0 +1,31 @@
+# ZAP API scan rule policy of the keycloak pack: <pluginId> TAB <IGNORE|WARN|FAIL> TAB (<name>).
+# A rules file switches zap-api-scan.py from its API-Minimal policy to every active rule, minus
+# the ones set to IGNORE here (the VAmPI pack's dast-rules.tsv explains IGNORE on passive rules).
+# FAIL: injection and code execution, real vulnerabilities in any API.
+7	FAIL	(Remote File Inclusion)
+40003	FAIL	(CRLF Injection)
+40009	FAIL	(Server Side Include)
+40018	FAIL	(SQL Injection)
+40043	FAIL	(Log4Shell)
+90019	FAIL	(Server Side Code Injection)
+90020	FAIL	(Remote OS Command Injection)
+90021	FAIL	(XPath Injection)
+90023	FAIL	(XML External Entity Attack)
+90035	FAIL	(Server Side Template Injection)
+90036	FAIL	(Server Side Template Injection (Blind))
+90037	FAIL	(Remote OS Command Injection (Time Based))
+# WARN: a 5xx under attack is a finding to triage, not a scan failure (KN-11); answers other than
+# the declared JSON come from the server's login theme and from refused queries.
+100000	WARN	(A Server Error response code was returned by the server)
+100001	WARN	(Unexpected Content-Type was returned)
+# IGNORE: notes that are not findings for this JSON API, and rules for what it does not run.
+# The local container serves plain HTTP by design; TLS belongs to a deployment, not to the API.
+10106	IGNORE	(HTTP Only Site)
+# Time-based injection for engines the container does not use: development mode stores in H2.
+40019	IGNORE	(SQL Injection - MySQL (Time Based))
+40021	IGNORE	(SQL Injection - Oracle (Time Based))
+40022	IGNORE	(SQL Injection - PostgreSQL (Time Based))
+40027	IGNORE	(SQL Injection - MsSQL (Time Based))
+# SOAP-only rules: the Admin REST API speaks JSON, never SOAP.
+90026	IGNORE	(SOAP Action Spoofing)
+90029	IGNORE	(SOAP XML Injection)

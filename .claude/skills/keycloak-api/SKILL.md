@@ -40,7 +40,8 @@ with the actors `admin` (the default), `viewer` and `no-role`, one service-accou
 and where the secrets come from. Tokens last 60 seconds; the performance lane cannot renew one, so
 its `--duration` stays under about 40 seconds
 ([the pack README](../../../services/keycloak/README.md#performance) says what `perf.json` keeps
-out).
+out). The DAST lane renews it during a scan; its files, scope and the realm value ZAP needs are in
+[the pack README](../../../services/keycloak/README.md#dast).
 
 ## Resources
 

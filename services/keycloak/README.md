@@ -62,6 +62,22 @@ npx playwright test --project=api-keycloak
 The contract is the OpenAPI document Keycloak publishes for the release; the container does not
 serve it, so `spec_url` is the published one.
 
+## DAST
+
+`npm run lanes:dast -- --service keycloak` scans the pack with ZAP as the default actor, renewing
+its token during the scan ([the DAST lane](../../docs/quality-gates.md#lanes)), and restarts
+Keycloak afterwards, which discards what the scan wrote.
+
+- [`dast-exclude.txt`](dast-exclude.txt) keeps the scan to the operations the cases cover: a
+  realm's users, their count and one user. The whole Admin REST API does not scan within the CI
+  job's time.
+- [`dast-params.json`](dast-params.json) gives the realm, `qa`; without it ZAP sends a realm called
+  `realm` and every request answers `404`. User ids are generated at import, so the operations on
+  one user answer `404`.
+- [`dast-rules.tsv`](dast-rules.tsv) fails on injection and code execution, as the VAmPI pack does,
+  and warns on a `5xx` (KN-11). [`dast-false-positives.tsv`](dast-false-positives.tsv) holds the
+  SQL injection reported on `createdAfter` (KN-10).
+
 ## Performance
 
 `npm run lanes:perf -- --service keycloak` sends the pack's `GET` operations with k6, as the
