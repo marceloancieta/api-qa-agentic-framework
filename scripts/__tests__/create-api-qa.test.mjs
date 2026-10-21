@@ -311,6 +311,36 @@ test('the package is published from a release tag of its own repository, with no
   }
 });
 
+// CI-13: for v0.6.0 the registry showed the version about five minutes after the publish, and the
+// read-back gave up after two. A failed read-back follows a good publish, which a re-run cannot
+// repeat, so its errors say to read the version back by hand instead.
+test('the read-back waits for the registry and tells a failed read-back from a failed publish', () => {
+  const workflow = parse(
+    readFileSync(join(REPO_ROOT, '.github', 'workflows', 'publish.yml'), 'utf8'),
+  );
+  const [job] = Object.values(workflow.jobs);
+  const steps = job.steps.map((step) => step.name);
+  const step = job.steps.at(-1);
+  assert.equal(step.name, 'Read the published version back');
+  assert.ok(steps.indexOf('Publish with provenance') < steps.indexOf(step.name));
+
+  const minutes = step.env.READBACK_MINUTES;
+  assert.ok(Number.isInteger(minutes) && minutes >= 10, `waits ${minutes} minutes`);
+  assert.ok(job['timeout-minutes'] >= minutes + 10, 'the job outlasts the wait');
+  assert.match(step.run, /deadline=\$\(\(SECONDS \+ READBACK_MINUTES \* 60\)\)/);
+  assert.match(step.run, /npm view "create-api-qa@\$\{version\}" version/);
+
+  const byHand = step.run.match(/^by_hand="(.+)"$/m)?.[1] ?? '';
+  assert.match(byHand, /was published \(the publish step succeeded\)/);
+  assert.match(byHand, /a re-run cannot publish it again/);
+  assert.match(byHand, /npm view create-api-qa@\$\{version\} version/);
+  assert.match(byHand, /by hand outside the repository/);
+  assert.match(byHand, /npm create api-qa@\$\{version\} readback -- --skip-install --skip-git/);
+  const errors = step.run.match(/::error::.*/g);
+  assert.equal(errors.length, 2);
+  for (const error of errors) assert.match(error, /\$\{by_hand\}"$/);
+});
+
 // Released together: `npm version` at the root and in the package (CONTRIBUTING, releases). Only
 // in the framework's own repository: a project created from it has its own name and version.
 test('the package version follows the framework version', { skip: !IN_FRAMEWORK }, () => {

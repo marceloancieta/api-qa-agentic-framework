@@ -145,12 +145,16 @@ the latest `vX.Y.Z` tag and groups them by type:
    deployment on the run's page. It then checks that the tag is on `main`, builds the package
    from the tag with `npm run create:build` (which refuses a tag whose version differs), lists what
    `npm pack` would hold, and publishes with provenance; `prepublishOnly` refuses a package without
-   its release files or built from another tag. Last, it reads the version back with `npm view`
-   and `npm create api-qa@<x.y.z> <directory> -- --skip-install --skip-git`, outside the
-   repository. A run that fails for a reason outside the repository (a rejected approval, npm's
-   trusted publisher, the registry) is re-run once that is fixed. A tag never moves, so a fix in the
-   repository becomes the next patch release. A published version cannot be replaced, only
-   deprecated.
+   its release files or built from another tag. Last, it reads the version back, outside the
+   repository: it waits for `npm view create-api-qa@<x.y.z> version` to print the version, which
+   can take the registry several minutes, then runs
+   `npm create api-qa@<x.y.z> <directory> -- --skip-install --skip-git`. A run that fails before
+   its publish step succeeds, for a reason outside the repository (a rejected approval, npm's
+   trusted publisher, the registry), is re-run once that is fixed. A run that fails in the
+   read-back has already published the version, and a re-run cannot publish it again: do not
+   re-run it. Once `npm view` prints the version, run those two commands by hand in an empty
+   directory outside the repository. A tag never moves, so a fix in the repository becomes the next
+   patch release. A published version cannot be replaced, only deprecated.
 6. Once the package is published, create the GitHub release from the tag; its notes recommend
    `npm create api-qa`.
 
