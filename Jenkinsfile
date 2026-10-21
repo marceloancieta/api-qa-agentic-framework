@@ -1,5 +1,6 @@
-// Jenkins counterpart of .github/workflows/ci.yml (CI-03): the gates, then one end-to-end run of
-// the Petstore pack, reported as one run. What each step does and why: docs/ci.md (Jenkins).
+// Jenkins counterpart of .github/workflows/ci.yml (CI-03): the gates, then the end-to-end runs of
+// the Petstore, VAmPI and Keycloak packs, archived as one report. What each step does and why:
+// docs/ci.md (Jenkins).
 //
 // Agent requirements: git, Node at the major version in .nvmrc on the PATH, and Docker with the
 // compose plugin. Linux agents run the steps with `sh`, Windows agents with `bat`.
@@ -165,6 +166,26 @@ pipeline {
         }
       }
     }
+
+    // The third pack (CI-15), whose `oauth2_client_credentials` auth gets its tokens from the
+    // realm's own token endpoint. Like VAmPI's, its results join the archived report and neither
+    // the quality gate nor the test-management report covers them.
+    stage('e2e (keycloak)') {
+      steps {
+        script {
+          withKeycloakClients {
+            timeout(time: 5, unit: 'MINUTES') {
+              shell 'npm run keycloak:up'
+            }
+            withEnv(['QA_KEEP_RESULTS=1'] + reportsOf('keycloak')) {
+              catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                shell 'npx playwright test --project=api-keycloak'
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   post {
@@ -194,13 +215,15 @@ pipeline {
       script {
         shell(returnStatus: true, "docker compose logs --no-color petstore > ${nativePath('reports/petstore.log')} 2>&1")
         shell(returnStatus: true, "docker compose logs --no-color vampi-secure vampi-vulnerable > ${nativePath('reports/vampi.log')} 2>&1")
-        archiveArtifacts(artifacts: 'reports/petstore.log, reports/vampi.log', allowEmptyArchive: true)
+        shell(returnStatus: true, "docker compose logs --no-color keycloak > ${nativePath('reports/keycloak.log')} 2>&1")
+        archiveArtifacts(artifacts: 'reports/petstore.log, reports/vampi.log, reports/keycloak.log', allowEmptyArchive: true)
       }
     }
     cleanup {
       script {
         shell(returnStatus: true, 'npm run petstore:down')
         shell(returnStatus: true, 'npm run vampi:down')
+        shell(returnStatus: true, 'npm run keycloak:down')
       }
     }
   }
@@ -279,6 +302,20 @@ def withVampiUsers(Closure body) {
     "VAMPI_USER_B_NAME=qa-b-${word()}",
     "VAMPI_USER_B_PASSWORD=${word()}${word()}",
   ]) {
+    body()
+  }
+}
+
+// The service-account clients of the Keycloak realm (qa-config `actors`), which `keycloak:up`
+// imports with these secrets when it starts: throwaway values per build, as in the GitHub job. No
+// step prints them, and they open nothing outside this build's own container.
+def withKeycloakClients(Closure body) {
+  List<String> clients = []
+  for (String client : ['ADMIN', 'VIEWER', 'NO_ROLE']) {
+    clients << "KEYCLOAK_${client}_CLIENT_ID=qa-${client.toLowerCase().replace('_', '-')}".toString()
+    clients << "KEYCLOAK_${client}_CLIENT_SECRET=${UUID.randomUUID().toString().replace('-', '')}".toString()
+  }
+  withEnv(clients) {
     body()
   }
 }

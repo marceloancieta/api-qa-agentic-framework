@@ -184,8 +184,8 @@ pipeline {
     }
 
     // Keycloak's contract is the document keycloak.org publishes for the pinned release, so the
-    // digest needs neither the container nor the realm's client credentials, which this pipeline
-    // does not have; the pack's cases run in GitHub Actions only (docs/ci.md#jenkins).
+    // digest needs neither the container nor the realm's client credentials; the pack's cases run
+    // in the CI pipeline's e2e (keycloak) stage, as in drift.yml (docs/ci.md#driftyml).
     stage('Drift (keycloak)') {
       steps {
         script {
