@@ -54,6 +54,21 @@ Release automation, adoption on real repositories, and a wider worked example. E
 checks, FUT-13 and FUT-14 for adoption, FUT-15, PET-05 and CORE-19 for the worked examples,
 GATE-26 for the DAST lane, and DOC-12, the pre-release review. Released as `v0.6.0`.
 
+## v0.7.0
+
+What the v0.6.0 release and its pre-release review found, and the Keycloak pack on Jenkins.
+
+| Id | Item | Origin | Status |
+|---|---|---|---|
+| DOC-13 | The trusted-publisher setup in [CI security](ci-security.md#publishing-create-api-qa) does not name npm's **Allowed actions**. Left at its default, the publisher may only stage a version, and `npm publish` fails with `E403 ... OIDC permission denied for this action`, as the first run for `v0.6.0` did. Say that **Allow npm publish** is ticked, and name that error under a failed run. | exp | todo |
+| CI-13 | `publish.yml` reads the published version back six times, 20 seconds apart. For `v0.6.0`, npm showed the version about five minutes after publishing it, so the run failed after a good publish, and a re-run cannot help because a version is never published twice. Wait longer, and tell a failed read-back apart from a failed publish: its message, and the [releases](../CONTRIBUTING.md#releases) step 5, say to read the version back by hand instead of re-running. | exp | todo |
+| CI-14 | `npm audit` reports a high advisory in `markdown-it` 14.3.2 (GHSA-vfgh-jcmw-g37q, GHSA-gfr2-rv44-r23c), which comes only through `allure`, a development dependency, and is in no published package. `release:check` audits for critical advisories only, so nothing stops on it. Take the patched version, through `allure` or an override with a test that it stays resolved. | exp | todo |
+| PROC-16 | The pack skill template writes `the {{TITLE}} API` ([service skill](templates/service-skill.md)), so a pack whose title ends in "API" reads "API API" in its skill, as Keycloak's did until DOC-12. Write the title so that it reads once, in the template or in `scripts/scaffold-service.mjs`, with a test for a title that ends in "API". | exp | todo |
+| GATE-27 | Nothing checks that a pack's skill loses its `_pending_` facts as the phases run: DOC-12 found the Keycloak skill with them after its specs were written. Name which phase fills each fact of the [service skill](templates/service-skill.md) template, and check that a pack past that phase has none of its facts pending. | exp | todo |
+| GATE-28 | A `wont-do` row has nowhere to go. In a `## v<x.y.z>` section it stops `npm run release:check`, which wants that section empty, and **Done** wants a closing commit. Decide where a row that will not be done goes and with what record, and make `lint-docs` and `release:check` agree with it. | exp | todo |
+| CI-15 | `Jenkinsfile` has no Keycloak stage: the pack runs only in the `e2e (keycloak)` job of `ci.yml` ([Jenkins](ci.md#jenkins)). Add its counterpart after the VAmPI stage, which like it is covered by neither the quality gate nor the test-management report, with credentials generated per build as in the job. Say in the same section why the VAmPI BOLA detection and the DAST, performance and differential lanes stay in GitHub Actions. | exp | todo |
+| CI-16 | `Jenkinsfile` and `Jenkinsfile.drift` choose `sh` or `bat` by agent, and only a Windows agent has run them. Run both, with the CI-15 stage, on a Linux agent with Docker and on a Windows one, and fix what the runs find. | exp | todo |
+
 ---
 
 ## Done
