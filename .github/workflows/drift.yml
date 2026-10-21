@@ -1,6 +1,7 @@
-# Daily drift (CI-01): does the live contract still match the tracked digest (L-28), are the known
-# gaps still open, and do the published cases still pass (L-31)? A drift found fails the run and the
-# job summary says what moved. What each step runs and why: docs/ci.md.
+# Daily drift (CI-01, CI-17): does the live contract of each pack still match its tracked digest
+# (L-28), are the known gaps still open, and do the published cases still pass (L-31)? One job per
+# pack, so each pack's drift shows as its own failure. A drift found fails that job and its summary
+# says what moved. What each job runs and why: docs/ci.md.
 name: drift
 
 on:
@@ -9,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       contract_env:
-        description: 'qa-config environment whose petstore spec_url is compared with the digest (empty: the default environment)'
+        description: 'qa-config environment whose petstore spec_url is compared with the digest (empty: the default environment); the vampi and keycloak jobs always read the default one'
         type: string
         default: ''
 
@@ -165,3 +166,192 @@ jobs:
       - name: Stop the Petstore
         if: ${{ always() }}
         run: npm run petstore:down
+
+  # VAmPI's contract is the document its own container serves (qa-config `spec_url`), from an image
+  # pinned by digest, so the job starts VAmPI for the digest as well as for the lanes. It always
+  # compares the default environment: `contract_env` and QA_DRIFT_CONTRACT_ENV name the Petstore's.
+  drift-vampi:
+    name: drift (vampi)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      COMPOSE_PROJECT_NAME: qa-drift-vampi
+      QA_RUN_ID: gh-${{ github.run_id }}-${{ github.run_attempt }}-vampi
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The users behind actors user-a and user-b (qa-config, `login` auth), as in ci.yml's
+      # e2e (vampi): the pack registers them on a fresh container, so throwaway values per run.
+      - name: Provide the VAmPI users
+        run: |
+          for actor in A B; do
+            name="qa-$(echo "$actor" | tr 'AB' 'ab')-$(openssl rand -hex 6)"
+            password="$(openssl rand -hex 16)"
+            echo "::add-mask::$password"
+            echo "VAMPI_USER_${actor}_NAME=$name" >> "$GITHUB_ENV"
+            echo "VAMPI_USER_${actor}_PASSWORD=$password" >> "$GITHUB_ENV"
+          done
+
+      - name: Start VAmPI
+        id: vampi
+        timeout-minutes: 5
+        run: npm run vampi:up
+
+      # Exit codes and their effect as in the Petstore job.
+      - name: Live contract against the tracked digest
+        id: digest
+        run: |
+          mkdir -p reports/drift
+          status=0
+          npm run --silent contract:digest:live -- --service vampi > reports/drift/digest.txt 2>&1 || status=$?
+          cat reports/drift/digest.txt
+          case "$status" in
+            0) echo "moved=false" >> "$GITHUB_OUTPUT" ;;
+            1)
+              echo "moved=true" >> "$GITHUB_OUTPUT"
+              echo "::error title=Contract drift::The live contract has moved away from the tracked digest; the job summary lists what moved."
+              ;;
+            *)
+              echo "::error title=Contract digest::The live contract could not be compared with the tracked digest (exit $status); see the log of this step."
+              exit "$status"
+              ;;
+          esac
+
+      - name: Known-gap lane
+        if: ${{ !cancelled() && steps.vampi.outcome == 'success' }}
+        run: |
+          mkdir -p reports/drift
+          npm run --silent lanes:known-gap -- --service vampi 2>&1 | tee reports/drift/known-gap.txt
+
+      - name: Published cases on changed operations
+        if: ${{ !cancelled() && steps.vampi.outcome == 'success' && steps.digest.outputs.moved == 'true' }}
+        run: |
+          mkdir -p reports/drift
+          npm run --silent lanes:published:changed:live -- --service vampi 2>&1 | tee reports/drift/published-changed.txt
+
+      - name: Published-case lane
+        if: ${{ !cancelled() && steps.vampi.outcome == 'success' }}
+        run: |
+          mkdir -p reports/drift
+          npm run --silent lanes:published -- --service vampi 2>&1 | tee reports/drift/published.txt
+
+      # Until VAmPI has armed gaps or published cases, its lanes select nothing and write no results,
+      # and `allure generate` fails on a missing allure-results.
+      - name: Allure report
+        if: ${{ !cancelled() && steps.vampi.outcome == 'success' && hashFiles('allure-results/**') != '' }}
+        run: npm run report:html
+
+      - name: Job summary
+        if: ${{ always() }}
+        run: |
+          section() {
+            [ -f "$2" ] || return 0
+            { echo "### $1"; echo; echo '```text'; cat "$2"; echo '```'; echo; } >> "$GITHUB_STEP_SUMMARY"
+          }
+          echo "## Drift (vampi)" >> "$GITHUB_STEP_SUMMARY"
+          section "Live contract against the tracked digest" reports/drift/digest.txt
+          section "Known-gap lane" reports/drift/known-gap.txt
+          section "Published cases on changed operations" reports/drift/published-changed.txt
+          section "Published-case lane" reports/drift/published.txt
+
+      - name: Fail on contract drift
+        if: ${{ !cancelled() && steps.digest.outputs.moved == 'true' }}
+        run: |
+          cat reports/drift/digest.txt
+          echo "::error title=Contract drift::The live contract moved. Review the change, then refresh the pack contract and its digest in a pull request (docs/ci.md)."
+          exit 1
+
+      - name: VAmPI logs
+        if: ${{ failure() }}
+        run: |
+          mkdir -p reports
+          docker compose logs --no-color vampi-secure vampi-vulnerable > reports/vampi.log 2>&1 || echo "no VAmPI logs"
+
+      - name: Upload reports
+        if: ${{ always() && !env.ACT }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: drift-vampi-reports-${{ github.run_attempt }}
+          path: |
+            reports/
+            allure-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop VAmPI
+        if: ${{ always() }}
+        run: npm run vampi:down
+
+  # Keycloak's contract is the document keycloak.org publishes for the pinned release (qa-config
+  # `spec_url`); the container does not serve one. The job compares that document only: it needs no
+  # container and no credentials, and the pack's cases stay in ci.yml's e2e (keycloak), which runs
+  # the pinned image on every pull request and push to main (docs/ci.md).
+  drift-keycloak:
+    name: drift (keycloak)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Exit codes as in the Petstore job; with no lane to wait for, a drift fails this step.
+      - name: Live contract against the tracked digest
+        run: |
+          mkdir -p reports/drift
+          status=0
+          npm run --silent contract:digest:live -- --service keycloak > reports/drift/digest.txt 2>&1 || status=$?
+          cat reports/drift/digest.txt
+          case "$status" in
+            0) ;;
+            1)
+              echo "::error title=Contract drift::The published contract moved. Review the change, then refresh the pack contract and its digest in a pull request (docs/ci.md)."
+              exit 1
+              ;;
+            *)
+              echo "::error title=Contract digest::The published contract could not be compared with the tracked digest (exit $status); see the log of this step."
+              exit "$status"
+              ;;
+          esac
+
+      - name: Job summary
+        if: ${{ always() }}
+        run: |
+          [ -f reports/drift/digest.txt ] || exit 0
+          {
+            echo "## Drift (keycloak)"; echo
+            echo "### Live contract against the tracked digest"; echo
+            echo '```text'; cat reports/drift/digest.txt; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reports
+        if: ${{ always() && !env.ACT }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: drift-keycloak-reports-${{ github.run_attempt }}
+          path: reports/drift/
+          if-no-files-found: warn
+          retention-days: 14
