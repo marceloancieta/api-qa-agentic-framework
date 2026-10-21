@@ -247,8 +247,10 @@ jobs:
           mkdir -p reports/drift
           npm run --silent lanes:published -- --service vampi 2>&1 | tee reports/drift/published.txt
 
+      # Until VAmPI has armed gaps or published cases, its lanes select nothing and write no results,
+      # and `allure generate` fails on a missing allure-results.
       - name: Allure report
-        if: ${{ !cancelled() && steps.vampi.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.vampi.outcome == 'success' && hashFiles('allure-results/**') != '' }}
         run: npm run report:html
 
       - name: Job summary
