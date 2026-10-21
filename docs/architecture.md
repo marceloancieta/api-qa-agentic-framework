@@ -406,7 +406,8 @@ flowchart LR
   `dast-exclude.txt` keeps URLs out of a scan, `dast-false-positives.tsv` filters alerts shown to
   be false, and `perf.json` gives parameter values and keeps out operations that reset data or
   expose secrets. Every file is optional: the VAmPI pack has the DAST files and `perf.json`; the
-  Petstore has `dast-false-positives.tsv`, `perf.json` and the differential lane's `diff.json`.
+  Petstore has `dast-false-positives.tsv`, `perf.json` and the differential lane's `diff.json`; the
+  Keycloak pack has `perf.json`.
 - **The pack's credential goes along.** Both lanes send the credential of one of the pack's actors,
   obtained on the host by `scripts/lib/auth-tokens.mjs`, the code the test runner's strategies use.
   For ZAP the lane sets it as a replacer rule through ZAP's API and renews it during the scan; for

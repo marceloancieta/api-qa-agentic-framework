@@ -49,6 +49,10 @@ pack's `recovery`.
 - qa-config's `local` environment has the pack's entry: the admin API at `http://localhost:8180`,
   `oauth2_client_credentials` auth from the realm's token endpoint, and the actors `admin` (also
   the default), `viewer` and `no-role`.
+- The container's hostname is fixed to its published URL (`KC_HOSTNAME`), so a token's issuer is
+  the same whatever host a request names. Without it, Keycloak derives the issuer from the request,
+  and a lane's container, which calls `keycloak:8080`, would get `401` for a token issued on
+  `localhost`.
 
 ```sh
 npm run keycloak:up
@@ -57,6 +61,15 @@ npx playwright test --project=api-keycloak
 
 The contract is the OpenAPI document Keycloak publishes for the release; the container does not
 serve it, so `spec_url` is the published one.
+
+## Performance
+
+`npm run lanes:perf -- --service keycloak` sends the pack's `GET` operations with k6, as the
+default actor, the admin client ([the performance lane](../../docs/quality-gates.md#performance-lane)).
+[`perf.json`](perf.json) gives the realm, `qa`, and keeps out the operations that answer `403` to
+that client's roles or `501` for a feature the image does not enable; the rest need an id the realm
+generates and are left out with that reason. k6 cannot renew the token, so a run that would outlive
+it is refused; with the realm's 60-second tokens, keep `--duration` under about 40 seconds.
 
 ## Features
 

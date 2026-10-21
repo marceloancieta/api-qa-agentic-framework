@@ -136,7 +136,7 @@ parts:
 |---|---|
 | `params` | values by parameter name, for parameters the contract gives no value for (seed ids, a seed user) |
 | `anonymous` | operations the contract secures but the API answers without credentials, each with the contract note that records it; they are planned even for an actor without a credential |
-| `exclude` | operations the lane must not send, each with its reason: one that resets data, one that answers with secrets |
+| `exclude` | operations the lane must not send, each with its reason: one that resets data, one that answers with secrets, one the actor's roles refuse or the API does not implement |
 
 An operation is left out when the pack excludes it, when the contract requires credentials and the
 actor sends no credential and the pack does not list it in `anonymous`, when a required

@@ -15,7 +15,7 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 | `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e (petstore)`, `e2e (vampi)` and `e2e (keycloak)` |
 | `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift (petstore)`, `drift (vampi)`, `drift (keycloak)` |
 | `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, `pull_request` | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
-| `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `perf (petstore)`, `perf (vampi)` |
+| `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `perf (petstore)`, `perf (vampi)`, `perf (keycloak)` |
 | `.github/workflows/diff.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `diff (petstore)` |
 
 A lane workflow's `paths` list, in the workflow file, owns which files trigger it on a pull request:
@@ -57,6 +57,7 @@ flowchart LR
   subgraph perfWf["perf.yml"]
     perfPet["petstore<br/>k6 smoke, quality gate"]
     perfVampi["vampi<br/>k6 smoke"]
+    perfKeycloak["keycloak<br/>k6 smoke"]
   end
 
   subgraph diffWf["diff.yml"]
@@ -74,6 +75,7 @@ flowchart LR
   weekly --> dastPet
   weekly --> perfPet
   weekly --> perfVampi
+  weekly --> perfKeycloak
   weekly --> diffPet
   pr --> dastWf
   pr -.->|"only when the lane's files change"| perfWf
@@ -263,12 +265,15 @@ k6 sends the pack's GET operations at a steady rate for 30 seconds against the j
 It sends only reads, but a load is still a load: the lane runs against the local containers here,
 never against a shared environment. It runs weekly, on demand and on pull requests that touch its
 `paths`. Each job sends its pack's default credential (FUT-10): any
-`API_KEY` for the Petstore, throwaway users registered by `npm run vampi:users` for VAmPI.
+`API_KEY` for the Petstore, throwaway users registered by `npm run vampi:users` for VAmPI, and for
+Keycloak the admin client of the realm, whose throwaway secrets are set before `npm run keycloak:up`
+imports them.
 
 | Job | Passes when |
 |---|---|
 | `perf (petstore)` | every request answers the status its operation declares for success, and `npm run quality:gate` then passes on `reports/perf/petstore.json` (`quality_gate.p95_latency` in `qa-config.example.json`) |
 | `perf (vampi)` | every request answers its expected status. The quality gate reads one latency source, the Petstore's, so this job proves the lane on a second contract without judging its latency |
+| `perf (keycloak)` | every request answers its expected status, latency unjudged as for VAmPI. It is the lane's `oauth2_client_credentials` run: the realm's tokens last 60 seconds and k6 cannot renew one, so the default 30 seconds fit and a longer `--duration` stops the lane before k6 starts |
 
 The thresholds are wide on purpose. A shared runner's latency varies from run to run, and the check
 is there to catch a regression measured in multiples, not in milliseconds. Each job uploads
@@ -378,7 +383,8 @@ Each job uploads one artifact, even when a step failed, and keeps it for 14 days
   against its own base URL and credentials ([ADR 0009](adr/0009-per-pack-configuration.md));
   `--project=api-<pack>` and a lane's `--service <pack>` narrow a step to one pack. For the
   performance smoke, add the pack to the `perf.yml` matrix and give it a branch in the
-  `Provide the credentials` step, which knows only `petstore` and `vampi`; its `<pack>:up` and
+  `Provide the credentials` step, which knows only `petstore` and `vampi` (Keycloak has its own step
+before the start, since it imports its clients when it starts); its `<pack>:up` and
   `<pack>:down` npm scripts start and stop it. For the DAST scan, copy the `dast (petstore)` job:
   the lane needs `allow_writes: true` and restarts the service afterwards when the entry has a
   `recovery`. For the differential lane, add a reference deployment (a pinned compose service in the
