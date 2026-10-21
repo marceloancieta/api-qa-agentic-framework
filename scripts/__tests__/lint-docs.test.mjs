@@ -4,13 +4,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { gitEnv } from '../lib/git.mjs';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { compareWithMarkers } from '../lib/lint.mjs';
 import { REPO_ROOT } from '../lib/cli.mjs';
-import { FIXTURE_DIR, lintDocs, pathCandidate, slug, withFixtureHistory } from '../lint-docs.mjs';
+import {
+  FIXTURE_DIR,
+  lintDocs,
+  pathCandidate,
+  pendingFacts,
+  SKILL_PHASES,
+  slug,
+  withFixtureHistory,
+} from '../lint-docs.mjs';
 
 const SCRIPT = join(import.meta.dirname, '..', 'lint-docs.mjs');
 
@@ -70,6 +78,33 @@ test('note-citation names the missing ids and the file that should define them',
       `prefix DN is already used by ${notes}; give this pack its own`,
     ].sort(),
   );
+});
+
+test('pending-skill-fact names the phase and the evidence that the pack is past it', () => {
+  const messages = lintDocs(FIXTURE_DIR)
+    .filter((f) => f.rule === 'pending-skill-fact')
+    .map((f) => `${f.file}:${f.line} ${f.message}`);
+  const contract = 'services/shop/docs/features/orders.md is its contract doc';
+  const automated = 'TC-SHOP-02 is automated in services/shop/registry/orders.md';
+  assert.deepEqual(messages.sort(), [
+    'skills/demo-api/SKILL.md:8 fact pending until intake, but the pack is past it (services/demo/registry/broken.md is its registry)',
+    'skills/lab-api/SKILL.md:8 fact pending until intake, but the pack is past it (services/lab/docs/features/stock.md is its contract doc)',
+    `skills/shop-api/SKILL.md:11 fact pending until intake, but the pack is past it (${contract})`,
+    'skills/shop-api/SKILL.md:12 fact pending until design, but the pack is past it (services/shop/registry/orders.md is its registry)',
+    `skills/shop-api/SKILL.md:13 fact pending until automate, but the pack is past it (${automated})`,
+    `skills/shop-api/SKILL.md:14 fact pending until intake, but the pack is past it (${contract})`,
+    'skills/shop-api/SKILL.md:15 fact pending until "release", which is not a phase: intake, design, automate',
+    `skills/shop-api/SKILL.md:17 fact pending until automate, but the pack is past it (${automated})`,
+    `skills/shop-api/SKILL.md:17 fact pending until intake, but the pack is past it (${contract})`,
+  ]);
+});
+
+test('the service skill template names the phase of every pending fact', () => {
+  const template = readFileSync(join(REPO_ROOT, 'docs', 'templates', 'service-skill.md'), 'utf8');
+  const phases = pendingFacts(template).map((fact) => fact.phase);
+  assert.deepEqual(phases, ['intake', 'design', 'intake', 'automate', 'automate']);
+  assert.ok(phases.every((phase) => SKILL_PHASES.includes(phase)));
+  assert.doesNotMatch(template, /_pending_/i, 'no bare marker: each one names its phase');
 });
 
 test('closing-commit is not checked when the root is not a git repository', () => {

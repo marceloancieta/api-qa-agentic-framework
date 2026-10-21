@@ -278,16 +278,20 @@ Code and by hand.
 
 | Phase | Skill | For a new pack, also |
 |---|---|---|
-| 0 intake | `qa-intake` | agree the feature code; record the error formats measured, and the departures in `services/<pack>/docs/contract-notes.md`; link the feature doc from the pack README; fill the _pending_ facts of the `<pack>-api` skill |
-| 1 design | `qa-design` | create `registry/<feature>.md` from [the registry template](../templates/registry.md) |
-| 2 automate | `qa-automate` | build `types.ts`, builders, flows, state models, guards and the `error-envelopes.json` catalogue before the specs; replace the smoke spec with designed cases |
+| 0 intake | `qa-intake` | agree the feature code; record the error formats measured, and the departures in `services/<pack>/docs/contract-notes.md`; link the feature doc from the pack README; fill the `<pack>-api` skill's facts pending until intake |
+| 1 design | `qa-design` | create `registry/<feature>.md` from [the registry template](../templates/registry.md); fill the skill's facts pending until design |
+| 2 automate | `qa-automate` | build `types.ts`, builders, flows, state models, guards and the `error-envelopes.json` catalogue before the specs; replace the smoke spec with designed cases; fill the skill's facts pending until automate |
 | 3 publish | `qa-publish` | check that the pack's name and version are final |
 | 4 run | `qa-run` | run `--project=api-<pack>` (or a lane with `--service <pack>`) with its `QA_ENV`, then `npm run tm:report -- --service <pack>` |
 
 The `<pack>-api` skill holds what an agent must know about this API that its contract does not say:
 environments and shared records, how it authenticates, its error formats, where it departs from its
-contract. It starts with _pending_ facts; the first intake fills them, and every later phase keeps
-them current. Link to the pack's files instead of copying their facts.
+contract. It starts with facts marked pending until the phase that fills them (intake, design or
+automate), and every later phase keeps them current. `npm run lint:docs` (pending-skill-fact)
+reports a fact still pending once the pack is past its phase: past intake when
+`services/<pack>/docs/features/` holds a contract doc, past design when `registry/` holds a
+registry, past automate when a registry row is `automated` or `published`. Link to the pack's files
+instead of copying their facts.
 
 ## 8. Wire it in
 
@@ -320,4 +324,4 @@ them current. Link to the pack's files instead of copying their facts.
 - [ ] The credentials are set as environment variables, by name.
 - [ ] `QA_ENV=<env> npx playwright test --project=api-<pack>` passes its preflight and smoke spec.
 - [ ] The digest, value sets, probe matrix and floor were read before design.
-- [ ] The first feature went through intake, with the `<pack>-api` skill's pending facts filled in.
+- [ ] Each phase filled the `<pack>-api` skill's facts pending until it; `npm run lint:docs` passes.
