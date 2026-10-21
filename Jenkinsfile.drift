@@ -1,7 +1,10 @@
-// Jenkins counterpart of .github/workflows/drift.yml (CI-03): the live contract against the tracked
-// digest, the known-gap lane, the published cases on changed operations and every published case,
-// against the Petstore. A contract that moved fails the build after the lanes have run, so the
-// report shows both. What each step does and why: docs/ci.md (Jenkins).
+// Jenkins counterpart of .github/workflows/drift.yml (CI-03, CI-17), one stage per pack: the live
+// contract against the tracked digest, the known-gap lane, the published cases on changed operations
+// and every published case, against the Petstore and VAmPI; the digest alone for Keycloak. A
+// contract that moved fails its stage after the lanes have run, so the report shows both. Each
+// stage fails on its own (catchError), so the next pack's stage still runs and the build fails when
+// any of them did; a pack's reports are reports/drift/<pack>-<step>.txt. What each step does and
+// why: docs/ci.md (Jenkins).
 //
 // Agent requirements and plugins: the same as the Jenkinsfile next to this one.
 
@@ -31,6 +34,7 @@ def nativePath(String path) {
 /** Runs an npm script with its output in reports/drift/<name>.txt, prints it and returns the exit code. */
 def captured(String name, String npmScript) {
   String file = "reports/drift/${name}.txt"
+  writeFile(file: 'reports/drift/.keep', text: '')
   int status = shell(returnStatus: true, "npm run --silent ${npmScript} > ${nativePath(file)} 2>&1")
   echo readFile(file)
   return status
@@ -53,7 +57,7 @@ pipeline {
 
   parameters {
     string(name: 'AGENT_LABEL', defaultValue: '', description: 'Label of the agent that runs the build; empty means any agent.')
-    string(name: 'CONTRACT_ENV', defaultValue: '', description: 'qa-config environment whose contract the digest is compared with; empty means the active one.')
+    string(name: 'CONTRACT_ENV', defaultValue: '', description: 'qa-config environment whose petstore contract the digest is compared with; empty means the active one. VAmPI and Keycloak always use the active one.')
     string(name: 'API_KEY_CREDENTIALS_ID', defaultValue: '', description: 'Secret-text credential with the API key. Empty: a random key per build, which the Petstore accepts.')
     string(name: 'PETSTORE_PORT', defaultValue: '', description: 'Host port for the Petstore container when 8080 is taken (for example by Jenkins itself); the API URLs follow it.')
     string(name: 'PETSTORE_BASE_URL', defaultValue: '', description: 'Overrides the base URL of the petstore pack (exported as QA_PETSTORE_BASE_URL), e.g. http://host.docker.internal:8080/api/v3 when the agent runs in a container.')
@@ -88,46 +92,110 @@ pipeline {
     stage('Drift (petstore)') {
       steps {
         script {
-          writeFile(file: 'reports/drift/.keep', text: '')
-          withApiEnvironment {
-            timeout(time: 5, unit: 'MINUTES') {
-              shell 'npm run petstore:up'
-            }
+          catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+            withApiEnvironment {
+              timeout(time: 5, unit: 'MINUTES') {
+                shell 'npm run petstore:up'
+              }
 
-            String contract = setting('CONTRACT_ENV')
-            List<String> contractEnv = contract ? ["QA_ENV=${contract}"] : []
-            int digest = 0
-            withEnv(contractEnv) {
-              digest = captured('digest', 'contract:digest:live -- --service petstore')
-            }
-            // 0: no structural drift. 1: drift, recorded; the build fails after the lanes.
-            // Anything else: the contract could not be compared, which stops the build now.
-            if (digest > 1) {
-              error("The live contract could not be compared with the tracked digest (exit ${digest}).")
-            }
+              String contract = setting('CONTRACT_ENV')
+              List<String> contractEnv = contract ? ["QA_ENV=${contract}"] : []
+              int digest = 0
+              withEnv(contractEnv) {
+                digest = captured('petstore-digest', 'contract:digest:live -- --service petstore')
+              }
+              // 0: no structural drift. 1: drift, recorded; the stage fails after the lanes.
+              // Anything else: the contract could not be compared, which stops the stage now.
+              if (digest > 1) {
+                error("The live contract could not be compared with the tracked digest (exit ${digest}).")
+              }
 
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              if (captured('known-gap', 'lanes:known-gap -- --service petstore') != 0) {
-                error('The known-gap lane failed.')
+              catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                if (captured('petstore-known-gap', 'lanes:known-gap -- --service petstore') != 0) {
+                  error('The known-gap lane failed.')
+                }
+              }
+              if (digest == 1) {
+                withEnv(contractEnv) {
+                  catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    if (captured('petstore-published-changed', 'lanes:published:changed:live -- --service petstore') != 0) {
+                      error('The published cases on changed operations failed.')
+                    }
+                  }
+                }
+              }
+              catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                if (captured('petstore-published', 'lanes:published -- --service petstore') != 0) {
+                  error('The published-case lane failed.')
+                }
+              }
+
+              if (digest == 1) {
+                error('The live contract moved. Review the change, then refresh the pack contract and its digest in a pull request (docs/ci.md).')
               }
             }
-            if (digest == 1) {
-              withEnv(contractEnv) {
+          }
+        }
+      }
+    }
+
+    // VAmPI's contract is the document its own container serves, so the container is up for the
+    // digest as well as for the lanes. The contract environment parameter is the Petstore's: this
+    // stage uses the active environment.
+    stage('Drift (vampi)') {
+      steps {
+        script {
+          catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+            withVampiUsers {
+              timeout(time: 5, unit: 'MINUTES') {
+                shell 'npm run vampi:up'
+              }
+
+              int digest = captured('vampi-digest', 'contract:digest:live -- --service vampi')
+              if (digest > 1) {
+                error("The live contract could not be compared with the tracked digest (exit ${digest}).")
+              }
+
+              catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                if (captured('vampi-known-gap', 'lanes:known-gap -- --service vampi') != 0) {
+                  error('The known-gap lane failed.')
+                }
+              }
+              if (digest == 1) {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                  if (captured('published-changed', 'lanes:published:changed:live -- --service petstore') != 0) {
+                  if (captured('vampi-published-changed', 'lanes:published:changed:live -- --service vampi') != 0) {
                     error('The published cases on changed operations failed.')
                   }
                 }
               }
-            }
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-              if (captured('published', 'lanes:published -- --service petstore') != 0) {
-                error('The published-case lane failed.')
+              catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                if (captured('vampi-published', 'lanes:published -- --service vampi') != 0) {
+                  error('The published-case lane failed.')
+                }
+              }
+
+              if (digest == 1) {
+                error('The live contract moved. Review the change, then refresh the pack contract and its digest in a pull request (docs/ci.md).')
               }
             }
+          }
+        }
+      }
+    }
 
+    // Keycloak's contract is the document keycloak.org publishes for the pinned release, so the
+    // digest needs neither the container nor the realm's client credentials, which this pipeline
+    // does not have; the pack's cases run in GitHub Actions only (docs/ci.md#jenkins).
+    stage('Drift (keycloak)') {
+      steps {
+        script {
+          catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+            int digest = captured('keycloak-digest', 'contract:digest:live -- --service keycloak')
             if (digest == 1) {
-              error('The live contract moved. Review the change, then refresh the pack contract and its digest in a pull request (docs/ci.md).')
+              error('The published contract moved. Review the change, then refresh the pack contract and its digest in a pull request (docs/ci.md).')
+            }
+            if (digest > 1) {
+              error("The published contract could not be compared with the tracked digest (exit ${digest}).")
             }
           }
         }
@@ -147,12 +215,14 @@ pipeline {
     failure {
       script {
         shell(returnStatus: true, "docker compose logs --no-color petstore > ${nativePath('reports/petstore.log')} 2>&1")
-        archiveArtifacts(artifacts: 'reports/petstore.log', allowEmptyArchive: true)
+        shell(returnStatus: true, "docker compose logs --no-color vampi-secure vampi-vulnerable > ${nativePath('reports/vampi.log')} 2>&1")
+        archiveArtifacts(artifacts: 'reports/petstore.log, reports/vampi.log', allowEmptyArchive: true)
       }
     }
     cleanup {
       script {
         shell(returnStatus: true, 'npm run petstore:down')
+        shell(returnStatus: true, 'npm run vampi:down')
       }
     }
   }
@@ -188,5 +258,20 @@ def withApiEnvironment(Closure body) {
         body()
       }
     }
+  }
+}
+
+// The users behind VAmPI's actors user-a and user-b (qa-config, `login` auth), as in the Jenkinsfile
+// next to this one: throwaway values per build, because the pack registers them on a fresh
+// container. No step prints them, and they open nothing outside this build's own containers.
+def withVampiUsers(Closure body) {
+  Closure word = { UUID.randomUUID().toString().replace('-', '').take(12) }
+  withEnv([
+    "VAMPI_USER_A_NAME=qa-a-${word()}",
+    "VAMPI_USER_A_PASSWORD=${word()}${word()}",
+    "VAMPI_USER_B_NAME=qa-b-${word()}",
+    "VAMPI_USER_B_PASSWORD=${word()}${word()}",
+  ]) {
+    body()
   }
 }

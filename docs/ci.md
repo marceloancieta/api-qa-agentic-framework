@@ -13,7 +13,7 @@ and `drift.yml` runs also exist as Jenkins pipelines ([Jenkins](#jenkins)).
 | Workflow | Trigger | Jobs |
 |---|---|---|
 | `.github/workflows/ci.yml` | `pull_request`, `push` to `main` | `title` (pull requests only), `gates`, then `e2e (petstore)`, `e2e (vampi)` and `e2e (keycloak)` |
-| `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift (petstore)` |
+| `.github/workflows/drift.yml` | daily `schedule`, `workflow_dispatch` | `drift (petstore)`, `drift (vampi)`, `drift (keycloak)` |
 | `.github/workflows/dast.yml` | weekly `schedule`, `workflow_dispatch`, `pull_request` | `dast (vampi secure)`, `dast (vampi vulnerable)`, `dast (petstore)` |
 | `.github/workflows/perf.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `perf (petstore)`, `perf (vampi)` |
 | `.github/workflows/diff.yml` | weekly `schedule`, `workflow_dispatch`, pull requests that touch its `paths` | `diff (petstore)` |
@@ -43,7 +43,9 @@ flowchart LR
   end
 
   subgraph driftWf["drift.yml"]
-    drift["drift<br/>live digest, known gaps,<br/>published cases"]
+    drift["petstore<br/>live digest, known gaps,<br/>published cases"]
+    driftVampi["vampi<br/>live digest, known gaps,<br/>published cases"]
+    driftKeycloak["keycloak<br/>published digest"]
   end
 
   subgraph dastWf["dast.yml"]
@@ -65,6 +67,8 @@ flowchart LR
   pr --> gatesJob
   push --> gatesJob
   daily --> drift
+  daily --> driftVampi
+  daily --> driftKeycloak
   weekly --> dastSecure
   weekly --> dastVuln
   weekly --> dastPet
@@ -171,21 +175,40 @@ A new push to a pull request cancels the run it supersedes. Runs on `main` alway
 ## `drift.yml`
 
 The contract can change without notice (L-28), and published cases are re-run when it does and
-periodically even when it does not (L-31).
+periodically even when it does not (L-31). Each pack with a tracked digest has a job of its own
+(CI-17), so a drift or a failing lane shows under the pack's name and does not hide another pack's
+result.
+
+| Job | The live contract it compares | What it runs |
+|---|---|---|
+| `drift (petstore)` | the `spec_url` of the pack's entry in the default environment, or in `QA_DRIFT_CONTRACT_ENV` ([which contract](#which-contract-is-compared)) | the steps below, against the Petstore it starts |
+| `drift (vampi)` | the document the VAmPI container serves (`spec_url` in the default environment), from the image pinned by digest in `docker-compose.yml` | the same steps, against VAmPI's secure mode; it starts VAmPI for the digest too, with throwaway users as in [`e2e-vampi`](#e2e-vampi) |
+| `drift (keycloak)` | the document keycloak.org publishes for the pinned release (`spec_url`); the container does not serve one | the digest step only |
 
 | Step | Exit and effect |
 |---|---|
-| `npm run petstore:up` | The lanes run against it. |
-| `npm run contract:digest:live -- --service petstore` | Compares the contract the pack's `spec_url` serves with `docs/discovery/<pack>-digest.json`. 0: no structural drift. 1: drift, recorded; the job fails in the last step, after both lanes. 2: could not compare (no digest, contract not reachable); the step fails at once. |
-| `npm run lanes:known-gap -- --service petstore` | Each armed known gap alone. A gap that starts passing, runs without reaching its arm, errors or does not run fails the job, for investigation before the arm is removed. |
-| `npm run lanes:published:changed:live -- --service petstore` | Only when the digest moved: the published cases whose operations changed in the compared contract, first, so their results name what the move broke. |
-| `npm run lanes:published -- --service petstore` | Every published case, zero retries. |
+| `npm run petstore:up` or `npm run vampi:up` | The lanes run against it. |
+| `npm run contract:digest:live -- --service <pack>` | Compares the contract the pack's `spec_url` serves with `docs/discovery/<pack>-digest.json`. 0: no structural drift. 1: drift, recorded; the job fails in the last step, after the lanes. 2: could not compare (no digest, contract not reachable); the step fails at once. |
+| `npm run lanes:known-gap -- --service <pack>` | Each armed known gap alone. A gap that starts passing, runs without reaching its arm, errors or does not run fails the job, for investigation before the arm is removed. |
+| `npm run lanes:published:changed:live -- --service <pack>` | Only when the digest moved: the published cases whose operations changed in the compared contract, first, so their results name what the move broke. |
+| `npm run lanes:published -- --service <pack>` | Every published case, zero retries. |
 | Fail on contract drift | When the digest moved, prints what moved and fails the job. |
 
-The two lanes run whatever the digest step found, because they need only the Petstore. The job
-summary shows the digest report and the lane tables. A drift is never only a warning: the run turns
-red, and an annotation points to the summary. Text-only drift (operation descriptions) is printed
-but does not fail, as in `contract:digest:live` itself.
+The lanes run whatever the digest step found, because they need only the pack's container. A lane
+with nothing to select passes: VAmPI has no armed known gap and no published case yet, so its lanes
+start doing work when its cases are published, with no change to the workflow. The job summary shows
+the digest report and the lane tables. A drift is never only a warning: the run turns red, and an
+annotation points to the summary. Text-only drift (operation descriptions) is printed but does not
+fail, as in `contract:digest:live` itself.
+
+`drift (keycloak)` starts no container and needs no credentials. Its contract URL is external and
+pinned to a release, so the document moves only if keycloak.org republishes that release's
+document, and the job exists to notice that. The API's behaviour is the pinned image's, which
+changes only in a pull request, where `e2e (keycloak)` runs the whole pack; the pack has no armed
+known gap and no published case, so the lanes would start a container and the realm's credentials
+to select nothing. When it has some, add the lanes as in `drift (vampi)`, with the credentials
+step of `e2e (keycloak)`. If keycloak.org cannot be reached, the step exits 2 and the job fails
+with that reason.
 
 To clear a drift, review the change, update the pack's contract and refresh the digest
 (`npm run contract:digest -- --service <pack>`) in a pull request. A behaviour change goes through
@@ -194,13 +217,15 @@ the intake phase before any case changes.
 ### Which contract is compared
 
 By default, the `spec_url` of the pack's entry in the active environment is compared. For the
-example pack that is the local container, whose image is pinned by tag and digest, so its contract
-changes only when the image in `docker-compose.yml` changes. To watch a deployed contract, set the repository
-variable `QA_DRIFT_CONTRACT_ENV`, or the `contract_env` input of a manual run, to another qa-config
-environment, such as `public`. The digest step and the changed-cases lane read it; the selected
-cases then run on that environment, where a pack whose `allow_writes` is false there skips the
-write cases with their reason. The known-gap lane and the full published lane stay on the default
-environment, which allows writes.
+Petstore and VAmPI that is the local container, whose image is pinned by digest, so their
+contract changes only when the image in `docker-compose.yml` changes. To watch the Petstore's
+deployed contract, set the repository variable `QA_DRIFT_CONTRACT_ENV`, or the `contract_env` input
+of a manual run, to another qa-config environment, such as `public`. Only `drift (petstore)` reads
+it, because the other environments of the example configure no VAmPI or Keycloak entry; the other
+two jobs always compare the default environment. The digest step and the changed-cases lane read
+it; the selected cases then run on that environment, where a pack whose `allow_writes` is false
+there skips the write cases with their reason. The known-gap lane and the full published lane stay
+on the default environment, which allows writes.
 
 ### Changed cases versus all published cases
 
@@ -289,9 +314,9 @@ None are required for the Petstore.
 
 | Name | Kind | Used by | Meaning |
 |---|---|---|---|
-| `API_KEY` | secret, optional | `e2e`, `drift` | The API key of a real API. Without it, each run generates a random value (`openssl rand -hex 12`) and masks it. The Petstore accepts any non-empty value. A literal value is never written in a workflow. |
-| `QA_DRIFT_CONTRACT_ENV` | variable, optional | `drift` | The qa-config environment whose contract the digest step compares. Empty: the default environment. |
-| `contract_env` | `workflow_dispatch` input | `drift` | The same, for one manual run. It takes precedence over the variable. |
+| `API_KEY` | secret, optional | `e2e`, `drift (petstore)` | The API key of a real API. Without it, each run generates a random value (`openssl rand -hex 12`) and masks it. The Petstore accepts any non-empty value. A literal value is never written in a workflow. |
+| `QA_DRIFT_CONTRACT_ENV` | variable, optional | `drift (petstore)` | The qa-config environment whose Petstore contract the digest step compares. Empty: the default environment. |
+| `contract_env` | `workflow_dispatch` input | `drift (petstore)` | The same, for one manual run. It takes precedence over the variable. |
 | `ALLURE_TOKEN` | secret, optional | `e2e` | Report the run to Allure TestOps ([below](#reporting-to-allure-testops)). |
 | `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID` | variables, with `ALLURE_TOKEN` | `e2e` | The TestOps instance and project. |
 
@@ -339,6 +364,8 @@ Each job uploads one artifact, even when a step failed, and keeps it for 14 days
 | `e2e-vampi-reports-<attempt>` | the same for the VAmPI job, plus `reports/vampi-vulnerable.json` (the vulnerable-mode run the detection reads) and the VAmPI log after a failure |
 | `e2e-keycloak-reports-<attempt>` | `allure-results/`, `playwright-report/` and `reports/` of the Keycloak job, with the Keycloak log after a failure |
 | `drift-reports-<attempt>` | `reports/drift/` (digest report and lane tables), `reports/allure-report/index.html`, the Allure and Playwright output of the last lane run, and the Petstore log after a failure |
+| `drift-vampi-reports-<attempt>` | the same for the VAmPI job, with the VAmPI log after a failure |
+| `drift-keycloak-reports-<attempt>` | `reports/drift/digest.txt`, the Keycloak job's digest report |
 | `dast-<mode>-<attempt>`, `dast-petstore-<attempt>`, `perf-<pack>-<attempt>`, `diff-petstore-<attempt>` | each lane job's `reports/` (`reports/diff/` for the differential job), described in its section above |
 
 ## Adapting to a new pack or environment
@@ -356,7 +383,10 @@ Each job uploads one artifact, even when a step failed, and keeps it for 14 days
   the lane needs `allow_writes: true` and restarts the service afterwards when the entry has a
   `recovery`. For the differential lane, add a reference deployment (a pinned compose service in the
   `diff` profile, or a deployed environment), a qa-config environment with an entry for the pack at
-  its URL, and the pack's `diff.json`; then copy the `diff (petstore)` job. To make the new jobs
+  its URL, and the pack's `diff.json`; then copy the `diff (petstore)` job. For the daily drift
+  check, copy `drift (vampi)` when the container serves the pack's contract, or
+  `drift (keycloak)` when `spec_url` is a published document, and the matching stage of
+  `Jenkinsfile.drift`. To make the new jobs
   required, add the names they report to the ruleset and its test
   ([required checks](#required-checks)).
 - **A deployed environment.** Drop the start and stop steps, and set `QA_ENV` on the job to the
@@ -387,7 +417,8 @@ Stop your own Petstore first (`npm run petstore:down`): the job's container take
 ```sh
 act push -j gates                  # the gates on Linux
 act push -j e2e                    # gates, then the suite, the destructive lane, report, quality gate
-act workflow_dispatch -j drift     # the daily drift run, on demand
+act workflow_dispatch -j drift     # the daily drift run of the Petstore, on demand
+act workflow_dispatch -j drift-keycloak  # Keycloak's published contract against its digest
 act push -j gitleaks               # the secret scan over the full history
 act pull_request -j key            # the PR review's key check: skips the review without a key
 ```
@@ -397,7 +428,7 @@ What `act` does not reproduce:
 | Job or step | Why |
 |---|---|
 | Upload reports | `act`'s artifact server lacks the `upload-artifact` v7 protocol; the step is skipped when `ACT` is set. The reports stay in the job container. |
-| `ci.yml` `e2e-vampi`, `e2e-keycloak` | not tried under `act`: both VAmPI modes and Keycloak publish their ports on `127.0.0.1` only, so `host.docker.internal` does not reach them, and `.actrc` sets no `QA_VAMPI_*` or `QA_KEYCLOAK_*` overrides |
+| `ci.yml` `e2e-vampi`, `e2e-keycloak`, `drift.yml` `drift-vampi` | not tried under `act`: both VAmPI modes and Keycloak publish their ports on `127.0.0.1` only, so `host.docker.internal` does not reach them, and `.actrc` sets no `QA_VAMPI_*` or `QA_KEYCLOAK_*` overrides |
 | `dast.yml`, `perf.yml`, `diff.yml` | not tried under `act`: each starts ZAP, k6 or the reference Petstore with `docker compose` from inside the job, and the reference also binds `127.0.0.1`. Run the lanes on the host instead (`npm run lanes:dast`, `lanes:perf`, `lanes:diff`) |
 | `codeql.yml` | needs GitHub code scanning to receive the results |
 | `pr-review.yml` `review` | needs `ANTHROPIC_API_KEY` and a pull request on GitHub to read and comment on |
@@ -412,12 +443,14 @@ under `act` as a defect, repeat the suite with `npm run lanes:flake`.
 
 `Jenkinsfile` and `Jenkinsfile.drift` at the repository root run the steps of `ci.yml` and
 `drift.yml` for the same reasons, as declarative pipelines; the VAmPI stage differs (below). The
-Keycloak pack and the DAST, performance and differential lanes run only in GitHub Actions.
+Keycloak pack's suite and the DAST, performance and differential lanes run only in GitHub Actions:
+the pipelines have no step that generates the realm's client credentials, so the only Keycloak
+stage is the drift one, which compares the published contract and needs none.
 
 | File | Trigger | Stages |
 |---|---|---|
 | `Jenkinsfile` | the job's own triggers (a webhook, SCM polling or a schedule, [below](#scheduled-builds)) | Node, Install, Gates, `e2e (petstore)`, `e2e (vampi)` (the secure-mode suite only, without the BOLA detection; it runs after the test-management report, coverage and quality gate of the Petstore stage, so a VAmPI failure fails the build and its results join the archived report, but neither the quality gate nor the test-management report covers them) |
-| `Jenkinsfile.drift` | `cron('H 5 * * *')` | Node, Install, `Drift (petstore)` |
+| `Jenkinsfile.drift` | `cron('H 5 * * *')` | Node, Install, `Drift (petstore)`, `Drift (vampi)`, `Drift (keycloak)`: the jobs of [`drift.yml`](#driftyml), one stage each. A stage that fails marks itself and the build failed and the next stage still runs; each writes its reports as `reports/drift/<pack>-<step>.txt` |
 
 **Agent.** Any agent with git, Node at the major version in `.nvmrc` on the `PATH` (the Node stage
 checks it) and Docker with the compose plugin. Steps run with `sh` on Linux agents and `bat` on
@@ -441,7 +474,7 @@ parameter is, so a variable named exactly like a parameter would be hidden.
 | `API_KEY_CREDENTIALS_ID` | a secret-text credential with the API key; empty generates one per build, which the Petstore accepts |
 | `PETSTORE_PORT` | host port for the Petstore container when 8080 is taken, for example by Jenkins itself on the same machine; the API URLs follow it |
 | `PETSTORE_BASE_URL`, `PETSTORE_SPEC_URL` | explicit URLs of the `petstore` pack, exported as `QA_PETSTORE_BASE_URL` and `QA_PETSTORE_SPEC_URL`, for an agent that runs in a container and reaches the Petstore through `host.docker.internal` |
-| `CONTRACT_ENV` | drift only: the qa-config environment whose contract is compared |
+| `CONTRACT_ENV` | drift only: the qa-config environment whose Petstore contract is compared; the VAmPI and Keycloak stages use the active one |
 | `PUBLISH_ALLURE` | CI only, on by default: publish `allure-results` with the Allure plugin, which shows the report on the build page. On a Jenkins without the plugin the build prints a notice and carries on; set it to `false` to drop the notice. The single-file report is archived either way |
 | `ALLURE_TOKEN_CREDENTIALS_ID`, `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID` | CI only: report the run to Allure TestOps ([reporting to Allure TestOps](#reporting-to-allure-testops)) |
 
