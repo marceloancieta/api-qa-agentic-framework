@@ -5,6 +5,84 @@ All notable changes to this project are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and each section is generated from the
 commit history by `scripts/changelog.mjs`.
 
+## [0.6.0] - 2026-10-20
+
+### Upgrading from 0.5.0
+
+- **Taking this release.** A copy on `v0.5.0` or earlier has no `framework:update` yet, so it takes
+  this release by hand, as step 5 of the adopt guide shows ("A copy on `v0.5.0` or earlier"), and
+  writes `v0.6.0` into `.framework-release`. From then on `npm run framework:update -- --to
+  v<x.y.z>` takes each later release, starting from that file.
+- **More required checks.** `.github/rulesets/main.json` now requires `e2e (vampi)`,
+  `dast (vampi secure)`, `dast (vampi vulnerable)` and `dast (petstore)` as well, and `dast.yml`
+  runs on every pull request so that they always report. The file changes nothing on GitHub:
+  update the ruleset there yourself (adopt guide, step 2), or leave it as it is. A private
+  repository on a free account has no rulesets at all.
+- **A third example pack, Keycloak** (`services/keycloak/`, `oauth2_client_credentials`). The
+  release adds the pack, its skill, the `keycloak` compose service, its qa-config entries, the
+  `KEYCLOAK_*` variables in `.env.example` and the `e2e (keycloak)` job in `ci.yml`, which is not a
+  required check and generates its credentials per run. Copy the new variables into your `.env` to
+  run it locally, or remove the pack with `npm run remove:service -- --name keycloak`
+  (`--dry-run` first).
+- **A credential the caller set is never renewed.** A request sent with `bearer` or its own
+  `Authorization` header that answers `401` is returned as it is, even when the token was one the
+  auth strategy issued earlier; only a request the strategy decorated is sent again with a renewed
+  token. A spec that passed a token it kept and counted on the renewal now sees the `401`.
+- **The DAST lane starts ZAP with `-silent`.** A scan downloads no add-on and calls none of ZAP's
+  online services, so it runs only the rules the pinned image holds: the beta passive rules (such as
+  90004, Cross-Origin-Resource-Policy, and 10049, cacheability) no longer appear in the reports,
+  and a quality-gate count of low alerts can drop.
+- **New scripts.** `npm run release:check` runs the checks before a release tag (clean tree,
+  versions, the backlog section, `npm audit` for critical advisories, the history scans) and stops at
+  the first failure; for your own releases, its backlog check wants a `## v<x.y.z>` section with no
+  row left in it and "Released as `v<x.y.z>`". `npm run framework:update` is above.
+- **Publishing workflow.** `.github/workflows/publish.yml` publishes `create-api-qa` from a release
+  tag, only in the framework's repository; in a copy its job is skipped. Delete it together with
+  `packages/create-api-qa/`, as the adopt guide says.
+
+### Features
+
+- **adoption:** take a later framework release with one command (#83) (FUT-14) `bc3b585`
+- **keycloak:** a third example pack with OAuth 2.0 client credentials (#74) (FUT-15) `81bf0c9`
+- **release:** one release check before the tag (#70) (GATE-24) `76070f2`
+
+### Fixes
+
+- **core:** a credential the caller set is never renewed (#81) (CORE-19) `7e4909b`
+- **dast:** start ZAP silent so a scan does not depend on ZAP's online services (#93) (GATE-26) `226c3ac`
+- **deps:** take the patched handlebars and audit the lockfile before a release (#91) (CI-12) `6fd928b`
+- **scripts:** git run by scripts and tests ignores a calling hook's repository (#72) (GATE-25) `0f9b0b1`
+
+### Other
+
+- **ci(release):** publish create-api-qa from the release tag with npm trusted publishing (#87) (CI-10) `fd0098c`
+- **ci(ruleset):** require the VAmPI end-to-end and the DAST checks (#68) (CI-11) `be9453e`
+- **docs(adoption):** fix the adoption guide from a walk on real repositories (#89) (FUT-13) `d53e6cb`
+- **docs(backlog):** plan v0.6.0 (#66) (DOC-11) `1f8354c`
+- **docs(backlog):** record their closing commits (#69) (DOC-11, CI-11) `ab1a8c9`
+- **docs(backlog):** records its closing commit and opens GATE-25 (#71) (GATE-24) `cbc0f8f`
+- **docs(backlog):** records its closing commit (#73) (GATE-25) `ec0fd34`
+- **docs(backlog):** records its closing commit (#80) (FUT-15) `5ea3d06`
+- **docs(backlog):** records its closing commit (#82) (CORE-19) `97f20d6`
+- **docs(backlog):** records its closing commit (#84) (FUT-14) `b8b6f8b`
+- **docs(backlog):** publishes its cases and records its closing commit (#86) (PET-05) `ae977e1`
+- **docs(backlog):** records its closing commit (#88) (CI-10) `72be7bc`
+- **docs(backlog):** records its closing commit (#90) (FUT-13) `c36ee50`
+- **docs(backlog):** records its closing commit (#92) (CI-12) `a4117d6`
+- **docs(backlog):** records its closing commit (#94) (GATE-26) `58d0c7a`
+- **docs(contributing):** read the published package back outside the repository (#67) (DOC-11) `1d7598b`
+- **docs(guides):** pre-release review of v0.6.0 (#95) (DOC-12) `3eaa723`
+- **docs(guides):** second pass of the pre-release review of v0.6.0 (#97) (DOC-12) `538b005`
+- **docs(keycloak):** intake of the Users feature (#75) (FUT-15) `b74b6fc`
+- **docs(keycloak):** design of the Users cases (#76) (FUT-15) `e03112d`
+- **test(keycloak):** specs of the Users cases (#79) (FUT-15) `da83a73`
+- **test(petstore):** specs of the pet update, form update and image cases (#85) (PET-05) `cc6bca2`
+
+### Not conventional
+
+- build(deps-dev): Bump the npm-minor-patch group with 4 updates (#77) `dd5d8fe` (no backlog id after the colon)
+- ci(deps): Bump anthropics/claude-code-action from 1.0.236 to 1.0.242 in the actions-minor-patch group (#78) `adedaa4` (no backlog id after the colon)
+
 ## [0.5.0] - 2026-10-16
 
 ### Upgrading from 0.4.0
