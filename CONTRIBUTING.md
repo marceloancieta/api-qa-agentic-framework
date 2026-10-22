@@ -28,13 +28,15 @@ writes it.
    scope names the area touched. Dependency updates opened by
    Dependabot are the one exception: they carry no backlog id
    ([CI security](docs/ci-security.md#dependabot)).
-3. **Run the gates before committing:**
+3. **The gates must pass before a push:**
 
    ```sh
    npm run gates
    ```
 
-   They need no API and must pass. What they run is described in
+   The `pre-push` hook runs them ([git hooks](#git-hooks)), so running them by hand right before a push
+   only repeats the same check; run them earlier when you want the result sooner. They need no API.
+   What they run is described in
    [quality gates](docs/quality-gates.md). When `format:check` fails, `npm run format` rewrites the
    files. When you change a spec, also run its pack against that pack's
    local service (`npm run petstore:up` or `npm run vampi:up`, then

@@ -79,4 +79,6 @@ Registered in `.claude/settings.json` and described in `.claude/hooks/README.md`
 - Read with the Read, Grep and Glob tools rather than shell commands, and read only the slice you
   need.
 - Write files with the Write and Edit tools, not heredocs. Throwaway scripts go in the scratchpad.
-- Run `npm run gates` before committing, and show the evidence when reporting that something works.
+- `npm run gates` must pass before a push; the `pre-push` hook runs it once, so do not run it again
+  just before pushing. Run it earlier, in the background, when a result is needed sooner, and show
+  the evidence when reporting that something works.
