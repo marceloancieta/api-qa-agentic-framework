@@ -49,6 +49,35 @@ test('a missing route parameter fails by name', async () => {
   await expect(new Users(fakeContext([])).broken()).rejects.toThrow(/needs parameter "username"/);
 });
 
+class Search extends BaseClient {
+  find(params: Record<string, string | readonly string[]>) {
+    return this.get('items', { params });
+  }
+}
+
+test('an array query value repeats the parameter in order; plain values pass through', async () => {
+  const sent: unknown[] = [];
+  const context = {
+    fetch: async (path: string, options: { params: unknown }) => {
+      sent.push(options.params);
+      return {
+        url: () => new URL(path, BASE).toString(),
+        status: () => 200,
+        headers: () => ({}),
+        text: async () => '',
+      } as unknown as APIResponse;
+    },
+  } as unknown as APIRequestContext;
+  const search = new Search(context);
+  await search.find({ tags: ['b', 'a', 'b', ''], limit: '5' });
+  await search.find({ tags: 'b' });
+
+  expect(String(sent[0])).toBe('tags=b&tags=a&tags=b&tags=&limit=5');
+  expect(sent[1]).toEqual({ tags: 'b' });
+  await expect(search.find({ tags: [] })).rejects.toThrow(/"tags" is an empty array/);
+  expect(sent).toHaveLength(2);
+});
+
 // A context whose API accepts only the token `fresh` and answers 401 otherwise, recording each header.
 function expiringContext(sent: string[]): APIRequestContext {
   return {

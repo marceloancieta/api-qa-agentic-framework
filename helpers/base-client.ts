@@ -92,7 +92,7 @@ export class BaseClient {
       const response = await this.context.fetch(path, {
         method,
         headers: outgoing.headers,
-        params: outgoing.params,
+        params: wireParams(outgoing.params),
         data,
         timeout: options.timeout,
       });
@@ -146,6 +146,25 @@ export interface Route {
 }
 
 type Target = string | Route;
+
+// A parameter given as an array is repeated (`?tags=a&tags=b`), which a plain object cannot express.
+function wireParams(
+  params: QueryParams,
+): Record<string, string | number | boolean> | URLSearchParams {
+  const entries = Object.entries(params);
+  if (!entries.some(([, value]) => Array.isArray(value))) {
+    return params as Record<string, string | number | boolean>;
+  }
+  const query = new URLSearchParams();
+  for (const [name, value] of entries) {
+    // An empty array would leave the parameter out silently, a different partition than intended.
+    if (Array.isArray(value) && value.length === 0) {
+      throw new Error(`Query parameter "${name}" is an empty array; pass undefined to omit it.`);
+    }
+    for (const item of Array.isArray(value) ? value : [value]) query.append(name, String(item));
+  }
+  return query;
+}
 
 function expand(route: Route, transform: (value: string, name: string) => string): string {
   return route.template.replace(/\{([^}]+)\}/g, (_match, name: string) => {

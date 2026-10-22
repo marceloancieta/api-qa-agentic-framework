@@ -1,5 +1,5 @@
 {
-  "next": 12,
+  "next": 15,
   "issues": {
     "LOCAL-1": {
       "title": "Petstore v3 /user [OpGroup]: after a user is created without a username, every lookup of an unknown username answers 500",
@@ -139,6 +139,45 @@
       "category": "open",
       "comments": [
         "Detail: every other field of the pet is kept, and the photo URLs present before the upload stay\n(TC-PET-47's state check passes apart from the answer's shape). Each upload appends one more path.\n`additionalMetadata` is visible nowhere. An upload without a body answers `400` `No file uploaded`,\na `text/plain` upload `415`, and an unknown pet `404`; those are covered by other cases and are not\npart of this issue.\n"
+      ]
+    },
+    "LOCAL-12": {
+      "title": "Petstore v3 GET /pet/findByStatus [Endpoint]: several statuses in one request are refused as a comma list, and repeated ones use and validate only the first",
+      "body": "## Error\n\n`findByStatus` does not take several statuses in one request, as its description promises: a\ncomma list is refused, and with repeated parameters only the first value is used and validated.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `GET /pet/findByStatus?status=<STATUS>,<OTHER_STATUS>` | a pet with each status | `400` `input-error` | `200`, `400` |\n| `GET /pet/findByStatus?status=<STATUS>&status=<OTHER_STATUS>` | same | `200`, only pets with `<STATUS>`; the `<OTHER_STATUS>` pet is missing | `200`, `400` |\n| `GET /pet/findByStatus?status=<STATUS>&status=<OUT_OF_SET_STATUS>` | same | `200`, the second value is never validated | `400` |\n\n## Expected\n\nThe description says \"Multiple status values can be provided with comma separated strings\". Both\nforms list the pets of every requested status, and a value outside `Pet.status` in any position\nanswers `400`.\n\n## Suggested fix\n\nRead the `status` parameter as a list (split the comma form, keep every repeated value), validate\neach element against the value set, and filter by any of them.\n\n## Reproduce\n\n1. `POST /pet` with a pet `<PET_ID>` of status `<STATUS>` and a pet `<OTHER_PET_ID>` of status `<OTHER_STATUS>`.\n2. `GET /pet/findByStatus?status=<STATUS>&status=<OTHER_STATUS>`: `200` without `<OTHER_PET_ID>`.\n3. `GET /pet/findByStatus?status=<STATUS>,<OTHER_STATUS>`: `400`.\n\n## Environment\n\nLocal environment, Petstore v3 (`swaggerapi/petstore3:1.0.28`), 2026-10-22. Measured by the spec run\nof the Petstore pack on pets it created (TC-PET-57 asserts both multi-value forms and the\nvalidation of every value); contract note PN-10. Class `contract` (the published description\ncontradicts the service), with `validation` (the second value is not checked). Severity `S3`: wrong\ndata in a read, and clients can route around it with one request per status. Cause measured, not\nread in code.\n",
+      "labels": [
+        "class:contract",
+        "severity:S3"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Supporting detail.\n\n- First measured read-only at intake on 2026-10-10 (contract note PN-10: `?status=available,sold`\n  answers `400`; `?status=available&status=lost` answers `200`). Confirmed on 2026-10-22 by the spec\n  run on two pets the case created, then deleted (each delete confirmed by a `404` read).\n- The out-of-set second value answering `200` shows the parameter is bound as a single value: the\n  enum check runs on the first element only.\n- Sibling: `GET /pet/findByTags` also mishandles several values, with a different effect (duplicates\n  and a literal comma match). It has its own issue, since its parameter is not validated against a\n  value set and the fix differs.\n- Affected case: TC-PET-57 (`services/petstore/registry/pet-search.md`), armed as a known gap.\n"
+      ]
+    },
+    "LOCAL-13": {
+      "title": "Petstore v3 GET /pet/findByTags [Endpoint]: repeated tags list a pet once per matching tag, and a comma list returns no pets",
+      "body": "## Error\n\n`findByTags` with several tags in one request answers wrong data: repeated `tags` parameters list a\npet once per matching tag, and a comma list is matched as one literal tag and returns `[]`.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `GET /pet/findByTags?tags=<TAG>&tags=<OTHER_TAG>` | pets with `<TAG>`, with `<OTHER_TAG>`, with both | `200`, the pet with both tags listed twice | `200` |\n| `GET /pet/findByTags?tags=<TAG>,<OTHER_TAG>` | same | `200` `[]` | `200` |\n| `GET /pet/findByTags?tags=<TAG>&tags=<TAG>` | same | `200`, each `<TAG>` pet listed twice | `200` |\n\n## Expected\n\nThe description says \"Multiple tags can be provided with comma separated strings\". Both forms list\nevery pet carrying at least one of the tags, each pet once.\n\n## Suggested fix\n\nSplit the comma form into tags, and collect the matching pets into a set (by id) instead of\nappending the matches of each tag.\n\n## Reproduce\n\n1. `POST /pet` with a pet `<PET_ID>` tagged `<TAG>` and `<OTHER_TAG>`.\n2. `GET /pet/findByTags?tags=<TAG>&tags=<OTHER_TAG>`: `<PET_ID>` appears twice.\n3. `GET /pet/findByTags?tags=<TAG>,<OTHER_TAG>`: `[]`.\n\n## Environment\n\nLocal environment, Petstore v3 (`swaggerapi/petstore3:1.0.28`), 2026-10-22. Measured by the spec run\nof the Petstore pack on pets it created with tags unique to the case (TC-PET-61 asserts each\nmatching pet listed once for both forms); contract note PN-11. Class `logic` (a valid request\nreturns wrong data), with `contract` (the comma form the description promises). Severity `S3`: wrong\ndata in a read. Cause measured, not read in code.\n",
+      "labels": [
+        "class:logic",
+        "severity:S3"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Supporting detail.\n\n- First measured read-only at intake on 2026-10-10 (contract note PN-11: `?tags=tag1,tag2` returns\n  `[]`; `?tags=tag1&tags=tag1` returns every match twice). Confirmed on 2026-10-22 by the spec run on\n  three pets the case created with its own tags, then deleted (each delete confirmed by a `404`\n  read). Because the tags are unique to the case, the answers held only the case's pets.\n- `?tags=<TAG>&tags=` (an empty second value) lists the `<TAG>` pets once each: the contract does not\n  define it, so the case keeps it as the measured baseline.\n- Sibling: `GET /pet/findByStatus` mishandles several values too, with another effect and fix; see\n  its own issue.\n- Affected case: TC-PET-61 (`services/petstore/registry/pet-search.md`), armed as a known gap.\n"
+      ]
+    },
+    "LOCAL-14": {
+      "title": "Petstore v3 parameter validation [Global]: input errors echo the raw value sent and name the Java type",
+      "body": "## Error\n\nParameter input errors echo the raw value the caller sent, injection strings included, and type\nerrors name the Java type the value failed to convert to.\n\n| Request | Starting state | Received | Declared |\n|---|---|---|---|\n| `GET /pet/findByStatus?status=<INJECTION_STRING>` | any | `400` `Input error: query parameter status value <INJECTION_STRING> is not in the allowable values [available, pending, sold]` | `400` |\n| `GET /pet/<INJECTION_STRING>` | any | `400` `Input error: couldn't convert <INJECTION_STRING> to type class java.lang.Long` | `400` |\n| `GET /store/order/<INJECTION_STRING>` | any | same as above | `400` |\n\nOperations covered (every operation with a validated parameter goes through the same message):\n\n| Operation |\n|---|\n| `GET /pet/findByStatus` |\n| `GET /pet/{petId}` |\n| `GET /store/order/{orderId}` |\n\n## Expected\n\nA `400` that names the parameter and the rule it broke (for example \"status must be one of\navailable, pending, sold\"), without the value sent and without implementation type names.\n\n## Suggested fix\n\nChange the input-error message built by the parameter validation layer so it names the parameter\nand the rule only.\n\n## Reproduce\n\n1. `GET /pet/findByStatus?status=<INJECTION_STRING>`: the message contains the string as sent.\n2. `GET /pet/<INJECTION_STRING>`: the message contains the string and `class java.lang.Long`.\n\n## Environment\n\nLocal environment, Petstore v3 (`swaggerapi/petstore3:1.0.28`), 2026-10-22. Measured by the spec run\nof the Petstore pack (TC-PET-58 asserts that the message neither echoes the input nor names an\nimplementation type) and by read-only calls on the siblings; contract note PN-07. Class `exposure`\n(internal details and the raw input reach the caller). Severity `S4`: an error message that shows\ninternal text, stored data unaffected. Level `[Global]`: the same message comes from the validation\nlayer every request passes through, on two resources. Cause measured, not read in code.\n",
+      "labels": [
+        "class:exposure",
+        "severity:S4"
+      ],
+      "status": "open",
+      "category": "open",
+      "comments": [
+        "Supporting detail.\n\n- First measured read-only at intake on 2026-10-10 (contract note PN-07, which also lists the\n  `Server` header, the WADL answer to `OPTIONS` and model class names in body-read errors; those are\n  separate disclosures and stay in the note). Confirmed on 2026-10-22 by the spec run and by\n  read-only calls with an injection string carrying a unique marker: the marker came back verbatim\n  from `findByStatus`, `GET /pet/{petId}` and `GET /store/order/{orderId}`; the last two also named\n  `java.lang.Long`.\n- The answers are JSON (`application/json`), so the echo is not rendered as markup by a browser;\n  the risk is disclosure and log or downstream injection, which keeps it at `S4`.\n- Affected case: TC-PET-58 (`services/petstore/registry/pet-search.md`), armed as a known gap.\n"
       ]
     }
   }

@@ -26,13 +26,28 @@ export class PetClient extends BaseClient {
   }
 
   /**
-   * Any string is accepted so negative cases can send values outside the enum; `undefined` leaves
-   * the parameter out.
+   * Any string is accepted so negative cases can send values outside the enum; an array repeats the
+   * parameter (`?status=a&status=b`); `undefined` leaves it out.
    */
-  findByStatus(status: PetStatus | (string & {}) | undefined): Promise<APIResponse> {
+  findByStatus(
+    status: PetStatus | (string & {}) | readonly string[] | undefined,
+  ): Promise<APIResponse> {
     return status === undefined
       ? this.get('pet/findByStatus')
       : this.get('pet/findByStatus', { params: { status } });
+  }
+
+  /**
+   * `?status=<a>,<b>` with a literal comma, the form the operation's description promises. `params`
+   * would send it encoded (`%2C`), which a server splitting on the delimiter need not treat alike.
+   */
+  findByStatusList(values: readonly string[]): Promise<APIResponse> {
+    return this.get(`pet/findByStatus?status=${commaList(values)}`);
+  }
+
+  /** `?tags=<a>,<b>` with a literal comma, as `findByStatusList` does for statuses. */
+  findByTagsList(tags: readonly string[]): Promise<APIResponse> {
+    return this.get(`pet/findByTags?tags=${commaList(tags)}`);
   }
 
   /**
@@ -43,8 +58,11 @@ export class PetClient extends BaseClient {
     return this.post('pet', { data: body, headers: { 'Content-Type': contentType } });
   }
 
-  /** One `tags` value, sent as given (an empty string included); `undefined` leaves it out. */
-  findByTags(tag: string | undefined): Promise<APIResponse> {
+  /**
+   * One `tags` value, sent as given (an empty string included); an array repeats the parameter
+   * (`?tags=a&tags=b`); `undefined` leaves it out.
+   */
+  findByTags(tag: string | readonly string[] | undefined): Promise<APIResponse> {
     return tag === undefined
       ? this.get('pet/findByTags')
       : this.get('pet/findByTags', { params: { tags: tag } });
@@ -84,3 +102,6 @@ export class PetClient extends BaseClient {
     return this.delete(this.route('pet/{petId}', { petId: id }));
   }
 }
+
+// Each value encoded on its own, joined by a literal comma.
+const commaList = (values: readonly string[]) => values.map(encodeURIComponent).join(',');

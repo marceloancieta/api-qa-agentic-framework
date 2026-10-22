@@ -74,6 +74,8 @@ test.describe('Petstore builders', () => {
     expect(ids.at(-1)?.[1]).toBe(`${UNKNOWN_PET_ID}/1`);
     expect(malformedPetIds(seededFaker(6), 9_123_456_789).at(-1)?.[1]).toBe('9123456789/1');
     expect(aPet(seededFaker(8)).withPhotoUrls(2).build().photoUrls).toHaveLength(2);
+    const tagged = aPet(seededFaker(10)).withTagNames('qa-tag-a', 'qa-tag-b').build();
+    expect(tagged.tags?.map((tag) => tag.name)).toEqual(['qa-tag-a', 'qa-tag-b']);
   });
 
   test('toJson writes int64 digits at top-level and nested paths', () => {
