@@ -53,19 +53,19 @@ numbering of [`pet.md`](pet.md), which holds the design notes that apply to ever
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-PET-54 | Finding by each status lists the case's own pet and only pets of that status | REQ-PET-03 | equivalence-partition | high | automated | specs/pet-search.spec.ts | |
+| TC-PET-54 | Finding by each status lists the case's own pet and only pets of that status | REQ-PET-03 | equivalence-partition | high | published | specs/pet-search.spec.ts | |
 | TC-PET-55 | Finding by status answers as its decision table says | REQ-PET-02 | decision-table | high | published | specs/pet-search.spec.ts | |
-| TC-PET-56 | Status matching is exact: wrong case and padded values are refused | REQ-PET-06 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | |
-| TC-PET-57 | Several statuses in one request list the pets of each and are all validated | REQ-PET-04 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | LOCAL-12 |
-| TC-PET-58 | An injection string in status is refused without echoing it | | error-guessing | low | automated | specs/pet-search.spec.ts | LOCAL-14 |
-| TC-PET-59 | Finding by the case's tag lists its pet exactly once | REQ-PET-05 | equivalence-partition | high | automated | specs/pet-search.spec.ts | |
+| TC-PET-56 | Status matching is exact: wrong case and padded values are refused | REQ-PET-06 | equivalence-partition | medium | published | specs/pet-search.spec.ts | |
+| TC-PET-57 | Several statuses in one request list the pets of each and are all validated | REQ-PET-04 | equivalence-partition | medium | published | specs/pet-search.spec.ts | LOCAL-12 |
+| TC-PET-58 | An injection string in status is refused without echoing it | | error-guessing | low | published | specs/pet-search.spec.ts | LOCAL-14 |
+| TC-PET-59 | Finding by the case's tag lists its pet exactly once | REQ-PET-05 | equivalence-partition | high | published | specs/pet-search.spec.ts | |
 | TC-PET-60 | Finding by tags answers as its decision table says | REQ-PET-05 | decision-table | high | published | specs/pet-search.spec.ts | |
-| TC-PET-61 | Several tags in one request list each matching pet once | REQ-PET-05 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | LOCAL-13 |
-| TC-PET-62 | Tag matching is exact: wrong case and padded tags do not find the case's pet | REQ-PET-06 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | |
+| TC-PET-61 | Several tags in one request list each matching pet once | REQ-PET-05 | equivalence-partition | medium | published | specs/pet-search.spec.ts | LOCAL-13 |
+| TC-PET-62 | Tag matching is exact: wrong case and padded tags do not find the case's pet | REQ-PET-06 | equivalence-partition | medium | published | specs/pet-search.spec.ts | |
 | TC-PET-63 | Long and injection tag values answer an empty list, never a server error | | error-guessing | low | published | specs/pet-search.spec.ts | |
 | TC-PET-64 | A status change moves the pet between search results | REQ-PET-14 | state-transition | medium | published | specs/pet-search.spec.ts | |
-| TC-PET-65 | A deleted pet disappears from searches by status and by tag | REQ-PET-11 | state-transition | medium | automated | specs/pet-search.spec.ts | |
-| TC-PET-66 | An anonymous caller gets the same search answers as the default caller | REQ-PET-13 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | |
+| TC-PET-65 | A deleted pet disappears from searches by status and by tag | REQ-PET-11 | state-transition | medium | published | specs/pet-search.spec.ts | |
+| TC-PET-66 | An anonymous caller gets the same search answers as the default caller | REQ-PET-13 | equivalence-partition | medium | published | specs/pet-search.spec.ts | |
 
 ## Case details
 
