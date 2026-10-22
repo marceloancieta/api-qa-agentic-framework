@@ -81,7 +81,8 @@ A hook exports git's own variables (`GIT_DIR`, `GIT_INDEX_FILE`, `GIT_WORK_TREE`
 and from a linked worktree they point at that worktree's repository. A script or test that runs git
 on a repository of its own, a temporary one or a directory it was given, therefore passes
 `env: gitEnv()` (`scripts/lib/git.mjs`), or its commands land in the repository being pushed;
-`scripts/__tests__/git-env.test.mjs` runs those suites under a decoy `GIT_DIR`. The scans of what is
+`npm run test:scripts` runs every suite under a decoy `GIT_DIR` and fails when the decoy changes
+(`scripts/test-scripts.mjs`). The scans of what is
 being committed keep the variables, because a pre-commit hook's `GIT_INDEX_FILE` is the index the
 commit is made from.
 
