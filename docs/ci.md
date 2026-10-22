@@ -455,13 +455,19 @@ under `act` as a defect, repeat the suite with `npm run lanes:flake`.
 
 `Jenkinsfile` and `Jenkinsfile.drift` at the repository root run the steps of `ci.yml` and
 `drift.yml` for the same reasons, as declarative pipelines; the VAmPI stage differs (below). The
-Keycloak pack's suite and the DAST, performance and differential lanes run only in GitHub Actions:
-the pipelines have no step that generates the realm's client credentials, so the only Keycloak
-stage is the drift one, which compares the published contract and needs none.
+Keycloak stage generates the realm's client secrets per build, as `e2e (keycloak)` does.
+
+Two kinds of check stay in GitHub Actions. The VAmPI BOLA detection proves that the authorization
+matrix still catches the vulnerable mode's flaw, a property of the specs that only a change to them
+can break, so it runs on the pull request that changes them, before the merge; the Jenkins build of
+`main` would repeat it on code that already passed it. The DAST, performance and differential lanes
+are workflows of their own (`dast.yml`, `perf.yml`, `diff.yml`) with their own triggers, scanners
+and reference deployments, and the Jenkins pipelines are the counterparts of `ci.yml` and
+`drift.yml` only.
 
 | File | Trigger | Stages |
 |---|---|---|
-| `Jenkinsfile` | the job's own triggers (a webhook, SCM polling or a schedule, [below](#scheduled-builds)) | Node, Install, Gates, `e2e (petstore)`, `e2e (vampi)` (the secure-mode suite only, without the BOLA detection; it runs after the test-management report, coverage and quality gate of the Petstore stage, so a VAmPI failure fails the build and its results join the archived report, but neither the quality gate nor the test-management report covers them) |
+| `Jenkinsfile` | the job's own triggers (a webhook, SCM polling or a schedule, [below](#scheduled-builds)) | Node, Install, Gates, `e2e (petstore)`, `e2e (vampi)` (the secure-mode suite only, without the BOLA detection), `e2e (keycloak)`. The last two run after the test-management report, coverage and quality gate of the Petstore stage, so a failure of either fails the build and their results join the archived report, but neither the quality gate nor the test-management report covers them |
 | `Jenkinsfile.drift` | `cron('H 5 * * *')` | Node, Install, `Drift (petstore)`, `Drift (vampi)`, `Drift (keycloak)`: the jobs of [`drift.yml`](#driftyml), one stage each. A stage that fails marks itself and the build failed and the next stage still runs; each writes its reports as `reports/drift/<pack>-<step>.txt` |
 
 **Agent.** Any agent with git, Node at the major version in `.nvmrc` on the `PATH` (the Node stage
@@ -500,12 +506,13 @@ report folder, because a later process would otherwise overwrite them (CI-09):
 | Petstore suite | `reports/junit-petstore.xml` | `playwright-report/petstore/` |
 | Petstore destructive lane, one process per case | `reports/junit-petstore-destructive-<project>-<case>.xml` | `playwright-report/petstore-destructive/<project>-<case>/` |
 | VAmPI suite | `reports/junit-vampi.xml` | `playwright-report/vampi/` |
+| Keycloak suite | `reports/junit-keycloak.xml` | `playwright-report/keycloak/` |
 
 The destructive lane derives each case's names from `QA_JUNIT_REPORT` and
 `PLAYWRIGHT_HTML_OUTPUT_DIR` when they are set, so a local run of the lane with them set keeps every
 case as well. The Allure results hold the whole build. With `PUBLISH_ALLURE`, the Allure plugin
 also shows the report in the build page; it needs an Allure Commandline tool configured in Jenkins.
-It stops both APIs in every case, and on failure archives their logs.
+It stops the three APIs in every case, and on failure archives their logs.
 
 ### Scheduled builds
 
