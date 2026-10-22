@@ -45,6 +45,15 @@ export class PetBuilder {
     return this;
   }
 
+  /** Exactly these tag names, in order: a case that needs pets sharing its unique tags. */
+  withTagNames(...names: string[]): this {
+    this.pet.tags = names.map((name) => ({
+      id: this.faker.number.int({ min: 1, max: 1_000 }),
+      name,
+    }));
+    return this;
+  }
+
   /** `count` generated photo URLs, so a case can tell kept URLs from a replaced list. */
   withPhotoUrls(count: number): this {
     this.pet.photoUrls = Array.from({ length: count }, () => this.faker.image.url());

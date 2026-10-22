@@ -53,19 +53,19 @@ numbering of [`pet.md`](pet.md), which holds the design notes that apply to ever
 
 | ID | Title | Requirement | Technique | Priority | Status | Spec | Defect |
 |---|---|---|---|---|---|---|---|
-| TC-PET-54 | Finding by each status lists the case's own pet and only pets of that status | REQ-PET-03 | equivalence-partition | high | approved | | |
+| TC-PET-54 | Finding by each status lists the case's own pet and only pets of that status | REQ-PET-03 | equivalence-partition | high | automated | specs/pet-search.spec.ts | |
 | TC-PET-55 | Finding by status answers as its decision table says | REQ-PET-02 | decision-table | high | published | specs/pet-search.spec.ts | |
-| TC-PET-56 | Status matching is exact: wrong case and padded values are refused | REQ-PET-06 | equivalence-partition | medium | approved | | |
-| TC-PET-57 | Several statuses in one request list the pets of each and are all validated | REQ-PET-04 | equivalence-partition | medium | approved | | |
-| TC-PET-58 | An injection string in status is refused without echoing it | | error-guessing | low | approved | | |
-| TC-PET-59 | Finding by the case's tag lists its pet exactly once | REQ-PET-05 | equivalence-partition | high | approved | | |
+| TC-PET-56 | Status matching is exact: wrong case and padded values are refused | REQ-PET-06 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | |
+| TC-PET-57 | Several statuses in one request list the pets of each and are all validated | REQ-PET-04 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | LOCAL-12 |
+| TC-PET-58 | An injection string in status is refused without echoing it | | error-guessing | low | automated | specs/pet-search.spec.ts | LOCAL-14 |
+| TC-PET-59 | Finding by the case's tag lists its pet exactly once | REQ-PET-05 | equivalence-partition | high | automated | specs/pet-search.spec.ts | |
 | TC-PET-60 | Finding by tags answers as its decision table says | REQ-PET-05 | decision-table | high | published | specs/pet-search.spec.ts | |
-| TC-PET-61 | Several tags in one request list each matching pet once | REQ-PET-05 | equivalence-partition | medium | approved | | |
-| TC-PET-62 | Tag matching is exact: wrong case and padded tags do not find the case's pet | REQ-PET-06 | equivalence-partition | medium | approved | | |
+| TC-PET-61 | Several tags in one request list each matching pet once | REQ-PET-05 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | LOCAL-13 |
+| TC-PET-62 | Tag matching is exact: wrong case and padded tags do not find the case's pet | REQ-PET-06 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | |
 | TC-PET-63 | Long and injection tag values answer an empty list, never a server error | | error-guessing | low | published | specs/pet-search.spec.ts | |
 | TC-PET-64 | A status change moves the pet between search results | REQ-PET-14 | state-transition | medium | published | specs/pet-search.spec.ts | |
-| TC-PET-65 | A deleted pet disappears from searches by status and by tag | REQ-PET-11 | state-transition | medium | approved | | |
-| TC-PET-66 | An anonymous caller gets the same search answers as the default caller | REQ-PET-13 | equivalence-partition | medium | approved | | |
+| TC-PET-65 | A deleted pet disappears from searches by status and by tag | REQ-PET-11 | state-transition | medium | automated | specs/pet-search.spec.ts | |
+| TC-PET-66 | An anonymous caller gets the same search answers as the default caller | REQ-PET-13 | equivalence-partition | medium | automated | specs/pet-search.spec.ts | |
 
 ## Case details
 
@@ -108,9 +108,9 @@ numbering of [`pet.md`](pet.md), which holds the design notes that apply to ever
   of the two statuses, as the spec prose promises; the third answers `400` `input-error`, because
   every value is validated.
 - **Verification**: response only, on the case's own pets.
-- **Departure**: PN-10 (untracked): the comma list answers `400`, and with repeated parameters only
-  the first is used and validated (M-09, M-10). Open question A7 of the contract asks whether this
-  is drift to tolerate.
+- **Departure**: PN-10 (`LOCAL-12`): the comma list answers `400`, and with repeated parameters only
+  the first is used and validated (M-09, M-10). Open question A7 of the contract asked whether this
+  is drift to tolerate; it was filed as a defect on 2026-10-22, so the case is armed as a known gap.
 - **Cleanup**: delete both pets, each confirmed by a `404` read.
 - **Tags**: `@regression @contract-drift`
 
@@ -121,7 +121,7 @@ numbering of [`pet.md`](pet.md), which holds the design notes that apply to ever
 - **Expected**: `400` `input-error`; never a `5xx`; the message does not echo the raw input or name
   an implementation type.
 - **Verification**: response only.
-- **Departure**: PN-07 (untracked): input errors echo the raw input (M-07, G6).
+- **Departure**: PN-07 (`LOCAL-14`): input errors echo the raw input (M-07, G6).
 - **Tags**: `@regression @security`
 
 ### TC-PET-59
@@ -158,7 +158,7 @@ numbering of [`pet.md`](pet.md), which holds the design notes that apply to ever
   the contract does not define an empty value next to a valid one, so this is the measured baseline
   (M-14; L-56).
 - **Verification**: response only, on the case's own pets.
-- **Departure**: PN-11 (untracked): repeated tags list a pet once per matching tag, and a comma
+- **Departure**: PN-11 (`LOCAL-13`): repeated tags list a pet once per matching tag, and a comma
   list is matched as one literal tag and returns `[]` (M-12, M-13).
 - **Cleanup**: delete the three pets, each confirmed by a `404` read.
 - **Tags**: `@regression @contract-drift`

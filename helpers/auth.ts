@@ -25,7 +25,8 @@ import {
 } from '../scripts/lib/auth-tokens.mjs';
 import { missingVariableMessage } from '../scripts/lib/env-names.mjs';
 
-export type QueryParams = Record<string, string | number | boolean>;
+/** Query parameters; an array value sends the parameter once per element, in order. */
+export type QueryParams = Record<string, string | number | boolean | readonly string[]>;
 
 export interface OutgoingRequest {
   headers: Record<string, string>;
