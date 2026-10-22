@@ -36,8 +36,11 @@ A request that needs both is split, and each half stops at its own gate.
 
 ## Rules that apply to every change
 
-- **Gates.** `npm run gates` must pass before a commit. It runs the linters with their self-tests,
-  the format, type, configuration, contract and coverage checks, and the unit tests.
+- **Gates.** `npm run gates` must pass before a push, and the `pre-push` hook runs it (installed by
+  `npm run hooks:install`; without the hooks, run it yourself before pushing). It runs the
+  linters with their self-tests, the format, type, configuration, contract and coverage checks, and
+  the unit tests. A commit stays on the machine, so run it by hand only to learn the result before
+  pushing, not again right before a push.
 - **No secrets or real data.** Credentials come from the environment or the local `.env`, never from
   arguments or files in the repository. Specs, registries and docs use placeholders and builders.
 - **Facts have one home.** Link to the owner instead of copying a value; numbers come from scripts
