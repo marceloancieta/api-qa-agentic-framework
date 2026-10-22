@@ -12,10 +12,10 @@
   "scripts": {
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --check --cache --cache-strategy content .",
     "config:check": "node scripts/config-check.mjs --all",
     "test:hooks": "node --test \".claude/hooks/__tests__/*.test.mjs\"",
-    "test:scripts": "node --test \"scripts/__tests__/*.test.mjs\"",
+    "test:scripts": "node scripts/test-scripts.mjs",
     "test:unit": "playwright test --project=unit",
     "types:check": "tsc -p .",
     "scan:denylist": "node scripts/scan-denylist.mjs --tracked",

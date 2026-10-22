@@ -10,14 +10,21 @@ Runs before every push (pre-push hook) and needs no API:
 
 | Step | Checks |
 |---|---|
-| `lint`, `format:check`, `types:check` | ESLint, Prettier (`npm run format` rewrites the files it reports), TypeScript |
+| `lint`, `format:check`, `types:check` | ESLint, Prettier (`npm run format` rewrites the files it reports; the check keeps a content cache under `node_modules/.cache`, so unchanged files are not read again), TypeScript |
 | `config:check` | qa-config against its schema, plus cross-field rules |
-| `test:hooks`, `test:scripts` | the Claude Code hooks and every script and library |
+| `test:hooks`, `test:scripts` | the Claude Code hooks and every script and library; `test:scripts` runs every suite once under a decoy of the variables a git hook exports, and fails when a git command changed the decoy repository (`scripts/test-scripts.mjs`) |
 | `contract:check` | tracked digest, probe matrix, value sets and decision tables are current ([contract tooling](contract-tooling.md)) |
 | `lint:qa` | `lint-harness`, `lint-suite`, `lint-docs`, `lint-layers` on the repository, then each linter's self-test (`lint:self-test`) |
 | `coverage:status` | every registry row against the specs and the latest run of its spec |
 | `test:unit` | offline unit tests of helpers and packs |
 | `scan:denylist:self-test` | the denylist scanner itself |
+
+How long it takes, measured on 2026-10-22 on an 8-core Windows machine (GATE-31): 207 s before,
+about 135 s after, with every check kept. `test:scripts` went from 137 s to 79 s: its git suites
+had run twice, once on their own and once more under the decoy inside a test, and now run once
+under the decoy; the framework-update suite, the slowest file, is split into four files the runner
+takes in parallel. `format:check` went from 19 s to about 5 s once its cache is warm. CI starts
+without the cache and checks every file.
 
 ## Linters
 
