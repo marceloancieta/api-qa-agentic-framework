@@ -62,7 +62,6 @@ What the v0.6.0 release and its pre-release review found, the Keycloak pack on J
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| CI-16 | `Jenkinsfile` and `Jenkinsfile.drift` choose `sh` or `bat` by agent, and only a Windows agent has run them. Run both, with the CI-15 stage, on a Linux agent with Docker and on a Windows one, and fix what the runs find. | exp | in-progress |
 | DOC-14 | Pre-release review of v0.7.0, as DOC-10 and DOC-12 were for their releases: once every other item of this section is in **Done**, read the docs, the rules, the skills and the pack skills against the code, with what these items changed first (the Jenkins pages, the lanes, the release steps, the coverage of each pack), and fix what disagrees before the release pull request. | exp | todo |
 
 ---
@@ -211,3 +210,4 @@ What the v0.6.0 release and its pre-release review found, the Keycloak pack on J
 | PET-06 | The 9 approved `pet-search` cases are automated and published, so the registry's 13 cases are all `published`. A query value given as an array repeats the parameter, and the Petstore client sends a literal comma list. TC-PET-57, 58 and 61 are armed known gaps on `LOCAL-12`, `LOCAL-14` and `LOCAL-13`, filed from PN-10, PN-07 and PN-11. | `c2ff869` |
 | PROC-17 | `AGENTS.md`, `CLAUDE.md` and `CONTRIBUTING.md` require the gates before a push, which the `pre-push` hook enforces, instead of before each commit, and say to run them by hand only to learn the result sooner: an agent following both rules had run the same check twice for one change. CI's required `gates` job is unchanged. | `885534d` |
 | GATE-31 | `npm run gates` went from 207 s to about 135 s on an 8-core Windows machine with every check kept ([quality gates](quality-gates.md)): `test:scripts` runs every suite once under the decoy `GIT_DIR` (`scripts/test-scripts.mjs`, now covering all suites instead of a re-run of six), the framework-update suite is split into four files run in parallel, and `format:check` uses Prettier's content cache. CI's Linux job was already fast (73 s before, 75 s after). | `7392609` |
+| CI-16 | `Jenkinsfile` and `Jenkinsfile.drift` ran on a Linux agent in WSL and on the Windows agent, every stage green on both, the Keycloak stage included. The Node stage now also checks that npm runs its scripts with the agent's Node on the same platform, since a WSL agent had found the Windows npm on its `PATH`; the agent requirements name Java for the Allure plugin; [Jenkins](ci.md#a-linux-agent-in-wsl) says how to set up such an agent. | `17e09b3` |
