@@ -409,26 +409,26 @@ range that was never created. JSON bodies, `Accept: application/json` unless sta
 
 | # | Gap | Source | Issue |
 |---|---|---|---|
-| G1 | `findByStatus` prose promises comma-separated multiple values; a comma list is refused and repeated parameters are reduced to the first, which alone is validated | spec prose; M-09, M-10 | PN-10 (searched, none) |
-| G2 | `findByTags` prose promises comma-separated tags; a comma list is matched as one literal tag and returns `[]` | spec prose; M-13 | PN-11 (searched, none) |
-| G3 | `findByTags` with repeated tags lists a pet once per matching tag (duplicates in the result) | M-12 | PN-11 (searched, none) |
+| G1 | `findByStatus` prose promises comma-separated multiple values; a comma list is refused and repeated parameters are reduced to the first, which alone is validated | spec prose; M-09, M-10 | PN-10, `LOCAL-12` |
+| G2 | `findByTags` prose promises comma-separated tags; a comma list is matched as one literal tag and returns `[]` | spec prose; M-13 | PN-11, `LOCAL-13` |
+| G3 | `findByTags` with repeated tags lists a pet once per matching tag (duplicates in the result) | M-12 | PN-11, `LOCAL-13` |
 | G4 | `findByTags` with an empty `tags` answers `400` with a plain-text body that matches no envelope in `error-envelopes.json`, labelled JSON or XML by `Accept` | M-14 | PN-08 (searched, none) |
 | G5 | The `not-found` body is plain text labelled `application/json` when the client accepts only JSON; PN-02 records the XML label seen with a wildcard `Accept` | M-17; PN-02 | PN-02 (searched, none) |
-| G6 | Input errors name the implementation type (`java.lang.Long`) and echo the raw input, including injection strings | M-03, M-04, M-07 | PN-07 (searched, none) |
+| G6 | Input errors name the implementation type (`java.lang.Long`) and echo the raw input, including injection strings | M-03, M-04, M-07 | PN-07, `LOCAL-14` |
 | G7 | With `Accept` XML, `400` and `405` answers use an `<ApiError>` XML envelope that the envelope catalogue does not list | M-17, M-18 | PN-08 (searched, none) |
 | G8 | `400` "Invalid ID supplied" is declared but what an invalid id is is not; zero and negative ids answer `404` | spec; M-02 | PN-15 (searched, none) |
 | G9 | `405` answers are undeclared on every pet operation | M-18 | PN-08 (searched, none) |
 | G10 | Declared OAuth2 and `api_key` security is not enforced | spec; PN-05, M-20 | PN-05 (searched, none) |
-| G11 | `PUT /pet` stores an out-of-set `status` and a pet without `name`, answering `200`. Reconfirmed by the write run | PN-06; W-16, W-17 | PN-06 (searched, none) |
-| G12 | `POST /pet` answers `500` for a wrong-type or missing `name`. **Revised by measurement:** the `500` comes from a missing `id` (W-01, W-22, W-31); with an `id`, a numeric or missing `name` is stored with `200` (W-18, W-19) | PN-01; W-01, W-18, W-19 | PN-01 (searched, none) |
-| G13 | `POST /pet/{petId}` `status` declares no value set, and no `404` is declared for an unknown pet. **Measured:** any status text is stored (W-12) and an unknown pet answers an undeclared `404` (W-13) | spec; W-12, W-13 | PN-21, PN-23 (searched, none) |
+| G11 | `PUT /pet` stores an out-of-set `status` and a pet without `name`, answering `200`. Reconfirmed by the write run | PN-06; W-16, W-17 |  PN-06, `LOCAL-8` |
+| G12 | `POST /pet` answers `500` for a wrong-type or missing `name`. **Revised by measurement:** the `500` comes from a missing `id` (W-01, W-22, W-31); with an `id`, a numeric or missing `name` is stored with `200` (W-18, W-19) | PN-01; W-01, W-18, W-19 |  PN-01, `LOCAL-9` |
+| G13 | `POST /pet/{petId}` `status` declares no value set, and no `404` is declared for an unknown pet. **Measured:** any status text is stored (W-12) and an unknown pet answers an undeclared `404` (W-13) | spec; W-12, W-13 |  PN-21, `LOCAL-8`; PN-23, `LOCAL-10` |
 | G14 | `422` "Validation exception" is declared on `PUT /pet` and `POST /pet` but never described; form encoding of nested `category` and `tags` is undefined. **Measured:** `422` never produced (W-38); invalid bodies are stored or answer `400`, `415` or `500`; nested form keys are dropped and `tags=` stores strings (W-34) | spec; W-16 to W-38 | PN-08, PN-18, PN-21 (searched, none) |
 | G15 | `DELETE /pet/{petId}` declares no `404`; the answer for an unknown or already-deleted pet was open. **Measured:** `200` `Pet deleted` for both (W-44, W-45) | spec; W-43 to W-45 | PN-22 (searched, none) |
-| G16 | `uploadImage` body is not marked required while `400` "No file uploaded" is declared; the effect of an upload was unstated. **Measured:** no body answers `400` (W-39); an upload answers a `Pet` and appends a server file path to `photoUrls` (W-40) | spec; W-39 to W-42 | PN-24 (searched, none) |
+| G16 | `uploadImage` body is not marked required while `400` "No file uploaded" is declared; the effect of an upload was unstated. **Measured:** no body answers `400` (W-39); an upload answers a `Pet` and appends a server file path to `photoUrls` (W-40) | spec; W-39 to W-42 |  PN-24, `LOCAL-11` |
 | G17 | `POST /pet` with an existing `id` replaces that pet with `200`; any caller can overwrite any pet | W-02, W-03 | PN-20 (searched, none) |
 | G18 | A form-encoded create with `tags` stores the tags as strings, and `findByTags` then answers `500` to every caller until the pet is deleted; reproducing it is `@destructive` | W-34 to W-36 | PN-18 (searched, none) |
-| G19 | `POST /pet` stores input the schema refuses: out-of-set `status`, missing or `null` `name`, missing `photoUrls` (as `[]`), a numeric `name` coerced to text; an unknown property is dropped silently | W-18 to W-20, W-25, W-26, W-28 | PN-21 (searched, none) |
-| G20 | `POST /pet/{petId}` requires `name` in practice (`400` without it), removes `status` when only `name` is sent, and ignores a form body | W-06 to W-10 | PN-23 (searched, none) |
+| G19 | `POST /pet` stores input the schema refuses: out-of-set `status`, missing or `null` `name`, missing `photoUrls` (as `[]`), a numeric `name` coerced to text; an unknown property is dropped silently | W-18 to W-20, W-25, W-26, W-28 |  PN-21, `LOCAL-8` |
+| G20 | `POST /pet/{petId}` requires `name` in practice (`400` without it), removes `status` when only `name` is sent, and ignores a form body | W-06 to W-10 |  PN-23, `LOCAL-10` |
 | G21 | An empty or `null` create body answers `400` with a dump of the internal OpenAPI model; truncated JSON names the model class | W-21, W-23, W-30 | PN-07 (searched, none) |
 | G22 | An unsupported request content type answers an undeclared `415` on `POST /pet` and `uploadImage` | W-24, W-41 | PN-08 (searched, none) |
 
@@ -455,13 +455,14 @@ Answered:
   `name` it refuses the request (W-07, W-08; PN-23). Category, photo URLs and tags are kept.
 - **A6. Answered.** After a delete, a read answers `404`; a second delete answers `200` (W-43,
   W-44; PN-22).
+- **A7. Answered.** Defects, not tolerated: first-value-wins on repeated `status` and the refused
+  comma list (G1) were filed as `LOCAL-12`, duplicate results on repeated `tags` and the literal
+  comma match (G2, G3) as `LOCAL-13`, when the pet-search cases were automated (2026-10-22; PN-10,
+  PN-11).
 - **A9. Answered.** Feature code `PET` was approved with this contract at the intake review gate.
 
 Open:
 
-- **A7.** Is first-value-wins on repeated `status` (G1) and duplicate results on repeated `tags`
-  (G3) to be treated as defects or tolerated as `by-design`? PN-10 and PN-11 record them as
-  `untracked`, with PN-10 as contract drift and PN-11 as a defect.
 - **A8.** Should the XML error envelope (G7), the empty-tags body (G4) and the `415` answer (G22)
   be added to the envelope catalogue, and should cases assert JSON only?
 - **A10.** Where does `additionalMetadata` of `uploadImage` go? It is visible in no response

@@ -43,7 +43,7 @@ Options:
 | `--version <v>` | the pack version, the second part of every case identity; by default a `/vN` segment of the first server URL, else `v` plus the major of `info.version` |
 | `--title <text>` | the pack's display title; by default the contract's `info.title` |
 | `--write` | write the planned files |
-| `--skill-only` | with `--write`: write only the `<pack>-api` skill, for a pack that exists without one |
+| `--skill-only` | with `--write`: write only the `<pack>-api` skill, for a pack that exists without one; fill the facts pending until a phase the pack has passed, or `npm run lint:docs` reports them |
 | `--skip-smoke "<METHOD /path>"` | repeatable: leave a parameterless `GET` out of the smoke spec |
 
 Settle the name and the version before anything is published: every case's identity is
@@ -302,8 +302,8 @@ instead of copying their facts.
 - **CI.** [Continuous integration](../ci.md#adapting-to-a-new-pack-or-environment) lists what to
   change for another pack or a deployed environment.
 - **Optional lanes.** The DAST scan reads the pack's `dast-rules.tsv`, `dast-exclude.txt`,
-  `dast-false-positives.tsv` and `dast-params.json`, the performance smoke its `perf.json`, and the differential lane its
-  `diff.json` and the plan of `perf.json`; all work without them ([quality
+  `dast-false-positives.tsv` and `dast-params.json`, the performance smoke its `perf.json`, and the
+  differential lane its `diff.json` and the plan of `perf.json`; all work without them ([quality
   gates](../quality-gates.md#lanes)). Run `npm run lanes:perf -- --service <pack>` once: it prints
   every `GET` it leaves out and why, which tells you what `perf.json` needs. The differential lane
   also needs a second qa-config environment with an entry for the pack, named by `--reference`. All

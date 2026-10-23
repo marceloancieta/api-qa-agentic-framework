@@ -32,8 +32,9 @@ inside a pack (specs over flows over actors over clients) are explained in
 [VAmPI](../services/vampi/README.md), shows what changes for an API with login, several actors and
 a known vulnerability, and it is the example for the DAST rule and exclusion files. The third,
 [Keycloak](../services/keycloak/README.md), gets its tokens with OAuth 2.0 client credentials from
-the identity provider it tests and shows an authorization matrix of roles. The Petstore is the
-example for the differential lane's `diff.json`.
+the identity provider it tests, shows an authorization matrix of roles and is the example for
+`dast-params.json`, the values ZAP sends for path parameters. The Petstore is the example for the
+differential lane's `diff.json`.
 
 ## The phases, on the Petstore pack
 
@@ -161,7 +162,7 @@ Two consequences you will meet early:
   [contract notes](../services/vampi/docs/contract-notes.md)).
 - **A DAST scan writes to the API.** ZAP's active scan sends attacks, so run it only against the
   local containers. Run `npm run vampi:up` again before the VAmPI specs; the lane restarts the
-  Petstore itself through its `recovery`.
+  Petstore and Keycloak itself through their `recovery`.
 - **The lanes log in without Playwright.** Against a fresh VAmPI, run `npm run vampi:users` before
   `lanes:dast` or `lanes:perf`; the specs register their users themselves
   ([VAmPI README](../services/vampi/README.md)).

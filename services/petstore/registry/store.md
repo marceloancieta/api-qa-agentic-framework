@@ -532,6 +532,8 @@ quantity limits and information exposure.
   model class, no echo of the raw injection input; `OPTIONS` names no framework version; no answer
   carries a `Server` header with a version.
 - **Verification**: response bodies and headers.
-- **Departure**: PN-07 (untracked): `class java.lang.Long`, `io.swagger.petstore.model.Order`, the
-  echoed input, a WADL naming Jersey and a versioned `Server` header (M4, M10, W-23).
+- **Departure**: PN-07: `class java.lang.Long`, `io.swagger.petstore.model.Order`, the echoed
+  input, a WADL naming Jersey and a versioned `Server` header (M4, M10, W-23). The Java type and the
+  echoed input in input errors are `LOCAL-14`; the rest is untracked. The Defect column stays
+  empty: `LOCAL-14` covers only part of the case, and automate decides what it cites.
 - **Tags**: `@regression` `@security`.

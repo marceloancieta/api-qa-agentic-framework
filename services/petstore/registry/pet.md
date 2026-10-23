@@ -62,7 +62,8 @@ Requirement ids are the contract's business rules: `REQ-PET-NN` is rule NN of th
   contract note, with the note's issue when it has one ("Departure: PN-NN (`LOCAL-n`)") or
   "(untracked)". Automate decides whether to file an untracked one or tolerate it. A case kept red
   by an issue cites it in the Defect column and runs as a known gap; the automation of
-  `registry/pet-update.md` filed `LOCAL-8` to `LOCAL-11` for PN-01, PN-06, PN-21, PN-23 and PN-24.
+  `registry/pet-update.md` filed `LOCAL-8` to `LOCAL-11` for PN-01, PN-06, PN-21, PN-23 and PN-24,
+  and that of `registry/pet-search.md` filed `LOCAL-12` to `LOCAL-14` for PN-10, PN-11 and PN-07.
   PN-26, tracked as `LOCAL-5`, is avoided by running the pack on one worker, not designed as a case.
 - **Tolerated notes** (`by-design`): PN-03 (the field is named only inside the message, so cases
   assert the error kind), PN-05, PN-14 (an unsupported `Accept` answers JSON), PN-16 (lenient path
@@ -335,8 +336,10 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Expected**: each refusal carries the error kind only: no implementation type names, no model
   class or model dump, no echo of the raw input.
 - **Verification**: response only.
-- **Departure**: PN-07 (untracked): the messages name `java.lang.Long` and the model class, echo the
-  input, and dump the internal OpenAPI model (M-03, M-04, W-21, W-23, W-30).
+- **Departure**: PN-07: the messages name `java.lang.Long` and the model class, echo the input, and
+  dump the internal OpenAPI model (M-03, M-04, W-21, W-23, W-30). The echoed input and the Java type
+  in input errors are `LOCAL-14`; the model class and the model dump are untracked. The Defect
+  column stays empty: `LOCAL-14` covers only part of the case, and automate decides what it cites.
 - **Tags**: `@regression @security`
 
 ### TC-PET-18

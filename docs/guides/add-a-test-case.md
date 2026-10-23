@@ -286,8 +286,9 @@ Two consequences of how results are kept:
 - A `draft` or `approved` row must not have a spec test yet. Write the test, then move the row to
   `automated` in the same change.
 
-## Before you commit
+## Before you push
 
-Run `npm run gates` and keep the change to one logical step: a registry change, then a spec with its
-row moving to `automated`. Commit messages follow
+Keep each commit to one logical step: a registry change, then a spec with its row moving to
+`automated`. `npm run gates` must pass before the push, and the `pre-push` hook runs it
+([git hooks](../../CONTRIBUTING.md#git-hooks)). Commit messages follow
 [ADR 0008](../adr/0008-branching-and-traceability.md).

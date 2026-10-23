@@ -225,9 +225,9 @@ Petstore and VAmPI that is the local container, whose image is pinned by digest,
 contract changes only when the image in `docker-compose.yml` changes. To watch the Petstore's
 deployed contract, set the repository variable `QA_DRIFT_CONTRACT_ENV`, or the `contract_env` input
 of a manual run, to another qa-config environment, such as `public`. Only `drift (petstore)` reads
-it, because the other environments of the example configure no VAmPI or Keycloak entry; the other
-two jobs always compare the default environment. The digest step and the changed-cases lane read
-it; the selected cases then run on that environment, where a pack whose `allow_writes` is false
+it; the other two jobs always compare the default environment, since the example has no other
+VAmPI or Keycloak deployment to compare (`local-vulnerable` serves the same VAmPI image). The
+digest step and the changed-cases lane read it; the selected cases then run on that environment, where a pack whose `allow_writes` is false
 there skips the write cases with their reason. The known-gap lane and the full published lane stay
 on the default environment, which allows writes.
 
@@ -499,8 +499,8 @@ parameter is, so a variable named exactly like a parameter would be hidden.
 | `PUBLISH_ALLURE` | CI only, on by default: publish `allure-results` with the Allure plugin, which shows the report on the build page. On a Jenkins without the plugin the build prints a notice and carries on; set it to `false` to drop the notice. The single-file report is archived either way |
 | `ALLURE_TOKEN_CREDENTIALS_ID`, `ALLURE_ENDPOINT`, `ALLURE_PROJECT_ID` | CI only: report the run to Allure TestOps ([reporting to Allure TestOps](#reporting-to-allure-testops)) |
 
-The build publishes the JUnit reports (`reports/junit-*.xml`), prints the quality gate summary and
-archives `reports/` (with the single-file Allure report, `reports/allure-report/index.html`),
+The CI pipeline publishes the JUnit reports (`reports/junit-*.xml`), prints the quality gate summary
+and archives `reports/` (with the single-file Allure report, `reports/allure-report/index.html`),
 `playwright-report/` and `allure-results/`. Each Playwright step writes its own JUnit file and HTML
 report folder, because a later process would otherwise overwrite them (CI-09):
 
@@ -516,7 +516,9 @@ The destructive lane derives each case's names from `QA_JUNIT_REPORT` and
 case as well. The Allure results hold the whole build. With `PUBLISH_ALLURE`, the Allure plugin
 also shows the report in the build page; it needs an Allure Commandline tool configured in Jenkins,
 and Java on the agent to run it. It stops the three APIs in every case, and on failure archives
-their logs.
+their logs. The drift pipeline publishes no JUnit report and prints no quality gate: it archives
+`reports/` (its `reports/drift/<pack>-<step>.txt` and the single-file Allure report when the lanes
+left results), `allure-results/` and `playwright-report/`.
 
 ### A Linux agent in WSL
 
@@ -536,7 +538,9 @@ the same machine. Running both pipelines on one (CI-16) showed what it needs:
   the ports compose publishes and the compose bind mounts work. An agent inside a container would
   need the URL parameters above and could not share the bind mounts' paths with the engine.
 - **One build at a time per Docker engine.** Agents that share an engine use the same compose
-  project (`qa-jenkins`) and the same host ports, so their builds must not overlap. Give the Linux
+  projects (`qa-jenkins` for the CI pipeline, `qa-jenkins-drift` for the drift one) and the same
+  host ports, so their builds must not overlap; nor may a CI and a drift build on one engine, since
+  `disableConcurrentBuilds` only keeps a job from overlapping itself. Give the Linux
   node the usage "Only build jobs with label expressions matching this node", so builds without
   `AGENT_LABEL` keep going to the other agent, and start a build on it with
   `AGENT_LABEL=<its label>` when no other build runs. Set `DEFAULT_PETSTORE_PORT` on its node as on

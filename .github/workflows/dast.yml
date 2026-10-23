@@ -1,7 +1,7 @@
-# DAST (FUT-01): an OWASP ZAP API scan of the VAmPI pack in both modes and of the Petstore pack,
-# weekly, on demand and on every pull request. Its jobs are required checks (CI-11), and a required
-# check must run on every pull request, so the workflow has no path filter; the three jobs run side
-# by side in a few minutes. The VAmPI secure mode is scanned with the
+# DAST (FUT-01): an OWASP ZAP API scan of the VAmPI pack in both modes, of the Petstore pack and of
+# the Keycloak pack, weekly, on demand and on every pull request. Three of its jobs are required
+# checks (CI-11), and a required check must run on every pull request, so the workflow has no path
+# filter; the jobs run side by side. The VAmPI secure mode is scanned with the
 # pack's credential (FUT-10) and feeds the quality gate's `dast` check; the vulnerable mode, scanned
 # without one (VN-15), must be caught by a FAIL rule (SQL injection, VN-11). The Petstore scan
 # covers a base URL with a path, an API key in a header, one scan thread (PN-26) and the restart

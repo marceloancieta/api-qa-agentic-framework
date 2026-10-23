@@ -109,16 +109,21 @@ Where this API departs from its contract is recorded in [`docs/contract-notes.md
 
 ## Specs
 
-The specs automate a representative sample of the designed cases (`npm run coverage:status` counts
-them per status; backlog PET-02): every technique, layer and category tag in use, the `input-error` and `not-found`
-envelopes, the three decision tables and the two actors. A `server-error` is never the expected
-answer; it shows only as the departure an armed known gap reproduces. The other cases stay
-`approved` as design examples.
+The `pet-update` and `pet-search` registries are automated in full (backlog PET-05, PET-06),
+pet-search with the find-by-status and find-by-tags decision tables. In the others the specs
+automate a representative sample of the designed cases (`npm run coverage:status` counts them per
+status; backlog PET-02): every technique, layer and category tag in use, the `input-error` and
+`not-found` envelopes, the login decision table and the two actors. A
+`server-error` is never the expected answer; it shows only as the departure an armed known gap
+reproduces. The other cases stay `approved` as design examples.
 
 | Spec | Cases |
 |---|---|
 | `specs/pet.spec.ts` | create, read and delete pets; an int64 edge; a mislabelled body; two actors |
-| `specs/pet-search.spec.ts` | the find-by-status and find-by-tags decision tables; hostile tags; status moves |
+| `specs/pet-update.spec.ts` | `PUT /pet`: bodies the contract refuses, preserved fields, malformed bodies and ids (known gaps on `LOCAL-8` and `LOCAL-9`) |
+| `specs/pet-form-update.spec.ts` | the form update `POST /pet/{petId}` (known gaps on `LOCAL-8` and `LOCAL-10`) |
+| `specs/pet-image.spec.ts` | image uploads and the two actors' parity on the update operations (known gaps on `LOCAL-11`) |
+| `specs/pet-search.spec.ts` | the find-by-status and find-by-tags decision tables, exact matching, several values in one request, hostile values, status moves and deletes, anonymous parity (known gaps on `LOCAL-12`, `LOCAL-13` and `LOCAL-14`) |
 | `specs/store.spec.ts` | orders through the purchase flow, every status and complete combination, malformed bodies, the inventory |
 | `specs/user.spec.ts` | users, an int32 edge, two known gaps (password exposure, the login decision table) |
 | `specs/store-destructive.spec.ts`, `specs/user-destructive.spec.ts` | `@destructive` cases: left out of every run, run by `npm run lanes:destructive` |

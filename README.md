@@ -241,7 +241,8 @@ None of these is needed for a green run. Turn on what your project uses.
 - **Issue trackers.** Defects are searched, filed and re-read through `tracker.provider`; the example
   uses a local tracker kept in `docs/tracker/local/`. `none` turns every tracker call off. Same page.
 - **CI workflows.** `.github/workflows/` runs the gates and the end-to-end suite of each pack, a
-  daily drift check, and weekly DAST, performance and differential runs
+  daily drift check, DAST weekly and on every pull request, and weekly performance and differential
+  runs
   ([continuous integration](docs/ci.md)),
   plus CodeQL, a secret scan, Dependabot and an optional AI pull-request review
   ([CI security and review](docs/ci-security.md)). Keep the ones you want; each

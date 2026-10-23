@@ -5,7 +5,7 @@
   "clients": [
     {
       "clientId": "${KEYCLOAK_ADMIN_CLIENT_ID:qa-admin}",
-      "name": "QA admin: manages users and groups",
+      "name": "QA admin: manages users, reads groups",
       "enabled": true,
       "publicClient": false,
       "clientAuthenticatorType": "client-secret",

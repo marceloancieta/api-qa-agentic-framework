@@ -185,7 +185,7 @@ flowchart TB
 | Pack fixtures (`services/petstore/fixtures.ts`) | extend the core `test` with the pack's manifest, contract validator, error envelopes and clients; bind the clients to a named credential (`actor`); label every case with its identity | hold test logic |
 | Flows (`services/petstore/flows/`) | run a multi-step precondition over the clients they are given, one named step each, stopping on an unexpected status (`expectStatus` in `helpers/flow.ts`) | assert what the case is about; create clients |
 | Clients (`services/petstore/clients/`) | name the paths of one resource and return the raw response | judge a status; know which credential is in use |
-| `BaseClient` (`helpers/base-client.ts`) | apply the auth strategy, encode path parameters, send raw bodies byte for byte, attach redacted evidence | know anything about a particular API |
+| `BaseClient` (`helpers/base-client.ts`) | apply the auth strategy, encode path parameters, repeat a query parameter given as an array, send raw bodies byte for byte, attach redacted evidence | know anything about a particular API |
 | Builders (`services/petstore/builders/`) | build request data from the seeded `faker` and `clock`, with values from `generated/enums.ts` through the pack's types | send requests |
 | State models and guards (`services/petstore/state-models.ts`, `services/petstore/guards.ts`) | classify fields into buckets for comparison; capture and restore shared records | decide a case's verdict on their own |
 
@@ -427,9 +427,10 @@ flowchart LR
 - **A scan writes, so it asks the environment first.** The DAST lane scans only where the pack's
   entry has `allow_writes: true`, uses the pack's `workers` as ZAP's threads per host, and runs the
   entry's `recovery` afterwards, the same settings the specs and the destructive lane obey.
-- **CI runs them on a schedule.** `dast.yml` scans both VAmPI modes and the Petstore, `perf.yml`
-  runs the Petstore and VAmPI and `diff.yml` compares the Petstore with an earlier release every week, and on
-  pull requests that touch them ([continuous integration](ci.md)).
+- **CI runs them on a schedule.** `dast.yml` scans both VAmPI modes, the Petstore and Keycloak
+  every week and on every pull request; `perf.yml` runs the Petstore, VAmPI and Keycloak and
+  `diff.yml` compares the Petstore with an earlier release every week and on pull requests that
+  touch them ([continuous integration](ci.md)).
 
 The differential lane compares a candidate deployment with a reference. Both are qa-config
 environments with an entry for the pack; the `QA_<PACK>_*` overrides move the candidate only.

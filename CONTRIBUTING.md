@@ -34,12 +34,13 @@ writes it.
    npm run gates
    ```
 
-   The `pre-push` hook runs them ([git hooks](#git-hooks)), so running them by hand right before a push
-   only repeats the same check; run them earlier when you want the result sooner. They need no API.
+   The `pre-push` hook runs them ([git hooks](#git-hooks)), so running them by hand right before a
+   push only repeats the same check; run them earlier when you want the result sooner. They need no
+   API.
    What they run is described in
    [quality gates](docs/quality-gates.md). When `format:check` fails, `npm run format` rewrites the
-   files. When you change a spec, also run its pack against that pack's
-   local service (`npm run petstore:up` or `npm run vampi:up`, then
+   files. When you change a spec, also run its pack against that pack's local service (its
+   `<pack>:up` script, such as `npm run petstore:up`, `vampi:up` or `keycloak:up`, then
    `npx playwright test --project=api-<pack>`) and include what you saw in the pull request.
 4. **Update the documentation in the same commit** (see [Documentation](#documentation)).
 
@@ -109,8 +110,9 @@ The project follows GitHub Flow ([ADR 0008](docs/adr/0008-branching-and-traceabi
 The repository enforces it with the ruleset in `.github/rulesets/main.json`. `main` accepts changes
 only through pull requests, squash merges only, with a linear history. A pull request merges when
 the checks the ruleset requires pass: `title`, `gates`, the end-to-end jobs of the Petstore and
-VAmPI packs and the DAST scans ([required checks](docs/ci.md#required-checks)). The `title` check reads the pull-request
-title with the same parser as the changelog (`npm run commit:title -- "<title>"` runs it locally),
+VAmPI packs and their DAST scans ([required checks](docs/ci.md#required-checks)). The `title`
+check reads the pull-request title with the same parser as the changelog
+(`npm run commit:title -- "<title>"` runs it locally),
 because the title becomes the commit subject on `main`. Opening a pull request fills in its
 template. Locally, the `git-policy` hook asks before a commit straight onto `main` and checks the
 subject's shape (qa-config `policies`).
@@ -131,16 +133,15 @@ the latest `vX.Y.Z` tag and groups them by type:
    framework's repository, set the same version in the `create-api-qa` package, which a test keeps
    equal: `(cd packages/create-api-qa && npm version <x.y.z> --no-git-tag-version)`.
 4. Open a pull request titled `docs(changelog): <BACKLOG-ID> release <x.y.z>` with those changes,
-   the version's section of the [backlog](docs/backlog.md) saying it was released, and every item
-   closed since the last release moved to **Done** with its closing commit, the item merged just
-   before the release included. An item that will not be done moves to **Done** as well, as the
+   the version's section of the [backlog](docs/backlog.md) saying "Released as `v<x.y.z>`" (the
+   words `release:check` looks for), and every item closed since the last release moved to
+   **Done** with its closing commit, the item merged just before the release included. An item that will not be done moves to **Done** as well, as the
    backlog header says (`**Won't do.**`); any other goes to a later version. Nothing is committed
    after the release: merge the items first, then this pull request. After the squash merge, check
-   out the resulting commit on `main` and
-   run `npm run release:check`: the versions, the backlog section, `npm audit` for critical
-   advisories, which needs the npm registry, and the history scans, which need gitleaks, as
-   `scripts/release-check.mjs` describes. It stops at the first failure and says
-   what to fix. Then tag that commit as `v<x.y.z>` and push the tag, with the owner's approval
+   out the resulting commit on `main` and run `npm run release:check`: a clean tree, the versions,
+   the backlog section, `npm audit` for critical advisories, which needs the npm registry, and
+   the history scans, which need gitleaks, as `scripts/release-check.mjs` describes. It stops at
+   the first failure and says what to fix. Then tag that commit as `v<x.y.z>` and push the tag, with the owner's approval
    ([AGENTS.md](AGENTS.md)).
 5. In the framework's repository only, the tag starts `.github/workflows/publish.yml`, which
    publishes `create-api-qa` from it ([CI security](docs/ci-security.md#publishing-create-api-qa));
