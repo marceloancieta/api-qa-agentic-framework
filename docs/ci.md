@@ -470,10 +470,13 @@ and reference deployments, and the Jenkins pipelines are the counterparts of `ci
 | `Jenkinsfile` | the job's own triggers (a webhook, SCM polling or a schedule, [below](#scheduled-builds)) | Node, Install, Gates, `e2e (petstore)`, `e2e (vampi)` (the secure-mode suite only, without the BOLA detection), `e2e (keycloak)`. The last two run after the test-management report, coverage and quality gate of the Petstore stage, so a failure of either fails the build and their results join the archived report, but neither the quality gate nor the test-management report covers them |
 | `Jenkinsfile.drift` | `cron('H 5 * * *')` | Node, Install, `Drift (petstore)`, `Drift (vampi)`, `Drift (keycloak)`: the jobs of [`drift.yml`](#driftyml), one stage each. A stage that fails marks itself and the build failed and the next stage still runs; each writes its reports as `reports/drift/<pack>-<step>.txt` |
 
-**Agent.** Any agent with git, Node at the major version in `.nvmrc` on the `PATH` (the Node stage
-checks it) and Docker with the compose plugin. Steps run with `sh` on Linux agents and `bat` on
-Windows agents, so the same files serve both. Plugins: Pipeline, Git, Credentials Binding, JUnit and
-Timestamper; Allure is optional, but `PUBLISH_ALLURE` is on by default (see the table below).
+**Agent.** Any agent with git, Node at the major version in `.nvmrc` on the `PATH` with its own npm
+(the Node stage checks both: the version, and that npm runs its scripts with that Node on the same
+platform), Docker with the compose plugin, and Java on the `PATH` when the Allure plugin publishes.
+Steps run with `sh` on Linux agents and `bat` on Windows agents, so the same files serve both; both
+pipelines have run on a Windows agent and on a Linux one in WSL ([below](#a-linux-agent-in-wsl)).
+Plugins: Pipeline, Git, Credentials Binding, JUnit and Timestamper; Allure is optional, but
+`PUBLISH_ALLURE` is on by default (see the table below).
 
 **Job.** A Pipeline (or Multibranch Pipeline) job with "Pipeline script from SCM" and script path
 `Jenkinsfile` or `Jenkinsfile.drift`. Parameters appear after the first build has read the file;
@@ -511,8 +514,33 @@ report folder, because a later process would otherwise overwrite them (CI-09):
 The destructive lane derives each case's names from `QA_JUNIT_REPORT` and
 `PLAYWRIGHT_HTML_OUTPUT_DIR` when they are set, so a local run of the lane with them set keeps every
 case as well. The Allure results hold the whole build. With `PUBLISH_ALLURE`, the Allure plugin
-also shows the report in the build page; it needs an Allure Commandline tool configured in Jenkins.
-It stops the three APIs in every case, and on failure archives their logs.
+also shows the report in the build page; it needs an Allure Commandline tool configured in Jenkins,
+and Java on the agent to run it. It stops the three APIs in every case, and on failure archives
+their logs.
+
+### A Linux agent in WSL
+
+A WSL distribution with Docker Desktop's integration can host a Linux agent next to a Windows one on
+the same machine. Running both pipelines on one (CI-16) showed what it needs:
+
+- **Its remote root on the distribution's own filesystem**, such as `/home/<user>/jenkins-agent`,
+  not under `/mnt/c`.
+- **A `PATH` of Linux directories only, with the agent's own Node and Java on it.** WSL appends the
+  Windows `PATH` to the Linux one. A distribution without its own npm then finds the Windows npm
+  there, and that npm runs every `npm run` through `cmd.exe`, which refuses the workspace's
+  `\\wsl.localhost\...` path; the Node stage stops such an agent with that message. Unpacking a Node
+  release and a JRE under the agent's directory, and starting the agent from a script that sets
+  `PATH` and `JAVA_HOME` to them, needs no administrator rights. The Allure plugin's command line
+  uses that Java.
+- **Nothing else changes.** The containers run on Docker Desktop's engine, so `localhost` reaches
+  the ports compose publishes and the compose bind mounts work. An agent inside a container would
+  need the URL parameters above and could not share the bind mounts' paths with the engine.
+- **One build at a time per Docker engine.** Agents that share an engine use the same compose
+  project (`qa-jenkins`) and the same host ports, so their builds must not overlap. Give the Linux
+  node the usage "Only build jobs with label expressions matching this node", so builds without
+  `AGENT_LABEL` keep going to the other agent, and start a build on it with
+  `AGENT_LABEL=<its label>` when no other build runs. Set `DEFAULT_PETSTORE_PORT` on its node as on
+  the other one when the Petstore's port is taken.
 
 ### Scheduled builds
 
