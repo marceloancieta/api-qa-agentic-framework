@@ -62,7 +62,7 @@ What the v0.6.0 release and its pre-release review found, the Keycloak pack on J
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| CI-16 | `Jenkinsfile` and `Jenkinsfile.drift` choose `sh` or `bat` by agent, and only a Windows agent has run them. Run both, with the CI-15 stage, on a Linux agent with Docker and on a Windows one, and fix what the runs find. | exp | todo |
+| CI-16 | `Jenkinsfile` and `Jenkinsfile.drift` choose `sh` or `bat` by agent, and only a Windows agent has run them. Run both, with the CI-15 stage, on a Linux agent with Docker and on a Windows one, and fix what the runs find. | exp | in-progress |
 | DOC-14 | Pre-release review of v0.7.0, as DOC-10 and DOC-12 were for their releases: once every other item of this section is in **Done**, read the docs, the rules, the skills and the pack skills against the code, with what these items changed first (the Jenkins pages, the lanes, the release steps, the coverage of each pack), and fix what disagrees before the release pull request. | exp | todo |
 
 ---

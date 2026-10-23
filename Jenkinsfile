@@ -2,8 +2,9 @@
 // the Petstore, VAmPI and Keycloak packs, archived as one report. What each step does and why:
 // docs/ci.md (Jenkins).
 //
-// Agent requirements: git, Node at the major version in .nvmrc on the PATH, and Docker with the
-// compose plugin. Linux agents run the steps with `sh`, Windows agents with `bat`.
+// Agent requirements: git, Node at the major version in .nvmrc on the PATH with its own npm, Docker
+// with the compose plugin, and Java on the PATH when the Allure plugin publishes (PUBLISH_ALLURE).
+// Linux agents run the steps with `sh`, Windows agents with `bat`.
 // Plugins: Pipeline, Git, Credentials Binding, JUnit, Timestamper; Allure is optional.
 
 import groovy.transform.Field
@@ -76,6 +77,16 @@ pipeline {
           String actual = shell(returnStdout: true, 'node -p "process.versions.node.split(\'.\')[0]"').trim()
           if (actual != wanted) {
             error("The agent has Node ${actual}; .nvmrc asks for ${wanted}.")
+          }
+          // npm must run its scripts with this Node, on this platform. On a Linux agent in WSL the
+          // Windows PATH follows the Linux one, and a Windows npm found there runs every `npm run`
+          // through cmd.exe, which refuses the workspace's path (CI-16).
+          String platform = shell(returnStdout: true, 'node -p "process.platform"').trim()
+          String viaNpm = shell(returnStdout: true, 'npm exec -c "node -p process.platform"').trim()
+          if (viaNpm != platform) {
+            error("npm does not run its scripts with the agent's Node (${platform}); it printed: " +
+              "${viaNpm.take(300)}. Put that Node's npm first on the agent's PATH " +
+              '(docs/ci.md, "A Linux agent in WSL").')
           }
         }
       }

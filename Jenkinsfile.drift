@@ -79,6 +79,14 @@ pipeline {
           if (actual != wanted) {
             error("The agent has Node ${actual}; .nvmrc asks for ${wanted}.")
           }
+          // As in the Jenkinsfile: npm must run its scripts with this Node, on this platform (CI-16).
+          String platform = shell(returnStdout: true, 'node -p "process.platform"').trim()
+          String viaNpm = shell(returnStdout: true, 'npm exec -c "node -p process.platform"').trim()
+          if (viaNpm != platform) {
+            error("npm does not run its scripts with the agent's Node (${platform}); it printed: " +
+              "${viaNpm.take(300)}. Put that Node's npm first on the agent's PATH " +
+              '(docs/ci.md, "A Linux agent in WSL").')
+          }
         }
       }
     }
