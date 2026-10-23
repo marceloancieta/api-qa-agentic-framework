@@ -62,6 +62,7 @@ What the v0.6.0 release and its pre-release review found, the Keycloak pack on J
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
+| CI-18 | `npm run release:check` stopped the v0.7.0 release: `npm audit` reports a critical advisory in `dompurify@3.4.16`, which `allure` brings in through `@allurereport/web-commons` (open Dependabot alerts, fixed in `3.4.17`; Dependabot opens no pull request for a package another one brings in). Take the patched release into the lockfile, as CI-12 did for `handlebars`; `web-commons` accepts `^3.4.0`, so no direct dependency changes. | exp | in-progress |
 | DOC-14 | Pre-release review of v0.7.0, as DOC-10 and DOC-12 were for their releases: once every other item of this section is in **Done**, read the docs, the rules, the skills and the pack skills against the code, with what these items changed first (the Jenkins pages, the lanes, the release steps, the coverage of each pack), and fix what disagrees before the release pull request. | exp | in-progress |
 
 ---
