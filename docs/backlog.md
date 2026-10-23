@@ -58,12 +58,13 @@ GATE-26 for the DAST lane, and DOC-12, the pre-release review. Released as `v0.6
 
 ## v0.7.0
 
-What the v0.6.0 release and its pre-release review found, the Keycloak pack on Jenkins and in the lanes, more of the worked examples automated and published, faster gates required before a push, and both Jenkins pipelines proven on a Linux agent.
-
-| Id | Item | Origin | Status |
-|---|---|---|---|
-| CI-18 | `npm run release:check` stopped the v0.7.0 release: `npm audit` reports a critical advisory in `dompurify@3.4.16`, which `allure` brings in through `@allurereport/web-commons` (open Dependabot alerts, fixed in `3.4.17`; Dependabot opens no pull request for a package another one brings in). Take the patched release into the lockfile, as CI-12 did for `handlebars`; `web-commons` accepts `^3.4.0`, so no direct dependency changes. | exp | in-progress |
-| DOC-14 | Pre-release review of v0.7.0, as DOC-10 and DOC-12 were for their releases: once every other item of this section is in **Done**, read the docs, the rules, the skills and the pack skills against the code, with what these items changed first (the Jenkins pages, the lanes, the release steps, the coverage of each pack), and fix what disagrees before the release pull request. | exp | in-progress |
+What the v0.6.0 release and its pre-release review found, the Keycloak pack on Jenkins and in the
+lanes, more of the worked examples automated and published, faster gates required before a push, and
+both Jenkins pipelines proven on a Linux agent. Every item is in **Done**: CI-13, CI-14, DOC-13,
+GATE-27, GATE-28, PROC-16 and TM-10 for what the release found, CI-17, GATE-29, GATE-30 and CI-15
+for Keycloak in the lanes and on Jenkins, PET-06 for the worked examples, PROC-17 and GATE-31 for the
+gates, CI-16 for the Linux agent, DOC-14, the pre-release review, and CI-18 for the advisory the
+release check found. Released as `v0.7.0`.
 
 ---
 
@@ -212,3 +213,5 @@ What the v0.6.0 release and its pre-release review found, the Keycloak pack on J
 | PROC-17 | `AGENTS.md`, `CLAUDE.md` and `CONTRIBUTING.md` require the gates before a push, which the `pre-push` hook enforces, instead of before each commit, and say to run them by hand only to learn the result sooner: an agent following both rules had run the same check twice for one change. CI's required `gates` job is unchanged. | `885534d` |
 | GATE-31 | `npm run gates` went from 207 s to about 135 s on an 8-core Windows machine with every check kept ([quality gates](quality-gates.md)): `test:scripts` runs every suite once under the decoy `GIT_DIR` (`scripts/test-scripts.mjs`, now covering all suites instead of a re-run of six), the framework-update suite is split into four files run in parallel, and `format:check` uses Prettier's content cache. CI's Linux job was already fast (73 s before, 75 s after). | `7392609` |
 | CI-16 | `Jenkinsfile` and `Jenkinsfile.drift` ran on a Linux agent in WSL and on the Windows agent, every stage green on both, the Keycloak stage included. The Node stage now also checks that npm runs its scripts with the agent's Node on the same platform, since a WSL agent had found the Windows npm on its `PATH`; the agent requirements name Java for the Allure plugin; [Jenkins](ci.md#a-linux-agent-in-wsl) says how to set up such an agent. | `17e09b3` |
+| DOC-14 | The pre-release review of v0.7.0: four read-only reviewers by area compared the docs, rules, skills and pack skills with the code, every finding was checked before it was fixed, and a second, independent review of the diff caught a duplicate tag the first pass had added. CI, process, pack and top-level docs were corrected, and the "Upgrading from 0.6.0" notes of the release were drafted from it. | `58a391b` |
+| CI-18 | The lockfile takes `dompurify@3.4.17`, the patch for the critical advisory in `3.4.16` that `allure` brings in through `@allurereport/web-commons`, which stopped the v0.7.0 release at its dependency audit; `npm audit` reports nothing, and no direct dependency changed. | `c954deb` |
