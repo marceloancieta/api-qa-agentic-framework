@@ -5,6 +5,92 @@ All notable changes to this project are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and each section is generated from the
 commit history by `scripts/changelog.mjs`.
 
+## [0.7.0] - 2026-10-23
+
+### Upgrading from 0.6.0
+
+- **Taking this release.** `npm run framework:update -- --to v0.7.0` takes it from the release
+  `.framework-release` records. Its lockfile takes `dompurify` 3.4.17, the patch for a critical
+  advisory that `allure` brings in: run `npm ci` afterwards, and `npm audit` reports it fixed.
+- **A pack skill's pending facts name their phase.** `lint-docs` (pending-skill-fact) reports a
+  `_pending until <phase>_` marker in a pack's skill once the pack has passed that phase, and a bare
+  `_pending_` counts as `_pending until intake_`. A skill scaffolded on 0.6.0 or earlier carries bare
+  markers: fill each fact, or write `_pending until design_` or `_pending until automate_` for one
+  a later phase fills. A phase other than `intake`, `design` and `automate` is reported too.
+- **No `wont-do` status.** An open backlog row with the status `wont-do` fails `lint-docs`. Move it
+  to **Done**, its item starting with `**Won't do.**` and the reason, closed by the commit that
+  recorded the decision. Your `docs/backlog.md` is your own and the update leaves it alone: change
+  the Status line of its header too (`todo`, `in-progress`, `blocked`).
+- **`test:scripts` runs every suite under a decoy repository.** It is now
+  `node scripts/test-scripts.mjs`, which points `GIT_DIR`, `GIT_WORK_TREE` and `GIT_INDEX_FILE` at a
+  throwaway repository and fails when a test's git command changed it. A test of your own that runs
+  git on a repository of its own passes `env: gitEnv()` (`scripts/lib/git.mjs`). The runner makes
+  its repository with `git init --initial-branch`, which needs git 2.28 or later.
+- **Removed example packs come back in CI.** This release adds Keycloak and VAmPI jobs and stages to
+  shared files: `dast (keycloak)` in `dast.yml` (on every pull request, not a required check), the
+  `keycloak` entry of the `perf.yml` matrix, `drift (vampi)` and `drift (keycloak)` in `drift.yml`,
+  the `e2e (keycloak)` stage of `Jenkinsfile` and the per-pack stages of `Jenkinsfile.drift`. A copy
+  that removed one of these packs gets its jobs back with the update: delete them by hand, since
+  `remove:service` refuses a pack that is no longer there.
+- **Jenkins.** The drift pipeline runs one stage per pack and names its reports
+  `reports/drift/<pack>-<step>.txt`. The Node stage of both pipelines also checks that npm runs its
+  scripts with the agent's Node on the same platform, and an agent needs Java on its `PATH` for the
+  Allure plugin when `PUBLISH_ALLURE` is on. `docs/ci.md` describes a Linux agent in WSL.
+- **The gates are required before a push.** `AGENTS.md`, `CLAUDE.md` and `CONTRIBUTING.md` say so,
+  and the `pre-push` hook runs them. They are faster: the git suites run once, and `format:check`
+  keeps a content cache under `node_modules/.cache`.
+- **A pack's DAST values and performance tokens.** An optional `services/<pack>/dast-params.json`
+  (`{ "params": { "<name>": <value> } }`) gives ZAP the values to send for parameters; a name no
+  parameter has, another key or a non-scalar value stops the lane with exit 2. The performance lane
+  stops before k6 when `--duration` would outlive a token. Keycloak's compose service pins
+  `KC_HOSTNAME`.
+- **A query parameter given as an array.** `QueryParams` accepts a `readonly string[]`, and
+  `BaseClient` sends the parameter once per element; an empty array throws.
+- **The skill template.** `docs/templates/service-skill.md` uses `{{APINAME}}`, which the scaffolder
+  fills; a customised copy of the template takes the placeholder too.
+
+### Features
+
+- **gates:** a pack's skill keeps no fact pending past the phase that fills it (#103) (GATE-27) `d8aa0d1`
+
+### Fixes
+
+- **ci:** wait longer for the published version and tell a failed read-back from a failed publish (#106) (CI-13) `ace2bc8`
+- **deps:** take the patched dompurify into the lockfile (#120) (CI-18) `c954deb`
+- **gates:** a row that will not be done moves to Done with the deciding commit (#100) (GATE-28) `78a16fd`
+- **scaffold:** a pack title that ends in API reads once in its skill (#101) (PROC-16) `dca8336`
+
+### Performance
+
+- **gates:** run the git suites once and cache the format check (#115) (GATE-31) `7392609`
+
+### Other
+
+- **ci(dast):** scan Keycloak too, with the values its paths need (#109) (GATE-30) `bd583e9`
+- **ci(drift):** check the contract drift of VAmPI and Keycloak too (#104) (CI-17) `3bacd24`
+- **ci(jenkins):** run the Keycloak pack in the Jenkins pipeline too (#111) (CI-15) `6a08ed8`
+- **ci(jenkins):** check npm in the Node stage and document a Linux agent in WSL (#117) (CI-16) `17e09b3`
+- **ci(perf):** run the performance lane on Keycloak too (#108) (GATE-29) `11f58c8`
+- **docs(backlog):** plan v0.7.0 (#98) (DOC-13) `5ac4fc2`
+- **docs(backlog):** record their closing commits (#107) (CI-14, GATE-28, PROC-16, DOC-13, GATE-27, CI-17, TM-10, CI-13) `f2d2e03`
+- **docs(backlog):** record their closing commits (#110) (GATE-29, GATE-30) `0c2c262`
+- **docs(backlog):** record their closing commits (#113) (PET-06, CI-15) `7cb460c`
+- **docs(backlog):** record their closing commits (#116) (PROC-17, GATE-31) `d063b9d`
+- **docs(backlog):** record its closing commit (#118) (CI-16) `c332e90`
+- **docs(ci):** name npm's allowed actions in the trusted-publisher setup (#102) (DOC-13) `d572f19`
+- **docs(process):** require the gates before a push, not before each commit (#114) (PROC-17) `885534d`
+- **docs(registry):** publish the Keycloak and VAmPI cases (#105) (TM-10) `487a869`
+- **docs(review):** fix what the v0.7.0 pre-release review found (#119) (DOC-14) `58a391b`
+- **test(petstore):** automate the pet-search cases (#112) (PET-06) `c2ff869`
+
+### Not conventional
+
+- build(deps-dev): Bump markdown-it from 14.3.2 to 14.3.3 (#99) `6346e05` (no backlog id after the colon)
+
+A Dependabot update: its titles carry no backlog id, so its pull requests skip the `title` check
+([CI](docs/ci.md)). It moves `markdown-it`, a development dependency, to `14.3.3`, which fixes two
+advisories (backlog CI-14).
+
 ## [0.6.0] - 2026-10-20
 
 ### Upgrading from 0.5.0
