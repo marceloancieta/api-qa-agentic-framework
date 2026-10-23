@@ -112,7 +112,7 @@ numbering of [`pet.md`](pet.md), which holds the design notes that apply to ever
   the first is used and validated (M-09, M-10). Open question A7 of the contract asked whether this
   is drift to tolerate; it was filed as a defect on 2026-10-22, so the case is armed as a known gap.
 - **Cleanup**: delete both pets, each confirmed by a `404` read.
-- **Tags**: `@regression @contract-drift`
+- **Tags**: `@regression @contract-drift @known-gap`
 
 ### TC-PET-58
 
@@ -122,7 +122,7 @@ numbering of [`pet.md`](pet.md), which holds the design notes that apply to ever
   an implementation type.
 - **Verification**: response only.
 - **Departure**: PN-07 (`LOCAL-14`): input errors echo the raw input (M-07, G6).
-- **Tags**: `@regression @security`
+- **Tags**: `@regression @security @known-gap`
 
 ### TC-PET-59
 
@@ -161,7 +161,7 @@ numbering of [`pet.md`](pet.md), which holds the design notes that apply to ever
 - **Departure**: PN-11 (`LOCAL-13`): repeated tags list a pet once per matching tag, and a comma
   list is matched as one literal tag and returns `[]` (M-12, M-13).
 - **Cleanup**: delete the three pets, each confirmed by a `404` read.
-- **Tags**: `@regression @contract-drift`
+- **Tags**: `@regression @contract-drift @known-gap`
 
 ### TC-PET-62
 

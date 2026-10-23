@@ -58,11 +58,11 @@ GATE-26 for the DAST lane, and DOC-12, the pre-release review. Released as `v0.6
 
 ## v0.7.0
 
-What the v0.6.0 release and its pre-release review found, the Keycloak pack on Jenkins and in the lanes, and more of the worked examples automated and published.
+What the v0.6.0 release and its pre-release review found, the Keycloak pack on Jenkins and in the lanes, more of the worked examples automated and published, faster gates required before a push, and both Jenkins pipelines proven on a Linux agent.
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
-| DOC-14 | Pre-release review of v0.7.0, as DOC-10 and DOC-12 were for their releases: once every other item of this section is in **Done**, read the docs, the rules, the skills and the pack skills against the code, with what these items changed first (the Jenkins pages, the lanes, the release steps, the coverage of each pack), and fix what disagrees before the release pull request. | exp | todo |
+| DOC-14 | Pre-release review of v0.7.0, as DOC-10 and DOC-12 were for their releases: once every other item of this section is in **Done**, read the docs, the rules, the skills and the pack skills against the code, with what these items changed first (the Jenkins pages, the lanes, the release steps, the coverage of each pack), and fix what disagrees before the release pull request. | exp | in-progress |
 
 ---
 

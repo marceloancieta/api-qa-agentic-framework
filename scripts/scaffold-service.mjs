@@ -754,7 +754,8 @@ async function main() {
   if (values['skill-only']) {
     const [skill] = writePlan(plan, REPO_ROOT, { skillOnly: true });
     console.log(`
-Wrote ${skill}. Fill in its pending facts from the pack's docs.`);
+Wrote ${skill}. Fill in its pending facts from the pack's docs: npm run lint:docs reports each
+fact still pending until a phase the pack has already passed.`);
     return;
   }
   const written = writePlan(plan);

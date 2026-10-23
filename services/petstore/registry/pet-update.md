@@ -122,7 +122,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
   against a seed pet: this probe once corrupted one (PN-06).
 - **Probes**: `p-323bb34345`.
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @contract-drift @data-integrity`
+- **Tags**: `@regression @contract-drift @data-integrity @known-gap`
 
 ### TC-PET-31
 
@@ -134,7 +134,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
   stores `[]`, W-20; L-37).
 - **Probes**: `p-7d0a43508e`.
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @data-integrity`
+- **Tags**: `@regression @data-integrity @known-gap`
 
 ### TC-PET-32
 
@@ -145,7 +145,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Departure**: PN-06 (`LOCAL-8`): `200`, stored as sent (W-16).
 - **Probes**: `p-8a03833f58`.
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @contract-drift @data-integrity`
+- **Tags**: `@regression @contract-drift @data-integrity @known-gap`
 
 ### TC-PET-33
 
@@ -163,7 +163,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Probes**: `p-ae21138f84`, `p-720ff94cba`, `p-28bbfce11f`, `p-cb6afa2d11`, `p-19476b1e03`,
   `p-10175847e7`, `p-ad34189970`, `p-3b6b3472ea`, `p-b9a81a65ab`, `p-a0922cbf74`, `p-4b4c9950d2`.
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @data-integrity`
+- **Tags**: `@regression @data-integrity @known-gap`
 
 ### TC-PET-34
 
@@ -181,7 +181,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
   `p-000f410ac9`, `p-e86c3a529b`, `p-fbcb198226`, `p-3b31e62766`, `p-464553e03f`, `p-01da4a352e`,
   `p-95327af7d4`, `p-164b0e23c6`, `p-9148951dad`.
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @data-integrity`
+- **Tags**: `@regression @data-integrity @known-gap`
 
 ### TC-PET-35
 
@@ -236,7 +236,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
   never a `5xx`.
 - **Verification**: response only.
 - **Departure**: PN-01 (`LOCAL-9`): `500` `server-error` (W-31).
-- **Tags**: `@regression @contract-drift`
+- **Tags**: `@regression @contract-drift @known-gap`
 
 ### TC-PET-40
 
@@ -268,7 +268,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Departure**: PN-23 (`LOCAL-10`): `400` plain text `No Name provided. Try again?` and nothing
   changes (W-06, W-07). The same class answers a request with no parameter at all (W-09).
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @contract-drift @data-integrity`
+- **Tags**: `@regression @contract-drift @data-integrity @known-gap`
 
 ### TC-PET-43
 
@@ -278,7 +278,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Verification**: `expectOnlyChanged(before, after, PET_FIELDS, ['name'])`.
 - **Departure**: PN-23 (`LOCAL-10`): the status is removed (W-08).
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @contract-drift @data-integrity`
+- **Tags**: `@regression @contract-drift @data-integrity @known-gap`
 
 ### TC-PET-44
 
@@ -290,7 +290,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Verification**: state comparison.
 - **Departure**: PN-21 (`LOCAL-8`): `200`, stored as sent (W-12).
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @contract-drift @data-integrity`
+- **Tags**: `@regression @contract-drift @data-integrity @known-gap`
 
 ### TC-PET-45
 
@@ -326,7 +326,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Departure**: PN-24 (`LOCAL-11`): the answer is a `Pet`, not an `ApiResponse` (W-40). The path it
   appends is TC-PET-52.
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @contract-drift @data-integrity`
+- **Tags**: `@regression @contract-drift @data-integrity @known-gap`
 
 ### TC-PET-48
 
@@ -380,7 +380,7 @@ Asked for every write in this file (L-20, L-25, L-35, L-37, L-59):
 - **Verification**: follow-up read.
 - **Departure**: PN-24 (`LOCAL-11`): `photoUrls` gains a server temporary-file path (W-40).
 - **Cleanup**: delete, confirmed by a `404` read.
-- **Tags**: `@regression @security @data-integrity`
+- **Tags**: `@regression @security @data-integrity @known-gap`
 
 ### TC-PET-53
 

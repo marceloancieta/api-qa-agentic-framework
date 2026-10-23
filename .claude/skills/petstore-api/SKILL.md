@@ -34,7 +34,8 @@ demo, which is read-only for this suite. The seed pets 1 to 10 are shared data: 
 ## Authentication and actors
 
 The contract declares `petstore_auth` (OAuth2) and `api_key` (header `api_key`). The service does
-not enforce `api_key` (PN-05), so authorization matrices are shown on the VAmPI pack (`vampi-api`).
+not enforce `api_key` (PN-05), so authorization matrices are shown on the VAmPI and Keycloak packs
+(`vampi-api`, `keycloak-api`).
 The pack's `auth` is `api_key` in the `api_key` header, read from `API_KEY` (any non-blank value).
 Actors: `default` and `anonymous`; no environment declares other `actors`.
 

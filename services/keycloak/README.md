@@ -40,7 +40,7 @@ pack's `recovery`.
 
 - `realm/qa-realm.json` is the realm `qa` the container imports at start. It has three
   service-account clients whose roles of the `realm-management` client make the authorization
-  matrix: `qa-admin` reads and manages users and groups, `qa-viewer` only reads them, and
+  matrix: `qa-admin` reads and manages users and reads groups, `qa-viewer` only reads them, and
   `qa-no-role` has no admin role. Access tokens live 60 seconds, so a run renews them.
 - The client ids and secrets come from `KEYCLOAK_*_CLIENT_ID` and `KEYCLOAK_*_CLIENT_SECRET`
   (`.env.example`); the realm reads them from the container's environment at import, so no
@@ -61,6 +61,11 @@ npx playwright test --project=api-keycloak
 
 The contract is the OpenAPI document Keycloak publishes for the release; the container does not
 serve it, so `spec_url` is the published one.
+
+The specs are `smoke.spec.ts` and the users cases in `users-crud.spec.ts`, `users-access.spec.ts`
+(the authorization matrix of the three actors) and `users-errors.spec.ts`. CI runs them in the
+`e2e-keycloak` job ([CI](../../docs/ci.md#e2e-keycloak)), and Jenkins in its `e2e (keycloak)`
+stage after the VAmPI one.
 
 ## DAST
 

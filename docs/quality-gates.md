@@ -65,8 +65,9 @@ performance lanes run in a container against one pack, and the differential lane
 pack's deployments, so all three need `--service`.
 
 In CI the destructive lane runs after the suite on every pull request and every push to `main`, the
-known-gap and published lanes run daily, and the DAST, performance and differential lanes run weekly
-and on pull requests that touch them ([continuous integration](ci.md)).
+known-gap and published lanes run daily, the DAST lane weekly and on every pull request, and the
+performance and differential lanes weekly and on pull requests that touch them
+([continuous integration](ci.md)).
 
 ### Credentials in the DAST, performance and differential lanes
 

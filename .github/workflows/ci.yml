@@ -1,4 +1,4 @@
-# CI (CI-01): the gates, then one end-to-end run of the Petstore pack, reported as one run.
+# CI (CI-01): the gates, then the end-to-end run of each pack; the Petstore's is reported as one run.
 # What each step runs, in which order and why: docs/ci.md.
 name: ci
 

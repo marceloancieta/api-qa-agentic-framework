@@ -1,7 +1,8 @@
 # Users contract
 
 > **Approved** at the intake review gate on 2026-10-16. Read-only intake against the local Keycloak;
-> the behaviour of the writes is **unmeasured** until the spec run of the registry.
+> the writes were then measured by the spec run of [the users registry](../../registry/users.md)
+> (below, "Writes, measured by the spec run").
 
 | | |
 |---|---|
@@ -31,15 +32,15 @@ declares none (KN-01).
 | Operation | Parameters (spec) | Declared answers (spec) | Measured |
 |---|---|---|---|
 | `GET /users` | query `briefRepresentation`, `createdAfter`, `createdBefore`, `email`, `emailVerified`, `enabled`, `exact`, `first` (int32, offset), `firstName`, `idpAlias`, `idpUserId`, `lastName`, `max` (int32, default 100), `q`, `search`, `username` | `200` array of `UserRepresentation`; `403` | `401` (M-01), `404` on a malformed integer (KN-03, M-06), `400` on a malformed date (KN-06, M-08) |
-| `POST /users` | body `UserRepresentation` ("Username must be unique") | `201`; `400`, `403`, `409`, `500`, bodies with an empty schema | unmeasured |
+| `POST /users` | body `UserRepresentation` ("Username must be unique") | `201`; `400`, `403`, `409`, `500`, bodies with an empty schema | unmeasured at intake; see "Writes, measured by the spec run" |
 | `GET /users/count` | the filters of the list, without `first`, `max` and `briefRepresentation` | `200` int32; `403` | `401` (M-01); an unknown parameter is ignored (M-07) |
 | `GET /users/{user-id}` | path `user-id` (string); query `userProfileMetadata` | `200` `UserRepresentation`; `403` | `404` for an unknown id (KN-02, M-09) |
-| `PUT /users/{user-id}` | path `user-id`; body `UserRepresentation` | `204`; `400`, `403`, `409`, `500` | unmeasured |
-| `DELETE /users/{user-id}` | path `user-id` | `204`; `400`, `403` | unmeasured |
+| `PUT /users/{user-id}` | path `user-id`; body `UserRepresentation` | `204`; `400`, `403`, `409`, `500` | unmeasured at intake; see "Writes, measured by the spec run" |
+| `DELETE /users/{user-id}` | path `user-id` | `204`; `400`, `403` | unmeasured at intake; see "Writes, measured by the spec run" |
 
 Not declared anywhere: `401` (KN-01, KN-02), `404` for an unknown user or realm (KN-02), the
-`Location` header of the `201` (assumption A2). Error bodies have two shapes (KN-07); the
-`error-envelopes.json` catalogue is written by `qa-automate`.
+`Location` header of the `201` (assumption A2). Error bodies have three shapes (KN-07); the
+pack's `error-envelopes.json` holds the envelopes the cases assert.
 
 ## Business rules
 
@@ -170,7 +171,7 @@ the writes the intake left open. Every answer matched its case:
 | G4 | A non-boolean value of a boolean query parameter is accepted | KN-04, M-07 | searched, none |
 | G5 | Service accounts hidden from the unfiltered list and the count, found by a `username` search | KN-05, M-03, M-04 | searched, none |
 | G6 | `createdAfter` and `createdBefore` take an epoch timestamp the spec does not mention | KN-06, M-08 | searched, none |
-| G7 | Two error body shapes; `400` and `409` bodies have an empty schema | KN-07 | searched, none |
+| G7 | Three error body shapes (two at intake, a third measured by the spec run); `400` and `409` bodies have an empty schema | KN-07 | searched, none |
 | G8 | The derived floor has no security case, so it understates what this feature needs | KN-01 | searched, none |
 | G9 | The `201` of `POST` declares no `Location` header and no body: how a case learns the new id is unmeasured | spec | searched, none |
 
