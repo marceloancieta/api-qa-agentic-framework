@@ -66,6 +66,12 @@ for Keycloak in the lanes and on Jenkins, PET-06 for the worked examples, PROC-1
 gates, CI-16 for the Linux agent, DOC-14, the pre-release review, and CI-18 for the advisory the
 release check found. Released as `v0.7.0`.
 
+## v0.8.0
+
+| Id | Item | Origin | Status |
+|---|---|---|---|
+| DOC-15 | Read by a newcomer, the backlog and the lessons promise links they do not keep and name guards the code does not have. The lessons' introduction says the work they imply is tracked here by its `L-NN` id, and this header defines an Origin column, but **Done** has no Origin column and no row cites a lesson: say that Origin belongs to open rows and is left out of **Done**, or carry it there. `lint-docs` `lesson-guard` checks only the names a guard writes in code spans, so prose names escape it: L-27 "anti-flake lane" is the flake lane (GATE-09), L-31 "published-case lane" is the published lane (GATE-06), and L-22 names "an identity-format check" no script has. Write each guard as the name in the code, in a code span, so the check covers it. DOC-01 "project-internal wording" and DOC-04 "wording scans" name nothing a reader can find in the repository: say what was done instead. | exp | todo |
+
 ---
 
 ## Done
