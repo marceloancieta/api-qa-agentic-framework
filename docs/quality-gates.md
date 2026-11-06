@@ -6,7 +6,7 @@ exactly the marked lines (`expect-finding: <rule>`), no more and no fewer.
 
 ## `npm run gates`
 
-Runs before every push (pre-push hook) and needs no API:
+Runs before a push ([`pre-push` hook](../CONTRIBUTING.md#git-hooks)) and needs no API:
 
 | Step | Checks |
 |---|---|
