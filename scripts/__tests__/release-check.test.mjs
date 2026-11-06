@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { latestRelease } from '../changelog.mjs';
+import { latestRelease, nextVersion } from '../changelog.mjs';
 import { REPO_ROOT } from '../lib/cli.mjs';
 import {
   AUDIT,
@@ -208,14 +208,37 @@ test('backlog: each failure is exactly its findings', () => {
       ['docs/backlog.md has no ## v0.5.0 section: the release pull request says there'],
     ],
     [
-      "a copy's backlog with one Open section",
+      'the one Open section of a copy from before FUT-16',
       lines('# Backlog', '', '## Open', '', ...OPEN_TABLE, '| REPO-01 | Adopt. | plan | todo |'),
-      ['docs/backlog.md has no ## v0.5.0 section'],
+      ['docs/backlog.md has no ## v0.5.0 section: the release pull request says there'],
     ],
     ['no backlog', null, ['docs/backlog.md is missing']],
   ];
   for (const [name, text, expected] of cases) {
     const problems = backlogProblems(text, '0.5.0');
+    assert.equal(problems.length, expected.length, `${name}: ${JSON.stringify(problems)}`);
+    expected.forEach((start, index) => assert.ok(problems[index].startsWith(start), name));
+  }
+});
+
+test("a copy's first release: the template's row blocks it until it reaches Done", () => {
+  const template = readFileSync(join(REPO_ROOT, 'docs/templates/backlog.md'), 'utf8');
+  const { version } = nextVersion(null, []);
+  const where = `the ## v${version} section of docs/backlog.md`;
+  const rowLeft = `${where} still has 1 row(s): REPO-01;`;
+  const notSaid = `${where} does not say`;
+  const closed = `${template.replace(/^\| REPO-01 \|.*\n/m, '').trimEnd()}\n| REPO-01 | Adopt. | \`abc1234\` |\n`;
+  const said = (text) =>
+    text.replace(`## v${version}\n`, `## v${version}\n\nReleased as \`v${version}\`.\n`);
+
+  const cases = [
+    ['as created', template, [rowLeft, notSaid]],
+    ['said, with the row left', said(template), [rowLeft]],
+    ['the row closed, not said', closed, [notSaid]],
+    ['the row closed and said', said(closed), []],
+  ];
+  for (const [name, text, expected] of cases) {
+    const problems = backlogProblems(text, version);
     assert.equal(problems.length, expected.length, `${name}: ${JSON.stringify(problems)}`);
     expected.forEach((start, index) => assert.ok(problems[index].startsWith(start), name));
   }

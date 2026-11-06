@@ -153,7 +153,9 @@ export function backlogProblems(text, version) {
   }
   if (!found) {
     return [
-      `docs/backlog.md has no ## v${version} section: the release pull request says there that the version was released (${STEP} 4)`,
+      `docs/backlog.md has no ## v${version} section: the release pull request says there that ` +
+        `the version was released, and the version's rows sit under it, so a backlog with an ` +
+        `## Open section renames it (${STEP} 4)`,
     ];
   }
   const problems = [];

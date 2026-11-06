@@ -14,10 +14,13 @@ commits and docs stay valid.
   `ADR NNNN` = a recorded decision.
 - **Prefixes**: `REPO` repository setup · `<PACK>` one prefix per service pack, as in `PET` ·
   add your own.
+- **Sections**: open rows sit under the version that delivers them. `npm run release:check` reads
+  that section: it must have no row left and say "Released as `v<x.y.z>`" (`CONTRIBUTING.md`,
+  releases). Work for the next version goes under a new `## v<x.y.z>` section, above **Done**.
 
 ---
 
-## Open
+## v0.1.0
 
 | Id | Item | Origin | Status |
 |---|---|---|---|
