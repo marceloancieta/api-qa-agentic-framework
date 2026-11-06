@@ -69,6 +69,10 @@ the comments in step.
   the alert open all the same, so dismiss it as "won't fix" with a comment that names the backlog
   item and the code that explains it. Example: the DAST lane saves the definition it fetched
   (`js/http-to-file-access`, alert 13, GATE-20). Never dismiss an alert the code does not explain.
+- **A dismissal covers one alert.** When the flagged code or what reaches it changes, GitHub can
+  close the old alert and open a new one for the same finding, and no check reports it: GATE-30
+  turned alert 13 into alert 22, and a release shipped with it open (CI-20). Read the Security tab
+  before a release, confirm the guards still hold, and dismiss the new alert the same way.
 - **Cost.** Free for public repositories. A private repository needs GitHub's code security
   licence; without it the upload step fails.
 - **Enable or remove.** It runs once the file is on the default branch. Do not also enable CodeQL
