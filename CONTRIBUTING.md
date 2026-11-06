@@ -76,7 +76,7 @@ The existing linters and their fixtures in `scripts/__fixtures__/` are the examp
 |---|---|---|
 | `pre-commit` | gitleaks on the staged changes, then the local denylist scan on them | Fails when gitleaks is not installed, because a scan that did not run must not pass. `git commit --no-verify` skips it once, knowing what you skip. |
 | `commit-msg` | the local denylist scan on the message | Passes with a notice when there is no denylist. |
-| `pre-push` | `npm run gates` | The same gate CI runs. `QA_NO_GATES=1` skips it for one push. |
+| `pre-push` | `npm run gates` | The same gate CI runs. A push of only tags on commits the remote already has skips it, because nothing new leaves; a tag on a local commit does not. `QA_NO_GATES=1` skips it for one push. |
 
 A hook exports git's own variables (`GIT_DIR`, `GIT_INDEX_FILE`, `GIT_WORK_TREE`) to what it runs,
 and from a linked worktree they point at that worktree's repository. A script or test that runs git

@@ -6,5 +6,35 @@ if [ "${QA_NO_GATES:-}" = "1" ]; then
   echo "[pre-push] QA_NO_GATES=1: quality gate bypassed for this push."
   exit 0
 fi
+
+# Tags on commits the remote already has carry nothing new, so the gates have nothing to check
+# (GATE-33). git passes the remote's name, and one line per ref on stdin. Being a tag is not enough:
+# one on a local commit would publish that commit unchecked. Anything rev-list cannot answer, such
+# as a deleted tag or a remote given by URL, which has no remote-tracking refs, runs the gates.
+remote=$1
+
+known_tag() {
+  case "$1" in
+    refs/tags/*) ;;
+    *) return 1 ;;
+  esac
+  new=$(git rev-list -n 1 "$2^{commit}" --not --remotes="$remote" 2>/dev/null) && [ -z "$new" ]
+}
+
+tags=0
+others=0
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+  if known_tag "$remote_ref" "$local_sha"; then
+    tags=$((tags + 1))
+  else
+    others=$((others + 1))
+  fi
+done
+
+if [ "$tags" -gt 0 ] && [ "$others" -eq 0 ]; then
+  echo "[pre-push] only tags of commits $remote already has: nothing new, gates skipped."
+  exit 0
+fi
+
 echo "[pre-push] npm run gates (bypass once with QA_NO_GATES=1)"
 exec npm run gates
