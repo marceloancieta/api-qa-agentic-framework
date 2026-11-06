@@ -116,7 +116,8 @@ Set up the clone first, as in the [README](../../README.md#first-10-minutes): `n
 `.env` from `.env.example`, and `npm run hooks:install` if you use the git hooks.
 
 1. **Start your own backlog.** Replace `docs/backlog.md` with the template, which holds one open
-   row, `REPO-01`, for this adoption, and write the framework commit from step 1 into it:
+   row, `REPO-01`, for this adoption, under `## v0.1.0`, the section of your first release, and
+   write the framework commit from step 1 into it:
 
    ```sh
    cp docs/templates/backlog.md docs/backlog.md
