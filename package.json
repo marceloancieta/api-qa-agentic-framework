@@ -107,8 +107,11 @@
     "yaml": "^2.9.1"
   },
   "overrides": {
+    "@allurereport/web-commons": {
+      "dompurify": "3.4.17"
+    },
     "typed-rest-client": {
-      "qs": "6.16.0"
+      "qs": "6.16.1"
     }
   }
 }
