@@ -404,10 +404,10 @@ async function cappedText(response, limit) {
  * Throws with a message for a URL that does not answer, a non-2xx answer, a body larger than
  * `maxBytes` and a body that is not a JSON or YAML OpenAPI (or Swagger) document.
  *
- * The lane saves this text for ZAP, which is why it fetches it (CodeQL js/http-to-file-access,
- * GATE-20): the file name is fixed by the lane (`--out` is a plain name, the extension comes from
- * the parse), the text must parse as an OpenAPI object, its size is capped, and only ZAP reads it,
- * as data.
+ * The lane saves this text for ZAP, with the pack's exclusions and parameter values applied, so
+ * it fetches it (CodeQL js/http-to-file-access, GATE-20, CI-20): the file name is fixed by the lane
+ * (`--out` is a plain name, the extension comes from the parse), the text must parse as an OpenAPI
+ * object, its size is capped, and only ZAP reads it, as data.
  */
 export async function fetchSpec(url, fetchImpl = fetch, { maxBytes = MAX_SPEC_BYTES } = {}) {
   let response;
