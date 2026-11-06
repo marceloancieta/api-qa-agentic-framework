@@ -47,6 +47,10 @@ the comments in step.
   published, and would fail changes that have nothing to do with it. Between releases, Dependabot
   security alerts and security updates report and fix them as they appear; they are repository
   settings under **Settings** > **Code security**, off until someone turns them on.
+- **Overrides.** The `overrides` of `package.json` hold a package at a patched release when the
+  one that brings it in asks for a vulnerable one. `@allurereport/web-commons` 3.21.0 pins
+  `dompurify` 3.4.16, so an update of `allure` took the lockfile back to it (CI-19): delete that
+  override when an `allure` release that asks for `dompurify` 3.4.17 or later passes the cooldown.
 - **Not covered.** The gitleaks version and checksum in `.github/workflows/secret-scan.yml` are
   plain values that Dependabot does not read; update them by hand (below).
 - **Enable or remove.** The file takes effect when it reaches the default branch. Delete it to stop
