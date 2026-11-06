@@ -83,7 +83,8 @@
     "commit:title": "node scripts/commit-title.mjs",
     "changelog": "node scripts/changelog.mjs --next",
     "changelog:write": "node scripts/changelog.mjs --next --write",
-    "release:check": "node scripts/release-check.mjs"
+    "release:check": "node scripts/release-check.mjs",
+    "audit:new": "node scripts/audit-new.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,0 +1,44 @@
+# Audit of a changed lockfile (GATE-32): fails on an advisory the base branch does not have, which
+# `release:check` would otherwise find only at the release. What it compares: docs/ci-security.md.
+name: audit
+
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/audit-new.mjs'
+      - 'scripts/lib/audit.mjs'
+      - '.github/workflows/audit.yml'
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  new-advisories:
+    name: audit (new advisories)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The base commit has to be in the clone: its lockfile is half of the comparison.
+          fetch-depth: 0
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # Reads the lockfiles and asks the registry: nothing to install, no secret to pass.
+      - name: New advisories against the base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: npm run audit:new -- --base "$BASE_SHA"
