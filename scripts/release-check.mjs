@@ -16,10 +16,10 @@
  *                  it was released, as
  *                  "Released as `v<version>`"
  *   dependency audit
- *                  `npm audit --audit-level=critical` over the lockfile (CI-12): a release hands its
- *                  lockfile to every copy and every `npm create api-qa`, so it carries no package
- *                  with a known critical advisory; fails when the registry cannot be asked, because
- *                  an audit that did not run must not pass
+ *                  `npm audit` at `AUDIT_LEVEL` over the lockfile (CI-12, GATE-32): a release hands
+ *                  its lockfile to every copy and every `npm create api-qa`, so it carries no
+ *                  package with a known advisory at that level; fails when the registry cannot be
+ *                  asked, because an audit that did not run must not pass
  *   secret scan   gitleaks over every commit (`npm run scan:secrets`); fails when gitleaks is
  *                  missing, because a scan that did not run must not pass
  *   denylist scan  the local denylist over every patch and message (`npm run scan:denylist:history`);
@@ -38,6 +38,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { latestRelease, parseVersion } from './changelog.mjs';
+import { AUDIT_HINT, AUDIT_LEVEL } from './lib/audit.mjs';
 import { readTextIfExists, REPO_ROOT } from './lib/cli.mjs';
 import { escapeRegExp } from './lib/text.mjs';
 import { describeExit, exitCodeOf, spawnFailure } from './lib/spawn.mjs';
@@ -71,15 +72,14 @@ export const SCANS = [
 ];
 
 /**
- * The dependency audit. It runs before a release only, not on each pull request: an advisory is
- * published whenever its finder publishes it, and would fail pull requests that changed nothing.
+ * The dependency audit. In this form it runs before a release only: an advisory is published
+ * whenever its finder publishes it, and would fail pull requests that changed nothing. A pull
+ * request that changes the lockfile is compared with its base instead (`audit-new.mjs`).
  */
 export const AUDIT = {
   name: 'dependency audit',
-  args: ['audit', '--audit-level=critical'],
-  hint:
-    'take the patched release into the lockfile (npm update <package>, or the dependency that ' +
-    'brings it in), or a release of it at least two weeks old (docs/ci-security.md, Dependabot)',
+  args: ['audit', `--audit-level=${AUDIT_LEVEL}`],
+  hint: AUDIT_HINT,
 };
 
 /** Problems with `git status --porcelain` output: every changed tracked file, at most ten named. */

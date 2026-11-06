@@ -297,7 +297,7 @@ function check(root, { spawn, hasDenylist = () => true }) {
 
 const SECRET = SCANS[0].args[0];
 const DENYLIST = SCANS[1].args[0];
-const NPM_AUDIT = 'npm audit --audit-level=critical';
+const NPM_AUDIT = 'npm audit --audit-level=high';
 
 test('a release whose checks all pass runs every check in order and exits 0', () => {
   const fake = fakeSpawn();
@@ -397,7 +397,7 @@ test('the first failure stops the check and names what did not run', () => {
       fake: fakeSpawn({ audit: { status: 1 } }),
       calls: ['git status', NPM_AUDIT],
       failed: [
-        /^release-check: dependency audit FAILED: npm audit --audit-level=critical failed \(exit 1\): take the patched release/,
+        /^release-check: dependency audit FAILED: npm audit --audit-level=high failed \(exit 1\): take the patched release/,
       ],
       rest: 'secret scan, denylist scan',
     },
@@ -461,15 +461,15 @@ test('a scan that is killed or cannot start fails like one that finds something 
     const { code, printed } = check(repository('0.5.0'), fake);
     assert.equal(code, 1, words);
     assert.ok(
-      printed.some((line) => line.includes(`critical failed (${words})`)),
+      printed.some((line) => line.includes(`high failed (${words})`)),
       words,
     );
     assert.deepEqual(fake.calls, ['git status', NPM_AUDIT]);
   }
 });
 
-test('the audit fails on a critical advisory only, with the arguments npm takes', () => {
-  assert.deepEqual(AUDIT.args, ['audit', '--audit-level=critical']);
+test('the audit fails on a high or critical advisory, with the arguments npm takes', () => {
+  assert.deepEqual(AUDIT.args, ['audit', '--audit-level=high']);
 });
 
 test('a git status that fails is a failure of the tree check, not a clean tree', () => {

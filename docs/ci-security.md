@@ -10,6 +10,7 @@ this page explains them.
 | `.github/dependabot.yml` | weekly (Monday) | opens update pull requests for npm packages and actions | Dependabot's own | none |
 | `.github/workflows/codeql.yml` | push to `main`, pull requests to `main`, weekly, manual | CodeQL analysis of JavaScript and TypeScript | `contents: read`, `security-events: write`, `actions: read` | none |
 | `.github/workflows/secret-scan.yml` | every push, pull requests, manual | gitleaks over the full history | `contents: read` | none |
+| `.github/workflows/audit.yml` | pull requests that touch its `paths` | fails on an advisory the lockfile brings in and the base branch does not have | `contents: read` | none |
 | `.github/workflows/publish.yml` | push of a `v<x.y.z>` tag, in the framework's repository only | publishes `create-api-qa` with npm trusted publishing and provenance, after the owner's approval | `contents: read`, `id-token: write` | none |
 | `.github/workflows/pr-review.yml` | pull requests (opened, updated, reopened, ready for review) | Claude reviews the change against `.github/review-rubric.md` and comments | `contents: read`, `pull-requests: write` | `ANTHROPIC_API_KEY`, optional |
 
@@ -42,11 +43,16 @@ the comments in step.
 - **Advisories.** Version updates wait out the cooldown and only move direct dependencies, so a
   security fix in a package another one brings in can sit in the lockfile unnoticed (CI-12 found
   a critical `handlebars` advisory through `allure` that way). `npm run release:check` therefore
-  runs `npm audit --audit-level=critical` before every release, because a release hands its
-  lockfile to every copy. It does not run on pull requests: an advisory appears whenever it is
-  published, and would fail changes that have nothing to do with it. Between releases, Dependabot
-  security alerts and security updates report and fix them as they appear; they are repository
-  settings under **Settings** > **Code security**, off until someone turns them on.
+  runs `npm audit` at `AUDIT_LEVEL` (`scripts/lib/audit.mjs`) before every release, because a
+  release hands its lockfile to every copy. Between releases, Dependabot security alerts and
+  security updates report and fix them as they appear; they are repository settings under
+  **Settings** > **Code security**, off until someone turns them on.
+- **A pull request that changes the lockfile.** A plain audit on pull requests would fail them for
+  every advisory published that day, whatever they change. `npm run audit:new -- --base <commit>`
+  audits both lockfiles at the same moment and fails only on what the base does not have, at the
+  same level, so an update that takes a package back to a vulnerable release is stopped when it
+  happens (CI-19, GATE-32). `audit.yml` runs it. It is not a required check: its path filter means
+  it does not report on every pull request, and a required check that never reports blocks them.
 - **Overrides.** The `overrides` of `package.json` hold a package at a patched release when the
   one that brings it in asks for a vulnerable one. `@allurereport/web-commons` 3.21.0 pins
   `dompurify` 3.4.16, so an update of `allure` took the lockfile back to it (CI-19): delete that
@@ -191,6 +197,7 @@ security workflow needs.
 | Workflow | With `act` | Without GitHub |
 |---|---|---|
 | `secret-scan.yml` | Fully: the checkout step uses the local repository with its history, the download and checksum check run as written. Needs network access to the gitleaks release and a runner image with `curl`, `tar` and `sha256sum`. | nothing missing |
+| `audit.yml` | Not tried: it needs a `pull_request` event with a base commit. `npm run audit:new -- --base <commit>` runs the same check without `act`. | the run on a real pull request |
 | `codeql.yml` | Not meaningfully: analysis needs the CodeQL bundle and the upload needs the code scanning API of a real repository. | alerts, pull-request annotations |
 | `pr-review.yml` | The skip path: run without the secret and the review job is skipped. The review itself needs a real pull request (the action reads it and checks the actor's permission through the GitHub API) and a key passed with `act -s`; hosted secrets are not available to `act`. | inline and summary comments, fork behaviour |
 | `publish.yml` | Not meaningfully: the repository guard skips the job, and publishing needs GitHub's OIDC token, the environment's approval and npm's trusted publisher. The build it runs is `npm run create:build`, which runs locally. | OIDC, approval, provenance, the publish |

@@ -139,7 +139,7 @@ the latest `vX.Y.Z` tag and groups them by type:
    backlog header says (`**Won't do.**`); any other goes to a later version. Nothing is committed
    after the release: merge the items first, then this pull request. After the squash merge, check
    out the resulting commit on `main` and run `npm run release:check`: a clean tree, the versions,
-   the backlog section, `npm audit` for critical advisories, which needs the npm registry, and
+   the backlog section, `npm audit` for high and critical advisories, which needs the npm registry, and
    the history scans, which need gitleaks, as `scripts/release-check.mjs` describes. It stops at
    the first failure and says what to fix. Then tag that commit as `v<x.y.z>` and push the tag, with the owner's approval
    ([AGENTS.md](AGENTS.md)).
