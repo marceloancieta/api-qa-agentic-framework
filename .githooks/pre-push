@@ -9,8 +9,9 @@ fi
 
 # Tags on commits the remote already has carry nothing new, so the gates have nothing to check
 # (GATE-33). git passes the remote's name, and one line per ref on stdin. Being a tag is not enough:
-# one on a local commit would publish that commit unchecked. Anything rev-list cannot answer, such
-# as a deleted tag or a remote given by URL, which has no remote-tracking refs, runs the gates.
+# one on a local commit would publish that commit unchecked. A deleted tag, a tag of a non-commit,
+# and a tag pushed to a remote given by URL, whose commits no remote-tracking ref reaches, run the
+# gates.
 remote=$1
 
 known_tag() {

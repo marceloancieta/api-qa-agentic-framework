@@ -28,6 +28,7 @@ Each fact below has one owner. Other files link to it or name it; they never res
 | Defect classes and severity | `docs/references/defect-rubric.md` |
 | How to complete a contract and choose techniques | `docs/references/contract-analysis.md` |
 | Quality gate thresholds | `qa-config` `quality_gate`; meaning in `docs/quality-gates.md` |
+| The `npm audit` level of `release:check` and `audit:new` | `AUDIT_LEVEL` in `scripts/lib/audit.mjs`; meaning in `docs/ci-security.md` |
 | Auth strategies | `helpers/auth.ts` (`createAuth`); config shape in `schemas/qa-config.schema.json` |
 | Where an API departs from its contract | `services/<pack>/docs/contract-notes.md` |
 | Whether a cited issue is still open | the tracker itself, re-read by `npm run cited:status` (L-11) |
@@ -71,6 +72,8 @@ A disagreement between two files about a fact missing from this table means the 
 | an agent in `.claude/agents/` | `CLAUDE.md` (the agents table), the skills that launch it, `scripts/__tests__/agent-guide.test.mjs` |
 | `.githooks/`, or when the gates must run | `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md` (step 3 and the hooks table), `README.md`, `docs/onboarding.md`, `docs/quality-gates.md`, `docs/guides/add-a-test-case.md` |
 | `docs/templates/service-skill.md` or `SKILL_PHASES` in `scripts/lint-docs.mjs` | `scripts/scaffold-service.mjs`, `qa-intake`, `qa-design`, `qa-automate`, `docs/guides/add-a-service-pack.md` |
+| a workflow in `.github/workflows/` (new, removed, or a changed trigger or required job) | its table in `docs/ci.md` or `docs/ci-security.md`, the act tables there, `.github/review-rubric.md` (what CI already enforces), the CI line of `README.md` (optional pieces), `.github/rulesets/main.json` and `scripts/__tests__/ruleset.test.mjs` when a required check changes |
+| a community file (`SECURITY.md`, `CODE_OF_CONDUCT.md`, the README badges, `.github/ISSUE_TEMPLATE/`) | `scripts/__tests__/community-files.test.mjs`, step 5 of the adoption pull request in `docs/guides/adopt-the-template.md`, the "Then" list of `packages/create-api-qa/README.md` |
 | a variable in `.env.example` or qa-config | `README.md` setup, the docs that name it, `schemas/qa-config.schema.json` |
 | an auth strategy in `helpers/auth.ts` | `helpers/config.ts` (`AuthConfig`, `requiredEnvVars`), `scripts/lib/auth-tokens.mjs` (`variablesOf` and `laneCredential`, for the lanes), `scripts/perf-lane.mjs` (`TOKEN_TYPES`), `schemas/qa-config.schema.json`, `docs/guides/add-a-service-pack.md` (the strategy table), `scripts/scaffold-service.mjs` (the `auth` it suggests), `docs/quality-gates.md` (credentials in the lanes) |
 

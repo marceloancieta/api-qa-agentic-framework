@@ -10,9 +10,9 @@ framework release (the [`create-api-qa`](../../packages/create-api-qa/README.md)
 unpacks the release, starts your own backlog with `REPO-01` naming the release and its commit,
 reduces the changelog to its header, names the package after the directory at version `0.0.0`,
 makes the first commit on `main` and runs `npm ci`. Then create the GitHub repository from that
-clone and continue with step 2. Of step 3 two things remain, since there is no adoption pull
-request: add your copyright line to `NOTICE`, and move `REPO-01` to **Done** with the hash of that
-first commit.
+clone and continue with step 2. Of step 3 three things remain, since there is no adoption pull
+request: add your copyright line to `NOTICE`, point the community files at your project (item 5),
+and move `REPO-01` to **Done** with the hash of that first commit.
 
 The copy is yours from the start. Nothing links it back to the framework, so removing it, or the
 framework no longer being a template, changes nothing in a copy that already exists.
@@ -89,14 +89,8 @@ reporting for it (`404`). Without the ruleset nothing on GitHub stops a direct p
 failing checks: the local `git-policy` hook still checks commits (`npm run hooks:install`), and the
 rest is review discipline. Make the repository public, or move it to a paid plan, to have the
 rules enforced. Without private vulnerability reporting, point `SECURITY.md` and the security
-paragraph of `CONTRIBUTING.md` at a private channel of your own.
-
-Three files name the framework's repository or its owner, and a copy, from the template or from
-`npm create api-qa`, carries them unchanged: the enforcement contact in `CODE_OF_CONDUCT.md`, the
-badges at the top of `README.md` (they read this repository and the `create-api-qa` package), and
-the links in `.github/ISSUE_TEMPLATE/config.yml`. Point them at your repository and a contact of
-your own: `scripts/__tests__/community-files.test.mjs` keeps these files present and filled in, but
-it cannot tell whose repository they name.
+paragraph of `CONTRIBUTING.md` at a private channel of your own; the
+[adoption pull request](#3-the-adoption-pull-request) makes the rest of the community files yours.
 
 Then decide on the parts that depend on the repository ([CI security](../ci-security.md)):
 
@@ -149,8 +143,18 @@ Set up the clone first, as in the [README](../../README.md#first-10-minutes): `n
    `npm install --package-lock-only`, so `package-lock.json` carries the same name and version.
 4. **Keep `LICENSE` and `NOTICE`.** The framework is under the Apache License 2.0, and a work
    derived from it carries both files. Add your own copyright line to `NOTICE` for what you add.
-5. **Run the gates.** `npm run gates` passes with no other change.
-6. **Open the pull request** titled `chore(repo): REPO-01 adopt the template`. Once it is merged,
+5. **Make the community files yours.** A copy, from the template or from `npm create api-qa`,
+   carries unchanged the files that speak for the framework's owner: `SECURITY.md` (its reporting
+   channel, a response target for one maintainer, its scope and the safeguard of publishing
+   `create-api-qa`), the enforcement contact in `CODE_OF_CONDUCT.md`, the badges at the top of
+   `README.md` (they read the framework's repository and the `create-api-qa` package) and the links
+   in `.github/ISSUE_TEMPLATE/config.yml`. Point them at your repository and a contact of your own.
+   `scripts/__tests__/community-files.test.mjs` checks their shape, not whose repository they name;
+   if your files take another shape, change the test with them. The repository guard of
+   `.github/workflows/publish.yml`, the `repository` of `packages/create-api-qa/package.json` and
+   the `$id` of `schemas/qa-config.schema.json` name the framework on purpose: keep them.
+6. **Run the gates.** `npm run gates` passes with no other change.
+7. **Open the pull request** titled `chore(repo): REPO-01 adopt the template`. Once it is merged,
    move `REPO-01` to **Done** with the merge commit, in a later pull request, as the backlog header
    describes.
 

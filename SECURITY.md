@@ -58,18 +58,22 @@ Out of scope:
 - **gitleaks** scans every commit before it is made, once the git hooks are installed
   ([git hooks](CONTRIBUTING.md#git-hooks)), and the secret-scan workflow scans the whole history of every branch and tag
   ([secret scan](docs/ci-security.md#secret-scan), [`scripts/secret-scan.mjs`](scripts/secret-scan.mjs)).
-- **A local denylist scan** keeps terms a contributor must never publish out of commits and their
-  messages, through the same hooks ([optional pieces](README.md#optional-pieces),
-  [`scripts/scan-denylist.mjs`](scripts/scan-denylist.mjs)). The list itself lives only on the
-  maintainer's machine.
+- **A local denylist scan** keeps terms you must never publish out of your commits and their
+  messages, through the same hooks, once you keep a list in `.git/info/denylist`
+  ([optional pieces](README.md#optional-pieces),
+  [`scripts/scan-denylist.mjs`](scripts/scan-denylist.mjs)). Each contributor keeps their own
+  list, which git never tracks; without one the hooks pass with a notice, and CI cannot run the
+  scan.
 - **Evidence is redacted.** Every request and response attached to a result goes through the
   redaction of [`helpers/redact.ts`](helpers/redact.ts) first ([`helpers/evidence.ts`](helpers/evidence.ts)).
-- **CodeQL** analyses the JavaScript and TypeScript on every pull request and weekly
+- **CodeQL** analyses the JavaScript and TypeScript on every push and pull request to `main`, and
+  weekly
   ([CodeQL](docs/ci-security.md#codeql)).
 - **`create-api-qa` is published from CI with OIDC** (npm trusted publishing, no stored token) and
   with provenance that links the package to its workflow run and tagged commit
   ([`publish.yml`](.github/workflows/publish.yml),
   [publishing create-api-qa](docs/ci-security.md#publishing-create-api-qa)).
-- **The supply chain is pinned and least-privileged**: actions pinned by commit SHA, workflow
-  permissions granted per job, Dependabot updates and an audit of each lockfile change
+- **The supply chain is pinned and least-privileged**: actions pinned by commit SHA, read-only
+  workflow permissions by default and granted per job in the security workflows, Dependabot
+  updates and an audit of each lockfile change
   ([CI security](docs/ci-security.md)).

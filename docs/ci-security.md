@@ -43,10 +43,10 @@ the comments in step.
 - **Advisories.** Version updates wait out the cooldown and only move direct dependencies, so a
   security fix in a package another one brings in can sit in the lockfile unnoticed (CI-12 found
   a critical `handlebars` advisory through `allure` that way). `npm run release:check` therefore
-  runs `npm audit` at `AUDIT_LEVEL` (`scripts/lib/audit.mjs`) before every release, because a
-  release hands its lockfile to every copy. Between releases, Dependabot security alerts and
-  security updates report and fix them as they appear; they are repository settings under
-  **Settings** > **Code security**, off until someone turns them on.
+  runs `npm audit` at `AUDIT_LEVEL` (`scripts/lib/audit.mjs`; that severity and above) before
+  every release, because a release hands its lockfile to every copy. Between releases, Dependabot
+  security alerts and security updates report and fix them as they appear; they are repository
+  settings under **Settings** > **Code security**, off until someone turns them on.
 - **A pull request that changes the lockfile.** A plain audit on pull requests would fail them for
   every advisory published that day, whatever they change. `npm run audit:new -- --base <commit>`
   audits both lockfiles at the same moment and fails only on what the base does not have, at the
@@ -106,7 +106,7 @@ the comments in step.
   secret, add its fingerprint to a `.gitleaksignore` file in the same pull request, so the exception
   is reviewed. A real secret is revoked first; removing it from history comes second.
 - **The denylist scan cannot run in CI.** `scripts/scan-denylist.mjs` reads `.git/info/denylist`,
-  which exists only on the maintainer's machine and is never committed. CI runs only its self-test,
+  which each contributor keeps on their own machine and never commits. CI runs only its self-test,
   inside `npm run gates`.
 - **Enable or remove.** Nothing to configure; disable the workflow under **Actions** to stop it
   (deleting the file breaks the doc links that cite it, as for CodeQL). An ARM runner would need

@@ -21,7 +21,7 @@ that owns the detail.
 | `qa-config.example.json` | The example configuration: environments with one entry per pack (base URL, contract URL, auth, actors), test-management and tracker providers, policies, quality gate. A per-machine `qa-config.json` overrides it. | when a key is added |
 | `.claude/` | The agentic process: `rules/`, `skills/`, `agents/`, `hooks/` and their registration in `settings.json`. | when the process changes |
 | `.githooks/` | The git hooks: secret scan before a commit, gates before a push. | rarely |
-| `.github/` | The CI workflows, Dependabot and the review rubric. | when CI changes |
+| `.github/` | The CI workflows, Dependabot, the branch ruleset, the review rubric, and the pull-request template and issue forms. | when CI changes |
 | `docs/` | Reference pages, ADRs, lessons learned, the backlog, the templates the phases fill in, the tracked contract digests (`docs/discovery/`) and the example's local tracker (`docs/tracker/local/`). | with the change it documents |
 
 The core never imports from a pack. That boundary and the layers
