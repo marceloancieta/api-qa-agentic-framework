@@ -135,14 +135,15 @@ the latest `vX.Y.Z` tag and groups them by type:
 4. Open a pull request titled `docs(changelog): <BACKLOG-ID> release <x.y.z>` with those changes,
    the version's section of the [backlog](docs/backlog.md) saying "Released as `v<x.y.z>`" (the
    words `release:check` looks for), and every item closed since the last release moved to
-   **Done** with its closing commit, the item merged just before the release included. An item that will not be done moves to **Done** as well, as the
-   backlog header says (`**Won't do.**`); any other goes to a later version. Nothing is committed
-   after the release: merge the items first, then this pull request. After the squash merge, check
-   out the resulting commit on `main` and run `npm run release:check`: a clean tree, the versions,
-   the backlog section, `npm audit` for high and critical advisories, which needs the npm registry, and
-   the history scans, which need gitleaks, as `scripts/release-check.mjs` describes. It stops at
-   the first failure and says what to fix. Then tag that commit as `v<x.y.z>` and push the tag, with the owner's approval
-   ([AGENTS.md](AGENTS.md)).
+   **Done** with its closing commit, the item merged just before the release included. An item
+   that will not be done moves to **Done** as well, as the backlog header says (`**Won't do.**`);
+   any other goes to a later version. Nothing is committed after the release: merge the items
+   first, then this pull request. After the squash merge, check out the resulting commit on
+   `main` and run `npm run release:check`: a clean tree, the versions, the backlog section,
+   `npm audit` for high and critical advisories, which needs the npm registry, and the history
+   scans, which need gitleaks, as `scripts/release-check.mjs` describes. It stops at the first
+   failure and says what to fix. Then tag that commit as `v<x.y.z>` and push the tag, with the
+   owner's approval ([AGENTS.md](AGENTS.md)).
 5. In the framework's repository only, the tag starts `.github/workflows/publish.yml`, which
    publishes `create-api-qa` from it ([CI security](docs/ci-security.md#publishing-create-api-qa));
    in a copy the job is skipped. It waits in the `npm` environment until the owner approves the
