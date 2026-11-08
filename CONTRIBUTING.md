@@ -3,7 +3,8 @@
 Thank you for helping. This page covers how to propose a change, what a change must pass, and how
 to report a problem. If you are new to the repository, take the [onboarding tour](docs/onboarding.md)
 first; [`AGENTS.md`](AGENTS.md) lists the rules that apply to every change, whoever or whatever
-writes it.
+writes it. Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md), and a security
+problem is reported privately, as the [security policy](SECURITY.md) describes.
 
 ## Before you start
 

@@ -1,0 +1,28 @@
+name: Feature request
+description: A change that has no backlog row yet.
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Describe the problem first; the maintainer adds or names the backlog item it belongs to
+        (see CONTRIBUTING.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would solve it
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried or considered instead
+    validations:
+      required: false
