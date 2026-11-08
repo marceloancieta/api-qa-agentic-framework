@@ -111,6 +111,8 @@
     "@allurereport/web-commons": {
       "dompurify": "3.4.17"
     },
+    "glob": "14.0.4",
+    "minimatch": "11.0.5",
     "typed-rest-client": {
       "qs": "6.16.1"
     }

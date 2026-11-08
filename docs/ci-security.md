@@ -57,6 +57,11 @@ the comments in step.
   one that brings it in asks for a vulnerable one. `@allurereport/web-commons` 3.21.0 pins
   `dompurify` 3.4.16, so an update of `allure` took the lockfile back to it (CI-19): delete that
   override when an `allure` release that asks for `dompurify` 3.4.17 or later passes the cooldown.
+  `minimatch` before 11.0.1 has a denial-of-service advisory (GHSA-g3hv-75wg-m249) that 10.x does
+  not patch, while `eslint`, `typescript-eslint` and Stryker ask for 10.x, and the `glob` 13 that
+  `allure` asks for cannot work with 11. So `minimatch` is held at 11.0.5 and `glob` at 14.0.4
+  (CI-21). The lint, mutation and Allure report runs gave the same results with them. Delete each
+  override when the packages that bring it in ask for that major release themselves.
 - **Not covered.** The gitleaks version and checksum in `.github/workflows/secret-scan.yml` are
   plain values that Dependabot does not read; update them by hand (below).
 - **Enable or remove.** The file takes effect when it reaches the default branch. Delete it to stop
