@@ -28,6 +28,8 @@ A comment that restates one of these is noise; when one fails, CI already says s
 - **`.github/workflows/codeql.yml`**: CodeQL `security-extended` queries on the JavaScript and
   TypeScript code.
 - **`.github/workflows/secret-scan.yml`**: gitleaks over the full history.
+- **`.github/workflows/audit.yml`**: `npm audit` advisories that a pull request's lockfile adds
+  over its base, on pull requests that change `package.json`, the lockfile or the audit itself.
 - **`.github/dependabot.yml`**: outdated npm packages and actions.
 
 Not enforced anywhere in CI: the private denylist scan (it runs only on contributors' machines, each with their own list),

@@ -12,7 +12,7 @@ Runs before a push ([`pre-push` hook](../CONTRIBUTING.md#git-hooks)) and needs n
 |---|---|
 | `lint`, `format:check`, `types:check` | ESLint, Prettier (`npm run format` rewrites the files it reports; the check keeps a content cache under `node_modules/.cache`, so unchanged files are not read again), TypeScript |
 | `config:check` | qa-config against its schema, plus cross-field rules |
-| `test:hooks`, `test:scripts` | the Claude Code hooks and every script and library; `test:scripts` runs every suite once under a decoy of the variables a git hook exports, and fails when a git command changed the decoy repository (`scripts/test-scripts.mjs`) |
+| `test:hooks`, `test:scripts` | the Claude Code hooks, every script and library, and the community files (`scripts/__tests__/community-files.test.mjs`); `test:scripts` runs every suite once under a decoy of the variables a git hook exports, and fails when a git command changed the decoy repository (`scripts/test-scripts.mjs`) |
 | `contract:check` | tracked digest, probe matrix, value sets and decision tables are current ([contract tooling](contract-tooling.md)) |
 | `lint:qa` | `lint-harness`, `lint-suite`, `lint-docs`, `lint-layers` on the repository, then each linter's self-test (`lint:self-test`) |
 | `coverage:status` | every registry row against the specs and the latest run of its spec |

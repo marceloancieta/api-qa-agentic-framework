@@ -302,9 +302,10 @@ The job uploads `reports/diff/` as `diff-petstore-<attempt>`.
 
 The branch ruleset, `.github/rulesets/main.json`, lists the checks a pull request needs before it
 merges: `title`, `gates`, `e2e (petstore)`, `e2e (vampi)` and the jobs of `dast.yml` but
-`dast (keycloak)` (CI-11). The `e2e (keycloak)`, `dast (keycloak)`, `perf.yml` and `diff.yml` jobs
-are not required; the last two run on the pull
-requests that touch their `paths` and every week.
+`dast (keycloak)` (CI-11). The `e2e (keycloak)`, `dast (keycloak)`, `perf.yml`, `diff.yml` and `audit.yml` jobs
+are not required; `perf.yml` and `diff.yml` run on the pull requests that touch their `paths` and
+every week, and `audit.yml` only on the pull requests that touch its `paths`
+([CI security](ci-security.md)).
 
 A required check that never reports leaves the pull request waiting, so:
 

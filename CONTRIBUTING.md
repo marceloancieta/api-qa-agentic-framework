@@ -77,7 +77,7 @@ The existing linters and their fixtures in `scripts/__fixtures__/` are the examp
 |---|---|---|
 | `pre-commit` | gitleaks on the staged changes, then the local denylist scan on them | Fails when gitleaks is not installed, because a scan that did not run must not pass. `git commit --no-verify` skips it once, knowing what you skip. |
 | `commit-msg` | the local denylist scan on the message | Passes with a notice when there is no denylist. |
-| `pre-push` | `npm run gates` | The same gate CI runs. A push of only tags on commits the remote already has skips it, because nothing new leaves; a tag on a local commit does not. `QA_NO_GATES=1` skips it for one push. |
+| `pre-push` | `npm run gates` | The same gate CI runs. A push of only tags on commits the remote already has, as its remote-tracking refs show, skips it, because nothing new leaves; a tag on a local commit does not. `QA_NO_GATES=1` skips it for one push. |
 
 A hook exports git's own variables (`GIT_DIR`, `GIT_INDEX_FILE`, `GIT_WORK_TREE`) to what it runs,
 and from a linked worktree they point at that worktree's repository. A script or test that runs git
@@ -141,10 +141,12 @@ the latest `vX.Y.Z` tag and groups them by type:
    any other goes to a later version. Nothing is committed after the release: merge the items
    first, then this pull request. After the squash merge, check out the resulting commit on
    `main` and run `npm run release:check`: a clean tree, the versions, the backlog section,
-   `npm audit` for high and critical advisories, which needs the npm registry, and the history
-   scans, which need gitleaks, as `scripts/release-check.mjs` describes. It stops at the first
-   failure and says what to fix. Then tag that commit as `v<x.y.z>` and push the tag, with the
-   owner's approval ([AGENTS.md](AGENTS.md)).
+   `npm audit` at `AUDIT_LEVEL` (`scripts/lib/audit.mjs`), which needs the npm registry, and the
+   history scans, which need gitleaks, as `scripts/release-check.mjs` describes. It stops at the
+   first failure and says what to fix. No script reads the open code-scanning alerts, so read the
+   repository's **Security** tab as well: a new alert for a finding dismissed before needs the
+   same review again ([CodeQL](docs/ci-security.md#codeql)). Then tag that commit as `v<x.y.z>`
+   and push the tag, with the owner's approval ([AGENTS.md](AGENTS.md)).
 5. In the framework's repository only, the tag starts `.github/workflows/publish.yml`, which
    publishes `create-api-qa` from it ([CI security](docs/ci-security.md#publishing-create-api-qa));
    in a copy the job is skipped. It waits in the `npm` environment until the owner approves the

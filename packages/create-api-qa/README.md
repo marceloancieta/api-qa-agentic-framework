@@ -36,6 +36,9 @@ npm create api-qa <directory> -- [--name <package-name>] [--skip-git] [--skip-in
 
 - add your copyright line to `NOTICE` for what you add (step 3), and move `REPO-01` to **Done**
   with the hash of the first commit;
+- point the community files at your project: `SECURITY.md`, the contact in `CODE_OF_CONDUCT.md`,
+  the badges of `README.md` and the links in `.github/ISSUE_TEMPLATE/config.yml` still speak for
+  the framework (step 3);
 - create the GitHub repository from the new clone and set it up (step 2);
 - add your first API as a service pack with `npm run scaffold:service`
   (`docs/guides/add-a-service-pack.md`).
