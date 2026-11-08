@@ -6,8 +6,9 @@ happens, and points to the part of the framework that guards against it (**Guard
 kept only in prose tends to be forgotten at the moment it matters, so wherever possible the guard is a
 check rather than a sentence.
 
-Normative principles become rules in `.claude/rules/`. Work they imply is tracked in
-[`backlog.md`](backlog.md) by the `L-NN` id.
+Normative principles become rules in `.claude/rules/`. Work they imply opens a row in
+[`backlog.md`](backlog.md) with the `L-NN` id as its Origin. Origin belongs to open rows and is left
+out of **Done**, so a finished row no longer names its lesson.
 
 ## The central idea
 
@@ -114,7 +115,9 @@ assert another. *Guarded by:* the `api-spec-reviewer` agent comparing title and 
 
 **L-22 - Derive case identity from a business key.** Default identities hash the file path and describe
 blocks, so moving or renaming code creates duplicates. Use `<service>-<version>-<case id>`, which also
-keeps ids unique across API versions. *Guarded by:* `caseIdentity` and an identity-format check.
+keeps ids unique across API versions. *Guarded by:* `caseIdentity`, whose format
+`helpers/__tests__/case-meta.spec.ts` tests; `coverage-status`, which requires an automated case to
+have exactly one test whose title starts with its id.
 
 **L-23 - Command-line flags can change what gets recorded.** `--reporter` replaces the configured
 reporters, and `--list` emits placeholder results without running setup. The configuration guards
@@ -133,7 +136,7 @@ the workaround is permanent. *Guarded by:* `cited-status` reading "until X ships
 
 **L-27 - Control randomness and time.** Unseeded random data and fixed sleeps are leading causes of
 flaky tests. Fixtures supply a seeded generator and a controllable clock, and the seed is printed when
-a test fails. *Guarded by:* RNG and clock fixtures, anti-flake lane.
+a test fails. *Guarded by:* the `rng` and `clock` fixtures; `flake-lane`.
 
 ## D. Contract and drift
 
@@ -150,7 +153,7 @@ low-severity drift category. *Guarded by:* digest.
 
 **L-31 - A contract change triggers the affected tests.** Diffing the spec is not enough; the published
 cases touching changed operations must run, and ordinary published cases need periodic re-runs as well.
-*Guarded by:* published-case lane.
+*Guarded by:* `published-lane`.
 
 **L-32 - Specs can contain invalid content.** A malformed regular expression must not crash the tooling;
 report it and continue. *Guarded by:* normalizer.
