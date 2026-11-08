@@ -91,6 +91,13 @@ rest is review discipline. Make the repository public, or move it to a paid plan
 rules enforced. Without private vulnerability reporting, point `SECURITY.md` and the security
 paragraph of `CONTRIBUTING.md` at a private channel of your own.
 
+Three files name the framework's repository or its owner, and a copy, from the template or from
+`npm create api-qa`, carries them unchanged: the enforcement contact in `CODE_OF_CONDUCT.md`, the
+badges at the top of `README.md` (they read this repository and the `create-api-qa` package), and
+the links in `.github/ISSUE_TEMPLATE/config.yml`. Point them at your repository and a contact of
+your own: `scripts/__tests__/community-files.test.mjs` keeps these files present and filled in, but
+it cannot tell whose repository they name.
+
 Then decide on the parts that depend on the repository ([CI security](../ci-security.md)):
 
 - **CodeQL** runs free on a public repository. A private one needs GitHub's code security licence,

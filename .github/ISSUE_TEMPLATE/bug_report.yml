@@ -1,0 +1,42 @@
+name: Bug report
+description: A wrong result, a check that misses a defect or flags correct code, a broken command, unclear documentation.
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        For a problem in the framework itself. A defect in an API you test belongs to that API's
+        tracker, and a security problem is reported privately (see SECURITY.md), never here. Replace
+        any credential, host or personal data with a placeholder.
+  - type: input
+    id: version
+    attributes:
+      label: Release or commit
+      description: The framework release tag or the commit you ran.
+    validations:
+      required: true
+  - type: textarea
+    id: ran
+    attributes:
+      label: What you ran
+      description: The command or the steps, and the pack and environment if one was involved.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: The output, with credentials, hosts and personal data replaced by placeholders.
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and Node.js version

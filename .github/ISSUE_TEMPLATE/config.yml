@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/marceloancieta/api-qa-agentic-framework/security/policy
+    about: Report it privately as the security policy describes, never in a public issue.
+  - name: A defect in an API you test
+    url: https://github.com/marceloancieta/api-qa-agentic-framework/blob/main/CONTRIBUTING.md#reporting-a-problem
+    about: It belongs to that API's tracker; the contributing guide says how to triage and file it.

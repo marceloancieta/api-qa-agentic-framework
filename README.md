@@ -1,5 +1,11 @@
 # API QA Agentic Framework
 
+[![CI](https://github.com/marceloancieta/api-qa-agentic-framework/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marceloancieta/api-qa-agentic-framework/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/marceloancieta/api-qa-agentic-framework/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/marceloancieta/api-qa-agentic-framework/actions/workflows/codeql.yml)
+[![npm](https://img.shields.io/npm/v/create-api-qa)](https://www.npmjs.com/package/create-api-qa)
+[![Node](https://img.shields.io/node/v/create-api-qa)](packages/create-api-qa/package.json)
+[![License](https://img.shields.io/github/license/marceloancieta/api-qa-agentic-framework)](LICENSE)
+
 A framework for testing HTTP APIs from their contract. It reads an OpenAPI or Swagger document,
 helps you design reviewable test cases from it, runs them as Playwright specs written in TypeScript,
 and reports results to a test-management tool and defects to an issue tracker. On top of that it
@@ -28,6 +34,17 @@ requests to two deployments of a pack and reports every difference ([lanes](docs
 
 The project is before 1.0: names and formats can still change between minor versions. Architecture
 decisions are recorded in [`docs/adr/`](docs/adr/README.md).
+
+## Contents
+
+- [First 10 minutes](#first-10-minutes)
+- [Running tests](#running-tests)
+- [Adoption levels](#adoption-levels)
+- [Spec-version compatibility](#spec-version-compatibility)
+- [Optional pieces](#optional-pieces)
+- [Documentation](#documentation)
+- [Community](#community)
+- [License](#license)
 
 ## First 10 minutes
 
@@ -288,8 +305,17 @@ None of these is needed for a green run. Turn on what your project uses.
 | [ADRs](docs/adr/README.md) | the decisions behind the structure |
 | [Backlog](docs/backlog.md) | open work |
 | [Changelog](CHANGELOG.md) | what each release contains |
-| [CONTRIBUTING](CONTRIBUTING.md) | how to propose a change |
-| [SECURITY](SECURITY.md) | how to report a security problem privately |
+
+## Community
+
+| Read | For |
+|---|---|
+| [CONTRIBUTING](CONTRIBUTING.md) | how to propose a change and how to report a problem |
+| [Code of conduct](CODE_OF_CONDUCT.md) | how everyone taking part behaves, and whom to contact when someone does not |
+| [SECURITY](SECURITY.md) | how to report a security problem privately, what is in scope, and the safeguards in place |
+
+Issues open from a form ([bug report or feature request](.github/ISSUE_TEMPLATE/)); a security
+problem never goes into an issue.
 
 ## License
 
