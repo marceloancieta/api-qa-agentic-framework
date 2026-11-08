@@ -169,6 +169,14 @@ export function createProject(
   return done;
 }
 
+/** The community files that speak for the framework until a project points them at itself. */
+export const COMMUNITY_FILES = [
+  'SECURITY.md',
+  'CODE_OF_CONDUCT.md',
+  'README.md',
+  '.github/ISSUE_TEMPLATE/config.yml',
+];
+
 export function nextSteps({ dir, installed }) {
   return [
     '',
@@ -182,6 +190,11 @@ export function nextSteps({ dir, installed }) {
     'Then set up the GitHub repository (rules, squash merges, required checks) as in',
     'docs/guides/adopt-the-template.md, step 2, and add your first pack with',
     '`npm run scaffold:service` (docs/guides/add-a-service-pack.md).',
+    '',
+    "Before anyone else reads the repository, make the community files yours (the guide's",
+    'step 3, item 5). Until then the security policy, the code-of-conduct contact, the badges',
+    "and the issue-form links in these files are the framework's:",
+    `  ${COMMUNITY_FILES.join(', ')}`,
   ].join('\n');
 }
 
