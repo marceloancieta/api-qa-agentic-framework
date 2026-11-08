@@ -74,5 +74,6 @@ Out of scope:
   ([`publish.yml`](.github/workflows/publish.yml),
   [publishing create-api-qa](docs/ci-security.md#publishing-create-api-qa)).
 - **The supply chain is pinned and least-privileged**: actions pinned by commit SHA, read-only
-  workflow permissions by default and granted per job in the security workflows, Dependabot updates and an audit of each lockfile change
+  workflow permissions by default and granted per job in the security workflows, Dependabot
+  updates and an audit of each lockfile change
   ([CI security](docs/ci-security.md)).

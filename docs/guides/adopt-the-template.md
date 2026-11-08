@@ -10,9 +10,9 @@ framework release (the [`create-api-qa`](../../packages/create-api-qa/README.md)
 unpacks the release, starts your own backlog with `REPO-01` naming the release and its commit,
 reduces the changelog to its header, names the package after the directory at version `0.0.0`,
 makes the first commit on `main` and runs `npm ci`. Then create the GitHub repository from that
-clone and continue with step 2. Of step 3 two things remain, since there is no adoption pull
-request: add your copyright line to `NOTICE`, and move `REPO-01` to **Done** with the hash of that
-first commit.
+clone and continue with step 2. Of step 3 three things remain, since there is no adoption pull
+request: add your copyright line to `NOTICE`, point the community files at your project (item 5),
+and move `REPO-01` to **Done** with the hash of that first commit.
 
 The copy is yours from the start. Nothing links it back to the framework, so removing it, or the
 framework no longer being a template, changes nothing in a copy that already exists.
