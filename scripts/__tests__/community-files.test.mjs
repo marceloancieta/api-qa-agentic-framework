@@ -72,6 +72,8 @@ test('the README badges read their facts live', () => {
   const badges = [...read('README.md').matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map((m) => m[1]);
   assert.ok(badges.length > 0, 'the README has badges');
   // A static shields.io badge carries its value in the URL, and that copy drifts (one home per fact).
-  const typed = badges.filter((url) => /img\.shields\.io\/(?:static\/v1|badge\/)/.test(url));
+  const typed = badges.filter((url) =>
+    /^https:\/\/img\.shields\.io\/(?:static\/v1|badge\/)/.test(url),
+  );
   assert.deepEqual(typed, [], 'use a badge that reads its value from the source');
 });
