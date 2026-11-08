@@ -11,7 +11,8 @@ commits and docs stay valid.
   reason, closed by the commit that recorded the decision.
 - **Origin**: `L-NN` = a lesson in `docs/lessons-learned.md`; `exp` = field
   experience; `practice` = an established industry practice; `plan` = this project's roadmap;
-  `ADR NNNN` = a recorded decision.
+  `ADR NNNN` = a recorded decision. Origin belongs to open rows and is left out of **Done**: a
+  finished row keeps its id and gains its closing commit, and the commit says what the work was.
 - **Prefixes**: `REPO` repository setup · `<PACK>` one prefix per service pack, as in `PET` ·
   add your own.
 - **Sections**: open rows sit under the version that delivers them. `npm run release:check` reads
