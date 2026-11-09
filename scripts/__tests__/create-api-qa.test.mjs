@@ -12,8 +12,10 @@ import { buildPackage, PACKAGE_DIR } from '../build-create-package.mjs';
 import {
   adoptBacklog,
   changelogHeader,
+  COMMUNITY_FILES,
   createProject,
   main,
+  nextSteps,
   projectName,
   renamePackage,
 } from '../../packages/create-api-qa/lib/create.mjs';
@@ -254,6 +256,19 @@ test('the CLI prints its usage without one directory, and the package version fo
   assert.equal(main([], { packageDir: PACKAGE_DIR, log: (line) => lines.push(line) }), 2);
   assert.equal(main(['--help'], { packageDir: PACKAGE_DIR, log: (line) => lines.push(line) }), 0);
   assert.match(lines[0], /^Usage: npm create api-qa <directory>/);
+});
+
+test('the next steps name every community file a project must make its own, as the guide does', () => {
+  const steps = nextSteps({ dir: 'demo', installed: true });
+  const guide = readFileSync(join(REPO_ROOT, 'docs/guides/adopt-the-template.md'), 'utf8');
+  const item = guide.match(/^5\. \*\*Make the community files yours\.\*\*[\s\S]*?(?=^6\. )/m);
+  assert.ok(item, 'the guide has step 3, item 5 "Make the community files yours"');
+  for (const file of COMMUNITY_FILES) {
+    assert.ok(steps.includes(file), `the next steps name ${file}`);
+    assert.ok(item[0].includes(`\`${file}\``), `the guide's item 5 names ${file}`);
+    assert.ok(readFileSync(join(REPO_ROOT, file), 'utf8').length > 0, `${file} exists`);
+  }
+  assert.match(steps, /step 3, item 5/);
 });
 
 test('publishing refuses a package without its release files or built from another tag', () => {
