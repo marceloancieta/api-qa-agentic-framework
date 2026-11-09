@@ -5,6 +5,79 @@ All notable changes to this project are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and each section is generated from the
 commit history by `scripts/changelog.mjs`.
 
+## [0.8.0] - 2026-11-09
+
+### Upgrading from 0.7.0
+
+- **Taking this release.** `npm run framework:update -- --to v0.8.0` takes it from the release
+  `.framework-release` records. `package.json` and its lockfile conflict on your own `name` and
+  `version`, as with any release: keep yours, then run `npm install --package-lock-only` and
+  `npm ci`. The `overrides` of `package.json` now hold `dompurify` 3.4.17 under
+  `@allurereport/web-commons`, `qs` 6.16.1, `minimatch` 11.0.5 and `glob` 14.0.4: keep them all
+  ([CI security](docs/ci-security.md) says when each can go). With them `npm audit` reports nothing;
+  a copy of 0.7.0 made on 2026-11-08 reported 19 moderate and 2 high advisories. The pinned actions move too
+  (`actions/setup-node` 7.1.0, `actions/upload-artifact` 7.0.2, `github/codeql-action` 4.38.3,
+  `anthropics/claude-code-action` 1.0.248), so a workflow you changed may conflict.
+- **The community files speak for the framework's owner.** `CODE_OF_CONDUCT.md` and the issue
+  forms in `.github/ISSUE_TEMPLATE/` are new, `SECURITY.md` is rewritten and the `README.md` gains
+  badges, a table of contents and a Community section. Point the security policy, the
+  code-of-conduct contact, the badges and the links of `.github/ISSUE_TEMPLATE/config.yml` at your
+  project, as step 3, item 5 of `docs/guides/adopt-the-template.md` says. A `SECURITY.md` or
+  `README.md` of your own may conflict.
+- **A new test in the gates.** `scripts/__tests__/community-files.test.mjs` runs in
+  `test:scripts`. It checks the shape of those files, not whose repository they name: if yours
+  take another shape, change the test with them.
+- **`release:check` audits at `high`.** It failed only on critical advisories before. The level
+  is `AUDIT_LEVEL` in `scripts/lib/audit.mjs`.
+- **A new workflow, `audit.yml`.** On a pull request that changes `package.json`, the lockfile or
+  the audit scripts, it fails on an advisory at that level that the base branch does not have
+  (`npm run audit:new -- --base <commit>` runs it locally and needs the npm registry). Do not make
+  it a required check: its path filter means it does not report on every pull request.
+- **The backlog section of a release.** `release:check` reads a `## v<version>` section, and the
+  backlog of a copy started before this release has a `## Open` section instead. The update leaves
+  your `docs/backlog.md` alone: rename that heading to `## v<your next version>` by hand. The
+  template's header (`docs/templates/backlog.md`) also gains a sentence on Origin and a Sections
+  bullet, which you may copy.
+- **Pushing a tag.** The `pre-push` hook skips the gates when a push carries only tags whose
+  commits the remote-tracking refs already reach. The hooks run from `.githooks/`, so there is
+  nothing to reinstall.
+- **Before each release, read the Security tab.** No script reads the open code-scanning alerts,
+  and a dismissal covers one alert, not a finding that comes back (step 4 of the releases in
+  `CONTRIBUTING.md`).
+
+### Features
+
+- **gates:** audit at high and compare the lockfile of a pull request (#130) (GATE-32) `72bdab1`
+- **gates:** skip the gates for tags on commits the remote has (#133) (GATE-33) `b76c6ab`
+
+### Fixes
+
+- **adopt:** start a copy's backlog in the section of its first release (#132) (FUT-16) `742c946`
+- **create:** name the community files in the next steps of npm create api-qa (#138) (DOC-18) `1ea645d`
+- **deps:** take the patched dompurify, zod and qs into the lockfile (#128) (CI-19) `6ca207e`
+
+### Other
+
+- **build(deps):** hold minimatch at 11 and glob at 14 for Dependabot alert 14 (#137) (CI-21) `72a7f0a`
+- **docs(backlog):** plan v0.8.0 (#127) (DOC-15) `b01b77b`
+- **docs(backlog):** record their closing commits (#131) (CI-19, CI-20, GATE-32) `943ed22`
+- **docs(backlog):** keep the promises of the backlog and the lessons (#134) (DOC-15) `944ba37`
+- **docs(community):** add a code of conduct, issue forms, a fuller security policy and README badges (#135) (DOC-16) `49677c3`
+- **docs(review):** fix what the v0.8.0 pre-release review found (#136) (DOC-17) `a4aff6c`
+- **docs(security):** say what opens a new alert for an accepted finding (#129) (CI-20) `e916640`
+
+### Not conventional
+
+- build(deps): Bump fast-uri from 3.1.8 to 3.1.9 (#124) `9d4c430` (no backlog id after the colon)
+- build(deps-dev): Bump the npm-minor-patch group across 1 directory with 5 updates (#125) `0f51677` (no backlog id after the colon)
+- ci(deps): Bump the actions-minor-patch group with 5 updates (#123) `9679d69` (no backlog id after the colon)
+- build(deps-dev): Bump follow-redirects from 1.16.1 to 1.16.2 (#126) `2138117` (no backlog id after the colon)
+
+Dependabot updates: their titles carry no backlog id, so their pull requests skip the `title`
+check ([CI](docs/ci.md)). They move `fast-uri` to 3.1.9 and `follow-redirects` to 1.16.2, the
+development dependencies `@playwright/test` 1.64.1, `allure` 3.21.0, `eslint` 10.13.0,
+`prettier` 3.9.10 and `typescript-eslint` 8.71.2, and the pinned actions listed above.
+
 ## [0.7.0] - 2026-10-23
 
 ### Upgrading from 0.6.0
